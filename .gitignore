@@ -1,0 +1,35 @@
+# Dependency directories
+node_modules/
+/dist
+/.next
+/out
+
+# Build cache / outputs
+*.tsbuildinfo
+.npm
+.eslintcache
+
+# Sensitive Environment variables and credentials
+.env
+.env*.local
+*.pem
+*.key
+*.pub
+private.pem
+public.pem
+rsa_key*
+
+# Architecture reports, Sprints, Compliance and Incident reports
+INFORME_DE_COMPLIANCE_LOCAL_Y_ELEMENTOS_FALTANTES.md
+INFORME_DE_RESOLUCION_DE_INCIDENCIAS.md
+REPORTE_DE_RESTAURACION_COSMETICA_Y_AUTOMATIZACION.md
+SPRINT_1_DOCUMENTATION_AND_COMPLIANCE.md
+SPRINT_2_DOCUMENTATION_AND_COMPLIANCE.md
+SPRINT_3_DOCUMENTATION_AND_COMPLIANCE.md
+SPRINT_4_DOCUMENTATION_AND_COMPLIANCE.md
+SPRINT_5_DOCUMENTATION_AND_COMPLIANCE.md
+WALKTHROUGH.md
+
+# Operating System files
+.DS_Store
+Thumbs.db

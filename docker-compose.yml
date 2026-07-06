@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  database-postgres:
+    image: postgres:15-alpine
+    container_name: social_unsch_postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=social_unsch
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_unsch_data:/var/lib/postgresql/data
+    networks:
+      - social_unsch_network
+    restart: always
+
+  cache-redis:
+    image: redis:7-alpine
+    container_name: social_unsch_redis
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+    networks:
+      - social_unsch_network
+    restart: always
+
+volumes:
+  postgres_unsch_data:
+    name: postgres_unsch_data
+
+networks:
+  social_unsch_network:
+    name: social_unsch_network
+    driver: bridge

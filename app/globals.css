@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* ================================================================
+   CRIMSON HERITAGE DESIGN SYSTEM — TOKENS DE TEMA (Tailwind CSS v4)
+   Definidos via @theme para generar clases utilitarias automáticas
+   ================================================================ */
+@theme {
+  /* Paleta de colores institucionales */
+  --color-primary: #5C0000;       /* Crimson Profundo */
+  --color-secondary: #A6665C;     /* Crimson Mitigado */
+  --color-tertiary: #001586;      /* Azul Técnico */
+  --color-neutral-gray: #847370;  /* Gris Estructural */
+  --color-surface: #FFF8F6;       /* Superficies Suaves */
+
+  /* Tipografía */
+  --font-sans: var(--font-manrope), sans-serif;
+
+  /* Radios de borde */
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+html,
+body {
+  height: 100%;
+  background-color: var(--color-surface);
+}
