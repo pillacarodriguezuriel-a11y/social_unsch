@@ -20,6 +20,7 @@ export interface ProfileCardData {
   skills_offered?: string[];
   skills_needed?: string[];
   project_title?: string;
+  email?: string;
 }
 
 interface ProfileSplitCardProps {
@@ -80,7 +81,9 @@ export function ProfileSplitCard({ profile }: ProfileSplitCardProps) {
               <h2 className="text-lg font-black text-primary tracking-tight">
                 {profile.full_name}
               </h2>
-              <ShieldCheck className="w-5 h-5 text-secondary" title="Estudiante Verificado" />
+              <span title="Estudiante Verificado">
+                <ShieldCheck className="w-5 h-5 text-secondary" />
+              </span>
             </div>
             <p className="text-xs font-bold text-neutral-gray/85 mt-0.5">
               {getSchoolLabel(profile.school_id)}

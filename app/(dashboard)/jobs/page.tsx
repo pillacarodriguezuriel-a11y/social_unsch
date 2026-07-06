@@ -21,7 +21,7 @@ import { Button } from '../../../components/ui/Button';
 import { Alert } from '../../../components/ui/Alert';
 
 type JobType = 'all' | 'internship' | 'part_time' | 'full_time' | 'remote' | 'research';
-type JobArea = 'all' | 'tech' | 'admin' | 'health' | 'engineering' | 'law' | 'education';
+type JobArea = 'all' | 'tech' | 'admin' | 'health' | 'engineering' | 'law' | 'education' | 'research';
 
 interface Job {
   id: string;

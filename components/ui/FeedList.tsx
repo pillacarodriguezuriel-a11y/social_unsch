@@ -106,7 +106,9 @@ export function FeedList({ posts, onLikeToggle }: FeedListProps) {
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-extrabold text-primary">{post.author_name}</span>
-                  <ShieldCheck className="w-4 h-4 text-secondary" title="Usuario Institucional Verificado" />
+                  <span title="Usuario Institucional Verificado">
+                    <ShieldCheck className="w-4 h-4 text-secondary" />
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[10px] font-bold bg-primary/5 text-primary border border-primary/10 px-1.5 py-0.5 rounded-md">
