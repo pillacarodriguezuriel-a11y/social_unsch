@@ -5,6 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc --project tsconfig.backend.json",
+    "build:frontend": "next build",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "dev:backend": "ts-node-dev --respawn --transpile-only src/server.ts",
