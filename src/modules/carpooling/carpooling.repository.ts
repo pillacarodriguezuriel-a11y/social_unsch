@@ -107,20 +107,36 @@ export class CarpoolingRepository {
 
   /**
    * Obtiene información simplificada de un estudiante para visualización de seguridad del conductor.
+   * Utiliza la columna real 'professional_school_id' y compatibiliza 'academic_cycle' / 'current_academic_cycle'.
    */
   async getPassengerMeta(passengerId: string) {
     const query = {
       name: 'fetch-passenger-metadata',
       text: `
-        SELECT u.full_name, u.academic_cycle, ps.name as school_name
+        SELECT u.full_name, 
+               COALESCE(u.academic_cycle, u.current_academic_cycle, 1) as academic_cycle, 
+               ps.name as school_name
         FROM users u
-        LEFT JOIN professional_schools ps ON u.school_id = ps.id
+        LEFT JOIN professional_schools ps ON u.professional_school_id = ps.id
         WHERE u.id = $1
       `,
       values: [passengerId],
     };
     const result = await pool.query(query);
     return result.rows[0] || null;
+  }
+
+  /**
+   * Elimina una solicitud de asiento (usado para rollback compensatorio ante fallos).
+   */
+  async deleteRequest(requestId: string): Promise<boolean> {
+    const query = {
+      name: 'delete-carpooling-request',
+      text: 'DELETE FROM carpooling_requests WHERE id = $1',
+      values: [requestId],
+    };
+    const result = await pool.query(query);
+    return (result.rowCount ?? 0) > 0;
   }
 
   /**

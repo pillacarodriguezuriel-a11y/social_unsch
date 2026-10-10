@@ -49,29 +49,39 @@ export class CarpoolingService {
       );
     }
 
-    // 5. Crear solicitud en base de datos
-    const request = await this.carpoolingRepository.createRequest(routeId, passengerId);
+    // 5. Crear solicitud en base de datos de forma atómica y protegida
+    let request;
+    try {
+      request = await this.carpoolingRepository.createRequest(routeId, passengerId);
 
-    // 6. Obtener metadata del pasajero para el conductor
-    const passengerMeta = await this.carpoolingRepository.getPassengerMeta(passengerId);
-    
-    // Extraer solo el primer nombre
-    const firstName = passengerMeta?.full_name ? passengerMeta.full_name.split(' ')[0] : 'Estudiante';
-    const school = passengerMeta?.school_name || 'Comunidad';
-    const cycle = passengerMeta?.academic_cycle || 1;
+      // 6. Obtener metadata del pasajero para el conductor
+      const passengerMeta = await this.carpoolingRepository.getPassengerMeta(passengerId);
+      
+      // Extraer solo el primer nombre
+      const firstName = passengerMeta?.full_name ? passengerMeta.full_name.split(' ')[0] : 'Estudiante';
+      const school = passengerMeta?.school_name || 'Comunidad';
+      const cycle = passengerMeta?.academic_cycle || 1;
 
-    return {
-      request_id: request.id,
-      route_id: request.route_id,
-      status: request.status,
-      driver_alias: route.driver_alias,
-      available_seats: route.available_seats,
-      passenger_meta: {
-        first_name: firstName,
-        school: school,
-        cycle: cycle,
-      },
-    };
+      return {
+        request_id: request.id,
+        route_id: request.route_id,
+        status: request.status,
+        driver_alias: route.driver_alias,
+        available_seats: route.available_seats,
+        passenger_meta: {
+          first_name: firstName,
+          school: school,
+          cycle: cycle,
+        },
+      };
+    } catch (error) {
+      // Si ocurrió un error posterior a la creación de la solicitud, compensamos eliminando el registro
+      // para evitar estados huérfanos en la base de datos
+      if (request?.id) {
+        await this.carpoolingRepository.deleteRequest(request.id).catch(() => {});
+      }
+      throw error;
+    }
   }
 
   /**
