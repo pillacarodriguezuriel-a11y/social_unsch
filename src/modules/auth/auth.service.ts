@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import { AuthRepository, CreateUserInput } from './auth.repository';
 import { AppError } from '../../shared/errors/AppError';
 import { signAccessToken } from '../../config/jwt';
+import { assertPublicRegistrationRole } from '../../shared/auth/roles';
 
 export class AuthService {
   private authRepository = new AuthRepository();
@@ -12,6 +13,9 @@ export class AuthService {
    * y guarda el perfil del usuario.
    */
   async register(input: CreateUserInput) {
+    // Aplicar política centralizada de roles (rechaza administrator y roles desconocidos)
+    assertPublicRegistrationRole(input.role);
+
     // Verificar si el correo ya existe en la base de datos
     const existingUser = await this.authRepository.findByEmail(input.email);
     if (existingUser) {

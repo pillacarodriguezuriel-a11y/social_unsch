@@ -144,6 +144,25 @@ describe('Auth HTTP Routes — Integration', () => {
       expect(response.status).toBe(400);
     });
 
+    it('should reject role "administrator" from public registration with 400 error', async () => {
+      const response = await request(app)
+        .post('/api/v1/auth/register')
+        .send({ ...validRegisterBody, role: 'administrator' })
+        .set('Content-Type', 'application/json');
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('Los roles administrativos no pueden ser autoasignados');
+    });
+
+    it('should reject unknown role with 400 error', async () => {
+      const response = await request(app)
+        .post('/api/v1/auth/register')
+        .send({ ...validRegisterBody, role: 'superadmin' })
+        .set('Content-Type', 'application/json');
+
+      expect(response.status).toBe(400);
+    });
+
     it('should return 400 when full_name is missing', async () => {
       const { full_name, ...bodyWithoutName } = validRegisterBody;
 

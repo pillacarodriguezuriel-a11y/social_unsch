@@ -15,7 +15,7 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'student' | 'alumnus' | 'professor' | 'administrator'>('student');
+  const [role, setRole] = useState<'student' | 'alumnus' | 'professor'>('student');
   const [schoolId, setSchoolId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
