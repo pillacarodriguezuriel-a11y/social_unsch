@@ -11,10 +11,15 @@
     "dev:backend": "ts-node-dev --project tsconfig.backend.json --respawn --transpile-only src/server.ts",
     "dev:frontend": "next dev -p 3001",
     "dev:all": "node scripts/dev-all.js",
+    "db:migrate": "ts-node --project tsconfig.backend.json src/database/migrations/run_migrate.ts",
+    "db:catalogs": "ts-node --project tsconfig.backend.json src/database/migrations/run_catalogs.ts",
+    "db:seed:demo": "ts-node --project tsconfig.backend.json src/database/migrations/run_demo_seed.ts",
+    "db:migrate:status": "ts-node --project tsconfig.backend.json src/database/migrations/run_status.ts",
     "db:migrate:all": "ts-node --project tsconfig.backend.json src/database/migrations/migrate_all.ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:real": "jest --config jest.real.config.ts --runInBand"
   },
   "dependencies": {
     "axios": "^1.7.2",

@@ -12,6 +12,7 @@ async function runSeed() {
     console.log('[Seed]: Datos semilla y perfiles de prueba insertados exitosamente.');
   } catch (error) {
     console.error('[Seed]: Error al ejecutar el script de seed:', error);
+    process.exitCode = 1;
   } finally {
     await pool.end();
   }

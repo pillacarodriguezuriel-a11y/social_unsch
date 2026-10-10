@@ -18,6 +18,7 @@ async function runMigration() {
     console.log('[Migration]: Tablas de matchmaking creadas/verificadas con éxito.');
   } catch (error) {
     console.error('[Migration]: Error al ejecutar la migración:', error);
+    process.exitCode = 1;
   } finally {
     await pool.end();
   }

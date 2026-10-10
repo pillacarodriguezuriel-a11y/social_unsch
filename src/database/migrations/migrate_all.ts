@@ -1,48 +1,49 @@
-import { execSync } from 'child_process';
-import path from 'path';
+import { runMigrations } from './migrator';
+import { loadCatalogs } from './load_catalogs';
+import { pool } from '../../config/database';
 
 /**
- * Orquestador principal de migraciones de base de datos para SOCIAL-UNSCH.
- * Ejecuta de forma secuencial y cronológica cada script de migración para evitar
- * fallos de integridad referencial y dependencias de tablas (código 42P01).
+ * Orquestador principal de migraciones para SOCIAL-UNSCH (Etapa 2).
+ * Ejecuta en orden:
+ * 1. Evolución del esquema DDL (migrator.ts -> sql/*.sql) con control transaccional y schema_migrations.
+ * 2. Carga segura y no destructiva de catálogos operativos (facultades, escuelas, pabellones).
+ *
+ * NOTA DE SEGURIDAD:
+ * Los datos de demostración (demo seeds) han sido desacoplados y NO se ejecutan aquí.
+ * Para cargar datos demo en desarrollo local, ejecute: npm run db:seed:demo -- --confirm-demo.
  */
-function runMigrationStep(scriptPath: string) {
-  const resolvedPath = path.resolve(scriptPath);
-  const scriptName = path.basename(scriptPath);
-  
-  console.log(`\n[Orchestrator]: >>> Iniciando paso de migración: ${scriptName} ...`);
-  try {
-    execSync(`npx ts-node "${resolvedPath}"`, { stdio: 'inherit' });
-    console.log(`[Orchestrator]: >>> Paso completado exitosamente: ${scriptName}\n`);
-  } catch (error) {
-    console.error(`[Orchestrator]: [Error] Fallo crítico al ejecutar el paso: ${scriptName}`);
-    process.exit(1);
-  }
-}
-
-async function runAll() {
+async function runAll(): Promise<void> {
   console.log('================================================================');
   console.log(' INICIANDO CICLO DE VIDA DE MIGRACIONES - SOCIAL-UNSCH');
   console.log('================================================================');
 
-  // Paso 1: Sistema Base (Sprint 1)
-  runMigrationStep('src/database/migrations/run_migration.ts');
+  try {
+    // Paso 1: Evolución del Esquema DDL
+    console.log('\n[Orchestrator]: >>> Paso 1: Ejecutando migraciones de esquema...');
+    const migrationResult = await runMigrations();
+    console.log(
+      `[Orchestrator]: >>> Paso 1 completado. Aplicadas: ${migrationResult.applied.length}, Omitidas: ${migrationResult.skipped.length}.\n`
+    );
 
-  // Paso 2: Capa Económica (Sprint 4)
-  runMigrationStep('src/database/migrations/run_credits_migration.ts');
+    // Paso 2: Sincronización No Destructiva de Catálogos
+    console.log('[Orchestrator]: >>> Paso 2: Sincronizando catálogos canónicos...');
+    const catalogResult = await loadCatalogs();
+    console.log(
+      `[Orchestrator]: >>> Paso 2 completado exitosamente.\n`
+    );
 
-  // Paso 3: Moderación y Carpooling (Sprint 5)
-  runMigrationStep('src/database/migrations/run_moderation_migration.ts');
-
-  // Paso 4: Carga de Datos Semilla (Catálogos y Datos Demo)
-  runMigrationStep('src/database/migrations/run_seed.ts');
-
-  // Paso 5: Migración de datos canónicos y alineación con la Skill
-  runMigrationStep('src/database/migrations/run_canonical_migration.ts');
-
-  console.log('================================================================');
-  console.log(' [Éxito] ¡Base de datos completamente migrada y sembrada con éxito!');
-  console.log('================================================================');
+    console.log('================================================================');
+    console.log(' [Éxito] ¡Base de datos migrada y catálogos sincronizados con éxito!');
+    console.log('================================================================');
+  } catch (error) {
+    console.error(
+      '\n[Orchestrator]: [Error] Fallo crítico durante el proceso de migración:',
+      (error as Error).message
+    );
+    process.exitCode = 1;
+  } finally {
+    await pool.end().catch(() => {});
+  }
 }
 
 runAll();

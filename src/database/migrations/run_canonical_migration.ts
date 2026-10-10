@@ -11,6 +11,7 @@ async function runCanonicalMigration() {
     console.log('[Migration]: Datos canónicos (facultades, escuelas, pabellones, alertas de campus) creados/verificados con éxito.');
   } catch (error) {
     console.error('[Migration]: Error al ejecutar la migración canónica:', error);
+    process.exitCode = 1;
   } finally {
     await pool.end();
   }
