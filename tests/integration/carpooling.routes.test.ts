@@ -143,6 +143,17 @@ describe('Carpooling HTTP Routes — Integration', () => {
       expect(response.status).toBe(200);
     });
 
+    it('should sanitize origin_district filter with special XSS characters', async () => {
+      mockVerify.mockReturnValueOnce(passengerPayload);
+      mockQuery.mockResolvedValueOnce({ rows: [mockRouteDetail] });
+
+      const response = await request(app)
+        .get('/api/v1/carpooling?origin_district=San&<>"\'Juan')
+        .set('Authorization', 'Bearer valid.token');
+
+      expect(response.status).toBe(200);
+    });
+
     it('should return 401 ERR_AUTH_TOKEN_MISSING without token', async () => {
       const response = await request(app).get('/api/v1/carpooling');
       expect(response.status).toBe(401);
@@ -252,6 +263,17 @@ describe('Carpooling HTTP Routes — Integration', () => {
       expect(response.body.code).toBe('ERR_AUTH_TOKEN_MISSING');
     });
 
+    it('should return 401 ERR_AUTH_UNAUTHORIZED when passenger token lacks user_id', async () => {
+      mockVerify.mockReturnValueOnce({ ...passengerPayload, user_id: undefined as any });
+
+      const response = await request(app)
+        .post(`/api/v1/carpooling/${routeId}/request`)
+        .set('Authorization', 'Bearer valid.token');
+
+      expect(response.status).toBe(401);
+      expect(response.body.code).toBe('ERR_AUTH_UNAUTHORIZED');
+    });
+
     it('should return 500 on unexpected database error', async () => {
       mockVerify.mockReturnValueOnce(passengerPayload);
       mockQuery.mockRejectedValueOnce(new Error('DB crash'));
@@ -294,6 +316,19 @@ describe('Carpooling HTTP Routes — Integration', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.status).toBe('SEAT_CONFIRMED');
+    });
+
+    it('should return 401 ERR_AUTH_UNAUTHORIZED when driver token lacks user_id', async () => {
+      mockVerify.mockReturnValueOnce({ ...driverPayload, user_id: undefined as any });
+
+      const response = await request(app)
+        .patch(`/api/v1/carpooling/${routeId}/confirm`)
+        .send(validConfirmBody)
+        .set('Authorization', 'Bearer driver.token')
+        .set('Content-Type', 'application/json');
+
+      expect(response.status).toBe(401);
+      expect(response.body.code).toBe('ERR_AUTH_UNAUTHORIZED');
     });
 
     it('should return 400 when passenger_id is missing from body', async () => {

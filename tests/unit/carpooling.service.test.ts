@@ -172,6 +172,29 @@ describe('CarpoolingService', () => {
       });
     });
 
+    it('should throw AppError 400 ERR_CARPOOLING_DUPLICATE_REQUEST when repository throws code 23505', async () => {
+      const route = makeRoute({ driver_id: driverId, available_seats: 2 });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [route], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+        .mockRejectedValueOnce(Object.assign(new Error('unique violation'), { code: '23505' }));
+
+      await expect(service.requestSeat(routeId, passengerId)).rejects.toMatchObject({
+        statusCode: 400,
+        errorCode: 'ERR_CARPOOLING_DUPLICATE_REQUEST',
+      });
+    });
+
+    it('should rethrow unexpected error occurring in requestSeat transaction', async () => {
+      const route = makeRoute({ driver_id: driverId, available_seats: 2 });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [route], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+        .mockRejectedValueOnce(new Error('Fatal DB failure'));
+
+      await expect(service.requestSeat(routeId, passengerId)).rejects.toThrow('Fatal DB failure');
+    });
+
     it('should allow request if existing status is SEAT_REJECTED', async () => {
       const route = makeRoute({ driver_id: driverId, available_seats: 2 });
       const rejectedRequest = makeRequest({ status: 'SEAT_REJECTED' });

@@ -66,12 +66,32 @@ export async function releaseAdvisoryLock(client: PoolClient): Promise<void> {
 }
 
 /**
- * REQUISITOS DE CONEXIÓN PARA MIGRACIONES (UNSCH Architecture Decision):
- * - Las migraciones utilizan bloqueos consultivos de sesión (pg_try_advisory_lock).
- * - NO se debe ejecutar este migrador mediante connection poolers en modo transacción
- *   (e.g., PgBouncer en modo transaction o Supabase Transaction Pooler en puerto 6543),
- *   dado que los poolers de transacción no preservan la sesión física entre transacciones consecutivas.
- * - Se REQUIERE una conexión directa a PostgreSQL (Session Mode, puerto estándar 5432).
+ * REQUISITOS DE CONEXIÓN Y SESIÓN PARA MIGRACIONES:
+ * 
+ * 1. Estabilidad de Sesión PostgreSQL:
+ *    - El bloqueo consultivo (pg_try_advisory_lock) opera a nivel de sesión física de PostgreSQL.
+ *    - Se requiere una sesión de PostgreSQL estable y continua durante toda la ejecución del migrador.
+ * 
+ * 2. Conexión Directa vs Connection Poolers:
+ *    - Una conexión directa a PostgreSQL o un connection pooler configurado en MODO SESIÓN (Session Pooling)
+ *      satisface plenamente este requisito.
+ *    - El número de puerto (e.g. 5432 vs 6543) NO prueba por sí solo el modo de conexión, ya que un proxy
+ *      o pooler puede configurarse para escuchar en cualquier puerto.
+ *    - Un único cliente de node-postgres (PoolClient / Client) NO resuelve el problema si detrás existe
+ *      un connection pooler configurado en MODO TRANSACCIÓN (Transaction Mode, como PgBouncer con pool_mode=transaction):
+ *      en modo transacción, el pooler reasigna la conexión física del servidor entre transacciones o sentencias,
+ *      lo que libera o desvincula inadvertidamente el bloqueo consultivo de sesión.
+ * 
+ * 3. Cómo seleccionar y verificar la conexión de migraciones:
+ *    - Seleccionar siempre una cadena de conexión que garantice modo de sesión (e.g., connection string directa
+ *      o parámetros de pooler con session mode explícito).
+ *    - Verificación recomendada: comprobar la estabilidad de la sesión mediante comprobación de `SELECT pg_backend_pid()`
+ *      entre consultas consecutivas o ejecutando una prueba preliminar de retención de `pg_try_advisory_lock`.
+ * 
+ * 4. Alcance de validación actual:
+ *    - Las pruebas automatizadas locales se ejecutaron contra instancias reales de PostgreSQL en contenedores Docker
+ *      en modo de sesión directa. La validación frente a poolers remotos de producción (e.g. Supabase PgBouncer)
+ *      permanece clasificada como pendiente de validación remota.
  */
 
 /**

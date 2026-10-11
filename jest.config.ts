@@ -45,6 +45,7 @@ const config: Config = {
     'src/modules/radar/radar.service.ts',
     'src/modules/radar/radar.repository.ts',
     'src/modules/radar/radar.controller.ts',
+    'src/modules/catalogs/catalogs.controller.ts',
     'src/middlewares/auth.middleware.ts',
     'src/middlewares/error.middleware.ts',
     'src/shared/errors/AppError.ts',
