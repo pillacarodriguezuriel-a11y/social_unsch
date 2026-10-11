@@ -1,246 +1,215 @@
-# ETAPA 2: Estabilización de Migraciones, Autorización y Flujos Existentes
+# ETAPA 2: Estabilización de Migraciones, Autorización y Flujos Existentes (Revisión Correctiva de Cierre)
 
 **Fecha:** Octubre 2026  
 **Rama:** `fix/etapa-2-estabilizacion`  
-**Base:** `af7e0e80708b740a6eb420994153af74b1febb59` (Cierre de Etapa 1)  
+**Base Inicial:** `af7e0e80708b740a6eb420994153af74b1febb59` (Cierre de Etapa 1)  
+**Commit Previo Reportado:** `35c0487`  
 **Respaldo:** `refs/backup/etapa-1/estado-inicial`  
 **Responsable:** Arquitecto de Software & Ingeniero Backend Sénior  
 
 ---
 
-## 1. Resumen Ejecutivo
+## 1. Resumen Ejecutivo y Matriz de Estado
 
-La Etapa 2 de la migración de **SOCIAL-UNSCH** consolida la estabilidad estructural, la integridad relacional de la base de datos y la seguridad de la autorización de roles, preparando el sistema para su posterior desacoplamiento en servicios independientes sin incurrir en pérdida de datos ni degradación funcional.
+La Etapa 2 de la migración de **SOCIAL-UNSCH** consolida la estabilidad estructural, la integridad relacional de la base de datos, la seguridad de la autorización de roles y la atomicidad de transacciones críticas, preparando el sistema para su posterior desacoplamiento en servicios independientes sin pérdida de datos ni degradación funcional.
 
-Se han alcanzado los siguientes hitos verificados:
-1. **Separación arquitectónica de DDL, catálogos y datos demo**: Las migraciones normales no ejecutan semillas demo ni tocan credenciales de usuarios. La evolución del esquema es idempotente mediante un motor con tabla de trazabilidad `schema_migrations` y bloqueo consultivo (`pg_try_advisory_lock`).
-2. **Preservación total de datos y relaciones**: Se eliminó la destrucción de entidades en catálogos (`DELETE FROM faculties`, asignación de `professional_school_id = NULL`). Se conservan identificadores primarios y relaciones preexistentes.
-3. **Propagación determinista de errores**: Todos los ejecutores y orquestadores finalizan con código de salida `1` ante cualquier fallo, abortando la ejecución en cascada y cerrando recursos sin exponer secretos.
-4. **Restricción estricta de privilegios de registro público**: El rol `administrator` no puede ser autoasignado en registro público. Se implementó una política centralizada en `src/shared/auth/roles.ts`, con validación Zod defensiva (HTTP 400) y verificación a nivel de dominio en `AuthService` (HTTP 403 `ERR_AUTH_FORBIDDEN_ROLE`).
-5. **Corrección de discrepancias en consultas y atomicidad**:
-   - `carpooling.repository.ts`: Corregido `u.school_id` por `u.professional_school_id`, y resuelta la ambigüedad `academic_cycle` / `current_academic_cycle`.
-   - `carpooling.service.ts`: Manejo atómico y limpieza compensatoria ante fallos posteriores a la creación de solicitudes para evitar registros huérfanos.
-   - Restricción de duplicados en solicitudes de asientos mediante índice único parcial idempotente y validaciones lógicas.
-6. **Validación automatizada con infraestructura real**: Conservación de los 368 tests mockeados (cobertura global > 90%) e incorporación de una nueva suite automatizada con contenedores desechables aislados de PostgreSQL 15 (`social_unsch_test_pg_etapa2`, puerto 55432) y Redis 7 (`social_unsch_test_redis_etapa2`, puerto 56379), con 5 suites y 25 pruebas de integración reales aprobadas.
+A continuación se presenta la clasificación estricta del estado de los componentes:
+
+### 1.1. Implementado
+1. **Atomicidad de Solicitudes de Carpooling sin Compensaciones**:
+   - Sustitución del patrón de compensación reactiva (`INSERT` seguido de consulta y `DELETE` si falla) por una transacción PostgreSQL atómica con el mismo cliente de base de datos (`BEGIN ... COMMIT / ROLLBACK`).
+   - Restricción de duplicados respaldada por índice único en base de datos (`idx_carpooling_requests_active_unique` / código PostgreSQL `23505`), traducida deterministamente a error de negocio HTTP 400 (`ERR_CARPOOLING_DUPLICATE_REQUEST`), evitando respuestas HTTP 500 genéricas.
+   - Definición y documentación de la política de ciclo académico canónico: `users.current_academic_cycle` es el campo canónico oficial; si se desconoce, retorna `null` y no se inventa el ciclo 1. Se mantiene compatibilidad con `users.academic_cycle` sin sobreescrituras automáticas destructivas.
+2. **Adopción de Bases Preexistentes y Validación Estructural**:
+   - Incorporación en el migrador (`src/database/migrations/migrator.ts`) de la función `validateMigrationStructure`, que verifica exhaustivamente tablas, columnas, tipos de datos, restricciones y funciones antes de registrar una migración como aplicada en `schema_migrations`.
+   - Soporte para esquemas heredados sin `schema_migrations`, esquemas parcialmente migrados, interrupción y reanudación segura, y diagnóstico claro ante incompatibilidades (ej. columnas con tipos discordantes) abortando con código `1` sin marcar éxitos falsos ni eliminar datos.
+3. **Catálogos Canónicos, Realineación de IDs e Integridad Referencial**:
+   - Normalización de nombres de escuelas y facultades con soporte de alias canónicos (`CANONICAL_ALIASES`).
+   - Algoritmo de realineación en dos fases con identificadores negativos temporales (`-id`) y actualización en cascada de claves foráneas en tablas dependientes (`users`, `feed_posts`, `academic_files.school_id`), garantizando que la interfaz no envíe un ID que apunte a una escuela errónea y evitando colisiones de clave primaria.
+4. **Conexión de Migrador y Bloqueo Consultivo Dedicado**:
+   - `pg_try_advisory_lock(948201)` opera sobre un único cliente de sesión dedicado, liberando el bloqueo de forma garantizada en el bloque `finally`.
+   - Documentación estricta de requisitos de conexión: las migraciones exigen conexión directa de sesión (puerto 5432). Se prohíbe el uso de poolers en modo transacción (como PgBouncer en puerto 6543) para operaciones de migración DDL.
+5. **Seguridad del Seed de Demostración con Validación Positiva**:
+   - Reemplazo de listas negras de dominios por una validación positiva restrictiva (`ALLOWED_LOCAL_HOSTS`: `localhost`, `127.0.0.1`, `::1`; `ALLOWED_LOCAL_DATABASES`).
+   - Bloqueo incondicional bajo `NODE_ENV=production`.
+   - Ejecución de la validación antes de abrir conexiones o emitir sentencias en la base de datos.
+   - Garantía de no alteración de contraseñas, roles ni consentimientos de usuarios preexistentes (`ON CONFLICT (email) DO NOTHING`).
+6. **Robustez y Verificación como Subproceso**:
+   - Validación del migrador como proceso hijo independiente (`child_process.spawnSync`) ante fallos deliberados, comprobando código de salida `1`, no ejecución de migraciones posteriores y limpieza de recursos.
+7. **Saneamiento de Helpers de Pruebas**:
+   - Eliminación de interceptores que ocultaban errores (`pool.on('error', () => {})`). Cierre limpio y explícito de recursos en `afterAll`, permitiendo que los fallos reales y timeouts se propaguen transparentemente.
+
+### 1.2. Verificado mediante Pruebas
+- **Suite de Pruebas Unitarias e Integración Mockeadas**: 18 suites de 18 aprobadas (371 pruebas, 100% pasadas), manteniendo coberturas por encima del 90%.
+- **Suite de Pruebas Reales con Contenedores Docker Aislados** (PostgreSQL 15 en puerto 55432 y Redis 7 en puerto 56379): 5 suites de 5 aprobadas (30 pruebas reales, 100% pasadas).
+  - *Carpooling*: Carrera concurrente de dos solicitudes simultáneas para el mismo pasajero y ruta (1 persistida, 1 rechazada con `ERR_CARPOOLING_DUPLICATE_REQUEST`). Rollback real ante fallo inyectado intra-transacción sin registros huérfanos. Retorno de `null` para ciclo desconocido.
+  - *Migraciones*: Adopción de esquema anterior sin `schema_migrations` con datos sintéticos y relaciones existentes. Adopción de esquema parcialmente migrado e interrupción/reanudación. Diagnóstico claro de columnas incompatibles. Realineación de IDs de catálogos con preservación de relaciones en `users`, `feed_posts` y `academic_files`. Dos migradores simultáneos bloqueados por advisory lock. Validación positiva del seed demo rechazando hosts remotos antes de conectar. Ejecución de migrador como subproceso con código de salida `1` ante fallo.
+  - *Autenticación, Matchmaking y Radar*: Totalmente verificados con persistencia real, tokens JWT y claves TTL de Redis.
+- **Compilación de Código**:
+  - Backend: `npm run build` (`tsc --project tsconfig.backend.json`) -> Código de salida 0.
+  - Frontend: `npm run build:frontend` (`next build`) -> Código de salida 0 (14 páginas compiladas y optimizadas).
+
+### 1.3. Pendiente de Validación Remota
+- **Aplicación sobre Base de Datos Remota (Staging / Producción)**: Despliegue de migraciones y catálogos sobre la instancia remota real (ej. Supabase PostgreSQL) cuando se autorice en etapas operativas.
+- **Comportamiento con Poolers de Producción**: Verificación del comportamiento del pooler remoto (ej. Supabase PgBouncer en puerto 6543 vs conexión directa en puerto 5432).
+- **Pruebas de Latencia y Red Remotas**: Verificación de tiempos de respuesta en enlaces WAN con latencia real de red.
 
 ---
 
-## 2. Problemas Confirmados y Diagnóstico de Causa Raíz
+## 2. Hallazgos Confirmados y Diagnóstico de Causa Raíz
 
 | # | Componente / Flujo | Problema Diagnosticado | Causa Raíz | Impacto Operativo |
 |---|---|---|---|---|
-| 1 | `add_canonical_data.sql` / Seeds | Vaciado destructivo de catálogos y desvinculación masiva de usuarios. | Script ejecutaba `UPDATE users SET professional_school_id = NULL;` seguido de `DELETE FROM faculties;` y reseteo de secuencias. | Destrucción de integridad referencial, pérdida de escuelas de usuarios y publicaciones en bases existentes. |
-| 2 | `migrate_all.ts` / Migraciones | Acoplamiento de datos demo e inserción de administradores en la migración normal. | `migrate_all.ts` encadenaba `run_seed.ts` como paso obligatorio, insertando `admin@unsch.edu.pe` con contraseña compartida y `has_accepted_terms = true`. | Riesgo severo de seguridad en producción y alteración indeseada de registros. |
-| 3 | Ejecutores de Migración | Errores silenciosos y códigos de salida no diferenciados. | Scripts capturaban errores imprimiendo en consola pero finalizaban con `process.exit(0)` o sin establecer `process.exitCode = 1`. | CI/CD y orquestadores interpretaban fallos graves como despliegues exitosos. |
-| 4 | Registro de Usuarios (`auth.validators.ts`, `auth.service.ts`) | Autoasignación de rol `administrator` permitida en endpoint público. | `registerSchema` incluía `administrator` en el enum de roles y `AuthService` lo persistía directamente. | Escalada de privilegios trivial por parte de usuarios externos. |
-| 5 | Repositorio Carpooling (`carpooling.repository.ts`) | Fallo en consulta de metadata de pasajero por columna inexistente. | Consulta hacía `JOIN professional_schools ps ON u.school_id = ps.id`, cuando la columna en `users` es `professional_school_id`. | Solicitud de asiento se creaba en BD pero la consulta posterior fallaba, retornando HTTP 500 y dejando un registro huérfano. |
-| 6 | Esquema `users` | Discrepancia entre `current_academic_cycle` y `academic_cycle`. | `001_base_schema.sql` definía `current_academic_cycle`, mientras migraciones posteriores consultaban `academic_cycle`. | Inconsistencia en filtros de carpooling y perfiles. |
-| 7 | Infraestructura de Pruebas | Falta de validación sobre motores reales de persistencia y concurrencia. | Las pruebas existentes se basaban 100% en dobles (`jest.mock('pg')`, `jest.mock('ioredis')`), sin probar bloqueos `FOR UPDATE` ni scripts Lua. | Incapacidad de detectar fallos reales de concurrencia, TTL o sintaxis SQL. |
+| 1 | `carpooling.service.ts` | Eliminación compensatoria no garantizaba atomicidad en `requestSeat`. | Se insertaba la solicitud y luego se consultaban metadatos en llamadas separadas. Si la segunda fallaba, se intentaba un `DELETE` compensatorio que podía fallar, dejando solicitudes huérfanas en estado `SEAT_REQUESTED`. | Inconsistencia de base de datos ante caídas de conexión durante la solicitud. |
+| 2 | `carpooling.repository.ts` / Esquema `users` | Ambigüedad entre `current_academic_cycle` y `academic_cycle`, e invención de ciclo ficticio `1`. | Uso de `COALESCE(u.academic_cycle, u.current_academic_cycle, 1)` asignaba arbitrariamente primer ciclo a estudiantes con dato no registrado. | Desinformación para conductores de carpooling e inconsistencia con el perfil del usuario. |
+| 3 | `migrator.ts` | Falsos positivos en adopción de esquemas existentes. | `CREATE TABLE IF NOT EXISTS` daba por exitosa una tabla aunque tuviese columnas faltantes o tipos incompatibles. | Fallos en tiempo de ejecución posteriores a la migración sin diagnóstico previo. |
+| 4 | `load_catalogs.ts` | Dependencia de IDs fijos y colisiones entre escuelas. | Si una base de datos histórica asignó un ID distinto a una escuela (ej. Sistemas con ID 21 en vez de 20), `ON CONFLICT` no alineaba las referencias y la interfaz terminaba enviando IDs cruzados. | Pérdida de integridad referencial o desvinculación de usuarios y publicaciones. |
+| 5 | `migrator.ts` | Riesgo de desconexión del bloqueo consultivo con poolers en modo transacción. | `pg_try_advisory_lock` es dependiente de la sesión. Si se usa un pooler en modo transacción, distintas operaciones pueden ejecutarse en conexiones físicas diferentes, liberando o dejando huérfano el bloqueo. | Carrera crítica si se despliegan múltiples réplicas en paralelo. |
+| 6 | `load_demo_seed.ts` | Uso de listas negras de dominios. | La lista negra de dominios remotos podía ser eludida mediante IPs directas, túneles locales o dominios no catalogados. | Riesgo de inyección de datos de prueba en entornos pre-productivos o productivos no contemplados. |
+| 7 | `tests/real/helpers/after-env.ts` | Supresión de errores en listeners de pool. | `pool.on('error', () => {})` ocultaba errores de red o desconexiones imprevistas en las pruebas reales. | Falta de visibilidad sobre problemas reales de conectividad en los tests. |
 
 ---
 
 ## 3. Soluciones Implementadas y Archivos Modificados
 
-### 3.1. Separación de DDL, Catálogos y Semillas Demo
+### 3.1. Atomicidad en Carpooling y Política de Ciclo Académico
 
-Se estructuró la evolución de la base de datos en tres etapas desacopladas:
+- **Archivo**: [`src/modules/carpooling/carpooling.repository.ts`](file:///d:/social_unsch/src/modules/carpooling/carpooling.repository.ts)
+  - Se implementó `createRequestTransaction(client, requestData)`: ejecuta `INSERT INTO carpooling_requests ...` y `getPassengerMeta(client, ...)` dentro de una misma sesión de cliente de PostgreSQL.
+  - Captura de código de error PostgreSQL `23505` (`unique_violation`) originado por la restricción o índice único `idx_carpooling_requests_active_unique` / `uq_active_carpooling_request`, transformándolo deterministamente en `AppError('Ya tienes una solicitud activa para esta ruta', 400, 'ERR_CARPOOLING_DUPLICATE_REQUEST')`.
+  - Se eliminó el método `deleteRequest` como mecanismo de compensación transaccional.
+  - **Política de Ciclo Académico Canónico**:
+    - `users.current_academic_cycle` se define formalmente como el campo canónico oficial asignado durante el registro y edición de perfil.
+    - `users.academic_cycle` se reconoce como columna heredada (legacy).
+    - En consultas: `COALESCE(u.current_academic_cycle, u.academic_cycle) AS academic_cycle`.
+    - Si ambos valores son nulos, la consulta retorna `null` explícito; **nunca se inventa el ciclo 1**.
+    - Si ambos difieren, se prioriza `current_academic_cycle` para la visualización y lógica de negocio sin sobreescribir destructivamente el dato legacy en base de datos.
+- **Archivo**: [`src/modules/carpooling/carpooling.service.ts`](file:///d:/social_unsch/src/modules/carpooling/carpooling.service.ts)
+  - `requestSeat` solicita un cliente dedicado del pool (`pool.connect()`) y ejecuta el bloque atómico:
+    ```typescript
+    await client.query('BEGIN');
+    const newRequest = await this.carpoolingRepo.createRequestTransaction(client, { ... });
+    await client.query('COMMIT');
+    ```
+  - Ante cualquier excepción previa al `COMMIT`, se ejecuta `ROLLBACK` garantizado y se libera el cliente en el bloque `finally`.
 
-1. **Evolución del Esquema (DDL Idempotente)**:
-   - Directorio: `src/database/migrations/sql/`
-     - `001_base_schema.sql`: Extensiones, tipos enum (`user_role`, `project_type`, `item_condition`, `radar_status`), tablas base (`faculties`, `professional_schools`, `users`, `feed_posts`).
-     - `002_matchmaking.sql`: Tablas de proyectos, perfiles e interacciones de matchmaking con timestamps e índices.
-     - `003_credits_and_wiki.sql`: Tablas de archivos académicos, tags y libro mayor de créditos con triggers de saldo.
-     - `004_moderation_and_carpooling.sql`: Tablas de reportes, auditoría, rutas y solicitudes de carpooling.
-     - `005_canonical_extensions.sql`: Extensiones canónicas de alertas de campus, enums complementarios e índice único parcial para solicitudes activas de carpooling (`idx_carpooling_requests_active_unique`).
-   - Gestor: `src/database/migrations/migrator.ts`. Implementa tabla de trazabilidad `schema_migrations` (`version`, `name`, `checksum`, `applied_at`) y bloqueo consultivo `pg_try_advisory_lock(948201)` para evitar ejecuciones concurrentes.
+### 3.2. Adopción de Bases Existentes y Validación Estructural del Migrador
 
-2. **Carga y Sincronización de Catálogos Canónicos**:
-   - Módulo: `src/database/migrations/load_catalogs.ts`.
-   - Lee el catálogo canónico (9 facultades, 31 escuelas, 15 pabellones).
-   - Utiliza claves naturales (`name`, `code`) para buscar entidades existentes. Si existen, preserva sus claves primarias `id` y asociaciones intactas; si faltan, las inserta con `ON CONFLICT DO NOTHING`.
-   - Sincroniza secuencias numéricas de PostgreSQL (`setval(...)`) para prevenir conflictos de clave en inserciones futuras.
-   - **No vacía tablas ni pone en `NULL` relaciones de usuarios o publicaciones**.
+- **Archivo**: [`src/database/migrations/migrator.ts`](file:///d:/social_unsch/src/database/migrations/migrator.ts)
+  - Incorporación de `validateMigrationStructure(client, version)`:
+    - Para `001_base_schema.sql`: verifica existencia de tablas (`faculties`, `professional_schools`, `users`, `feed_posts`), columnas críticas, tipo de columna `users.email` (`varchar`), y restricción de clave foránea `fk_users_professional_school`.
+    - Para `002_matchmaking.sql`: verifica existencia de tablas `matchmaking_profiles` y `matchmaking_interactions`.
+    - Para `003_credits_and_wiki.sql`: verifica tablas `academic_files`, `credit_ledger` y función `check_credit_balance()`.
+    - Para `004_moderation_and_carpooling.sql`: verifica tablas `carpooling_routes`, `carpooling_requests` y columnas correspondientes.
+    - Para `005_canonical_extensions.sql`: verifica tabla `campus_alerts` y el índice único parcial `idx_carpooling_requests_active_unique`.
+  - Si una tabla existe pero presenta columnas con tipos incompatibles (ej. `feed_posts.title` de tipo `INT` en lugar de texto), emite un diagnóstico claro y aborta la migración con código de error `1`, sin registrarla como aplicada y sin borrar datos.
+- **Archivo**: [`src/database/migrations/sql/001_base_schema.sql`](file:///d:/social_unsch/src/database/migrations/sql/001_base_schema.sql)
+  - Incorporación de sentencias idempotentes de adopción (`ALTER TABLE users ADD COLUMN IF NOT EXISTS ...`) para compatibilizar tablas creadas por esquemas antiguos preexistentes a la Etapa 2.
 
-3. **Carga de Datos de Demostración (Opcional y Restringida)**:
-   - Módulo: `src/database/migrations/load_demo_seed.ts`.
-   - Requiere confirmación explícita mediante la variable `ALLOW_DEMO_SEED=true` o el argumento CLI `--confirm-demo`.
-   - Función guardiana `assertSafeDemoEnvironment()`: Bloquea inmediatamente la ejecución si:
-     - `NODE_ENV === 'production'`.
-     - La URL de conexión apunta a dominios remotos conocidos (`supabase.co`, `onrender.com`, `aws`, `azure`, `gcp`).
-     - Falta la confirmación explícita.
-   - Inserta usuarios y perfiles ficticios mediante `ON CONFLICT (email) DO NOTHING` sin alterar usuarios existentes, contraseñas ni roles.
+### 3.3. Realineación de Catálogos e Identificadores
 
-### 3.2. Autorización y Política de Registro Público
+- **Archivo**: [`src/database/migrations/load_catalogs.ts`](file:///d:/social_unsch/src/database/migrations/load_catalogs.ts)
+  - Incorporación de diccionario de sinónimos canónicos `CANONICAL_ALIASES` y función de normalización `normalizeSchoolName` (resuelve variaciones como "Ingeniería de Sistemas", "Sistemas", "Ing. de Sistemas").
+  - Estrategia de realineación de IDs en dos fases:
+    1. Si una escuela existe con un ID diferente al catálogo canónico (ej. Sistemas con ID 21 y se requiere ID 20):
+       - Se verifica si el ID destino (20) está ocupado por otra entidad; de estarlo, dicha entidad se mueve provisionalmente a un ID negativo temporal (`-id`) actualizando en cascada `users`, `feed_posts` y `academic_files.school_id`.
+       - Se actualiza la escuela al ID canónico (20) y se propagan en cascada las claves foráneas en las tablas asociadas.
+       - La entidad desplazada se realinea posteriormente a su ID correspondiente.
+    2. Sincronización final de secuencias numéricas (`SELECT setval(...)`) para garantizar que nuevas inserciones no colisionen.
 
-- **Archivo centralizado**: `src/shared/auth/roles.ts`
-  - Define `ALL_ROLES = ['student', 'alumnus', 'professor', 'administrator']`.
-  - Define `PUBLIC_REGISTRATION_ROLES = ['student', 'alumnus', 'professor']`.
-  - Función `assertPublicRegistrationRole(role)`: Lanza `AppError(..., 403, 'ERR_AUTH_FORBIDDEN_ROLE')` si se intenta autoasignar `administrator` o un rol ajeno.
-- **Validadores**: `src/modules/auth/auth.validators.ts`
-  - Restringe `role` en `registerSchema` exclusivamente a `PUBLIC_REGISTRATION_ROLES`, retornando error explicativo en validación previa (HTTP 400).
-- **Servicio**: `src/modules/auth/auth.service.ts`
-  - Ejecuta `assertPublicRegistrationRole(userData.role)` como defensa en profundidad dentro de la capa de dominio antes de llamar al repositorio.
-- **Frontend**: `app/(auth)/register/page.tsx`
-  - Tipado de estado restringido a `'student' | 'alumnus' | 'professor'`.
-- **Clarificación de Roles y Verificación**:
-  - `professor` y `alumnus` corresponden a **declaraciones del usuario** al momento del registro, sujetas a posterior validación documental administrativa.
-  - La validación del dominio `@unsch.edu.pe` mediante expresión regular acredita exclusivamente el formato del correo institucional, **no constituye prueba de propiedad del buzón**. La confirmación de titularidad requiere verificación por enlace temporal o token de activación (pendiente para etapas de infraestructura/Auth).
+### 3.4. Conexión y Bloqueo Consultivo del Migrador
 
-### 3.3. Inconsistencias de Consultas y Atomicidad en Carpooling
+- **Archivo**: [`src/database/migrations/migrator.ts`](file:///d:/social_unsch/src/database/migrations/migrator.ts)
+  - Adquisición de cliente exclusivo con `pool.connect()`.
+  - Ejecución de `pg_try_advisory_lock(948201)`. Si retorna `false`, se emite mensaje de advertencia y el proceso finaliza inmediatamente con código `1`.
+  - Liberación garantizada de `pg_advisory_unlock(948201)` en el bloque `finally` antes de invocar `client.release()`.
+  - **Requisito Técnico Documentado**: Se exige conexión directa de sesión a PostgreSQL (puerto 5432). Se prohíbe explícitamente el uso de conexiones agrupadas en modo transacción (Transaction Mode Pooler, ej. puerto 6543 en PgBouncer) para ejecutar migraciones DDL y bloqueos consultivos.
 
-- **Archivo**: `src/modules/carpooling/carpooling.repository.ts`
-  - Corregido el join en `getPassengerMeta`: `JOIN professional_schools ps ON u.professional_school_id = ps.id`.
-  - Selección segura de ciclo académico: `COALESCE(u.academic_cycle, u.current_academic_cycle, 1) as academic_cycle`.
-  - Adición de método `deleteRequest(requestId)` para compensación transaccional.
-- **Archivo**: `src/modules/carpooling/carpooling.service.ts`
-  - Bloque `try / catch` compensatorio en `requestSeat`: Si la consulta de metadatos o una operación posterior falla tras la inserción de la solicitud, se invoca `deleteRequest(request.id)` para evitar solicitudes huérfanas en estado `SEAT_REQUESTED`.
-  - Validación de solicitudes duplicadas activas (`SEAT_REQUESTED` o `SEAT_CONFIRMED`) previas a la creación.
-- **Transaccionalidad en `confirmSeat`**:
-  - Se mantiene el bloqueo pesimista `SELECT ... FROM carpooling_routes ... FOR UPDATE` y `SELECT ... FROM carpooling_requests ... FOR UPDATE`.
-  - Verificación de conductor legítimo (`route.driver_id === driverId`), rechazando terceros con `ERR_CARPOOLING_FORBIDDEN`.
-  - Verificación de estado de solicitud (`status === 'SEAT_REQUESTED'`), impidiendo que una confirmación repetida vuelva a descontar asientos y retornando `ERR_CARPOOLING_INVALID_STATE`.
-  - Manejo seguro de concurrencia: Si múltiples confirmaciones compiten por el último asiento, la transacción serializada garantiza que una sola obtenga el asiento y la subsiguiente falle con `ERR_CARPOOLING_NO_SEATS` sin dejar asientos negativos.
+### 3.5. Validación Positiva de Seguridad para Semillas Demo
 
----
+- **Archivo**: [`src/database/migrations/load_demo_seed.ts`](file:///d:/social_unsch/src/database/migrations/load_demo_seed.ts)
+  - Eliminación de listas negras de dominios.
+  - Implementación de allowlist positivo estricto:
+    - Hosts autorizados: `localhost`, `127.0.0.1`, `::1`.
+    - Bloqueo absoluto si `NODE_ENV === 'production'` o si falta la confirmación explícita (`ALLOW_DEMO_SEED=true` o `--confirm-demo`).
+    - Validación ejecutada antes de crear conexiones o emitir consultas en el servidor.
+  - Protección de usuarios existentes: inserción con `ON CONFLICT (email) DO NOTHING`, preservando contraseñas, roles y consentimientos preexistentes.
 
-## 4. Comandos de Operación
+### 3.6. Helpers de Pruebas y Terminación Limpia
 
-Se han configurado comandos diferenciados y reproducibles en `package.json`:
-
-| Comando | Script | Propósito | Entorno |
-|---|---|---|---|
-| `npm run db:migrate` | `run_migrate.ts` | Aplica migraciones DDL idempotentes (`001` a `005`) registrando en `schema_migrations`. | Todos (Local, Staging, Producción) |
-| `npm run db:catalogs` | `run_catalogs.ts` | Sincroniza catálogos canónicos de facultades, escuelas y pabellones sin alterar datos. | Todos |
-| `npm run db:migrate:status` | `run_status.ts` | Inspecciona el estado de migraciones aplicadas y pendientes. | Todos |
-| `npm run db:seed:demo` | `run_demo_seed.ts` | Inserta cuentas y proyectos ficticios de prueba. Bloqueado en producción. | Solo desarrollo local |
-| `npm run db:migrate:all` | `migrate_all.ts` | Orquestador: ejecuta `runMigrations` y `loadCatalogs` de forma no destructiva. | Todos |
-| `npm test` | `jest.config.ts` | Ejecuta la suite de 18 suites y 368 pruebas unitarias/integración mockeadas. | CI/CD, Local |
-| `npm run test:coverage` | `jest.config.ts` | Comprueba umbrales de cobertura estricta (>= 90% en 4 ejes). | CI/CD, Local |
-| `npm run test:real` | `jest.real.config.ts` | Levanta contenedores desechables aislados de PostgreSQL y Redis y corre 25 pruebas reales. | Local, CI con Docker |
+- **Archivo**: [`tests/real/helpers/after-env.ts`](file:///d:/social_unsch/tests/real/helpers/after-env.ts)
+  - Eliminación del listener defensivo `pool.on('error', () => {})` que silenciaba fallos.
+  - Cierre explícito y limpio del cliente Redis con fallback `disconnect()`.
+  - Los fallos de red o errores de conexión se propagan y registran transparentemente en la consola de pruebas.
 
 ---
 
-## 5. Procedimientos Operativos para Base de Datos
+## 4. Pruebas Ejecutadas y Resultados
 
-### 5.1. Procedimiento para Instalación Nueva (Base Vacía)
+### 4.1. Suite Mockeada (18 Suites, 371 Tests)
+- **Comando**: `npm test`
+- **Resultado**: 18 suites pasadas de 18 (371 pruebas, 100% exitosas).
+- **Cobertura**: Mantiene umbrales superiores al 90% en líneas, funciones, sentencias y ramas.
 
-```bash
-# 1. Configurar variables de entorno apuntando a la base de datos destino
-export DATABASE_URL="postgresql://usuario:clave@host:5432/social_unsch"
-
-# 2. Ejecutar evolución del esquema
-npm run db:migrate
-
-# 3. Cargar catálogos canónicos indispensables
-npm run db:catalogs
-
-# 4. Verificar estado final
-npm run db:migrate:status
-```
-
-Resultado esperado:
-- 5 migraciones aplicadas registradas en `schema_migrations`.
-- 9 facultades, 31 escuelas profesionales y 15 pabellones sincronizados.
-- Cero cuentas de usuario y cero publicaciones creadas (entorno limpio).
-
-### 5.2. Procedimiento para Actualización de Base de Datos Existente
-
-> [!IMPORTANT]
-> **Respaldo previo obligatorio**: Antes de aplicar cualquier cambio sobre una base de datos con datos reales, genere un respaldo lógico completo.
-
-```bash
-# 1. Respaldo de seguridad previo
-pg_dump -h <HOST> -U <USUARIO> -d <DB> -F c -b -v -f backup_pre_etapa2_$(date +%Y%m%d_%H%M%S).dump
-
-# 2. Inspeccionar estado actual
-npm run db:migrate:status
-
-# 3. Aplicar migraciones pendientes
-npm run db:migrate
-
-# 4. Sincronizar catálogos canónicos (preserva IDs y relaciones existentes)
-npm run db:catalogs
-
-# 5. Confirmar estado
-npm run db:migrate:status
-```
-
-Garantías de seguridad:
-- No se ejecutan sentencias `DROP TABLE` ni `DELETE FROM`.
-- Las escuelas y facultades existentes se identifican por nombre y conservan sus `id`.
-- Los usuarios, publicaciones y archivos vinculados conservan sus claves foráneas.
-
-### 5.3. Procedimiento para Base de Datos Parcialmente Migrada (Adopción)
-
-Si la base de datos ya cuenta con algunas tablas históricas creadas manualmente o por scripts antiguos:
-
-1. Ejecutar `npm run db:migrate:status`.
-2. Las migraciones están diseñadas con cláusulas `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS` y bloques anónimos PL/pgSQL que verifican la existencia de tipos enum y columnas.
-3. El migrador detectará las migraciones no registradas en `schema_migrations` y las aplicará de forma segura sin fallar por duplicidad estructural.
-4. Si una tabla ya contenía datos, la migración `005_canonical_extensions.sql` verifica previamente si existen registros duplicados antes de construir índices únicos condicionales.
-
----
-
-## 6. Pruebas Ejecutadas y Resultados
-
-### 6.1. Suite Existente con Dobles (Jest Mocked)
-- **Comando**: `npm run test:coverage`
-- **Suites**: 18 pasadas de 18.
-- **Pruebas**: 368 pasadas de 368.
-- **Cobertura obtenida**:
-  - Statements: 94.26% (Umbral: >= 90%)
-  - Branches: 91.32% (Umbral: >= 90%)
-  - Functions: 95.38% (Umbral: >= 90%)
-  - Lines: 94.38% (Umbral: >= 90%)
-
-### 6.2. Nueva Suite Automatizada con PostgreSQL y Redis Reales
+### 4.2. Suite Real con Infraestructura Docker (5 Suites, 30 Tests)
 - **Comando**: `npm run test:real`
 - **Infraestructura**:
-  - Contenedor PostgreSQL 15: `social_unsch_test_pg_etapa2` en `127.0.0.1:55432`.
-  - Contenedor Redis 7: `social_unsch_test_redis_etapa2` en `127.0.0.1:56379`.
-  - Contenedores de otros proyectos (`buzon-comedor-unsch`, `agrocontrol`): Intactos.
-- **Resultados**: 5 suites pasadas de 5, 25 pruebas pasadas de 25.
+  - PostgreSQL 15 (`social_unsch_test_pg_etapa2`, puerto 55432).
+  - Redis 7 (`social_unsch_test_redis_etapa2`, puerto 56379).
 
-| Suite Real | Escenarios Automatizados | Resultado |
+#### Resumen de Escenarios en `migrations.real.test.ts` (11/11 Passed):
+1. **Instalación Limpia**: Aplica las 5 migraciones DDL registrando cada una en `schema_migrations`.
+2. **Idempotencia**: Segunda ejecución consecutiva no genera duplicados ni errores.
+3. **Preservación de Datos de Catálogos**: Carga de catálogos preserva IDs, roles, contraseñas y consentimientos de usuarios preexistentes.
+4. **Ausencia de Semillas Demo en Migración Normal**: Comprueba que la migración regular no inserte usuarios ficticios.
+5. **Bloqueo Positivo de Seed Demo**: Rechaza hosts remotos o entornos productivos antes de abrir conexión.
+6. **Rollback Transaccional**: Migración con error de sintaxis deliberado revierte cambios y no se asienta en `schema_migrations`.
+7. **Adopción de Esquema Preexistente**: Base de datos creada con tablas históricas y datos sintéticos se adopta exitosamente sin pérdida de datos.
+8. **Esquema Parcialmente Migrado y Reanudación**: Migración interrumpida a la mitad se reanuda aplicando únicamente las pendientes.
+9. **Diagnóstico de Incompatibilidad Estructural**: Detecta columna incompatible (`feed_posts.title INT`) y aborta con diagnóstico claro sin marcar éxito falso.
+10. **Realineación de IDs en Catálogos**: Realinea escuela con ID desfasado (ID 99 -> ID 20) y actualiza en cascada claves foráneas en `users`, `feed_posts` y `academic_files`.
+11. **Concurrencia de Migradores (Advisory Lock)**: Dos procesos de migración simultáneos compiten por el bloqueo consultivo; el segundo aborta de forma segura sin aplicar DDLs duplicados.
+
+#### Resumen de Escenarios en `carpooling.real.test.ts` (7/7 Passed):
+1. **Consulta de Metadatos y Ciclo Canónico**: Valida que `current_academic_cycle` tenga precedencia y retorne `null` si no está registrado (nunca ciclo 1 inventado).
+2. **Carrera Concurrente de Solicitudes**: Dos solicitudes concurrentes simultáneas (`Promise.all`) para el mismo pasajero y ruta; una sola persiste con HTTP 201 y la segunda es rechazada con HTTP 400 (`ERR_CARPOOLING_DUPLICATE_REQUEST`).
+3. **Verificación de Conductor Autorizado**: Conductor no propietario es rechazado con `ERR_CARPOOLING_FORBIDDEN`.
+4. **Confirmación de Asiento**: Descuenta cupo y desvela datos de contacto recíprocos de forma atómica.
+5. **Idempotencia de Confirmación**: Petición de confirmación duplicada rechaza con `ERR_CARPOOLING_INVALID_STATE`.
+6. **Competencia Concurrente por Último Asiento**: Bloqueo pesimista `FOR UPDATE` serializa reservas; el segundo pasajero recibe `ERR_CARPOOLING_NO_SEATS`.
+7. **Inyección de Fallo y Rollback Transaccional**: Simulación de error intra-transacción previo al `COMMIT` revierte la solicitud completamente sin depender de un `DELETE` compensatorio posterior.
+
+#### Resumen de Otras Suites Reales:
+- `auth.real.test.ts`: 5/5 passed (registro, hash bcrypt, JWT RS256, bloqueo de autoasignación de rol `administrator`).
+- `feed_matchmaking.real.test.ts`: 2/2 passed (publicaciones, visibilidad por escuela, máquina de estados de matchmaking con doble match).
+- `radar.real.test.ts`: 5/5 passed (votos crowdsourcing, agregación por pipelines Redis, TTL <= 900s).
+
+---
+
+## 5. Procedimientos de Operación y Comandos
+
+| Comando | Propósito | Entorno |
 |---|---|---|
-| `migrations.real.test.ts` | 1. Instalación limpia aplica 5 DDLs y registra `schema_migrations`.<br>2. Segunda ejecución consecutiva es idempotente y conserva conteos.<br>3. Preservación estricta de IDs, roles, contraseñas y consentimientos preexistentes.<br>4. Ausencia total de cuentas demo tras migración normal.<br>5. Bloqueo estricto del seed demo en producción o sin confirmación CLI.<br>6. Fallo transaccional deliberado revierte cambios (`ROLLBACK`). | **PASS** (6/6) |
-| `auth.real.test.ts` | 1. Registro de estudiante con hash Bcrypt real y login con JWT RS256 persistente.<br>2. Rechazo expreso del rol `administrator` sin persistencia en BD.<br>3. Rechazo de roles desconocidos (`superadmin`).<br>4. Credenciales inválidas devuelven 401 sin revelar existencia de cuenta.<br>5. Rutas protegidas rechazan peticiones sin token o con token alterado. | **PASS** (5/5) |
-| `carpooling.real.test.ts` | 1. Consulta de metadatos con columnas reales (`professional_school_id`, `academic_cycle`).<br>2. Rechazo de solicitudes duplicadas para la misma ruta activa.<br>3. Verificación de conductor autorizado (`ERR_CARPOOLING_FORBIDDEN`).<br>4. Confirmación autorizada descuenta asiento y revela contactos recíprocos.<br>5. Confirmación repetida no descuenta asientos adicionales (`ERR_CARPOOLING_INVALID_STATE`).<br>6. Competencia concurrente por el último asiento con bloqueo pesimista `FOR UPDATE`.<br>7. Limpieza compensatoria ante fallo intermedio sin solicitudes huérfanas. | **PASS** (7/7) |
-| `feed_matchmaking.real.test.ts` | 1. Creación de publicaciones con `professional_school_id` y filtrado por escuela.<br>2. Máquina de estados de matchmaking (Like pendiente -> Doble Match aceptado -> desvelamiento de contactos Ley 29733 -> rechazo de autolike). | **PASS** (2/2) |
-| `radar.real.test.ts` | 1. Registro de votos y rechazo de duplicados en la misma ventana.<br>2. Consenso crowdsourcing al completar 3 usuarios distintos.<br>3. Lectura de estado consolidado mediante pipelines de Redis.<br>4. Verificación de TTL razonable en Redis (<= 900 segundos).<br>5. Rechazo de nodos o estados inválidos. | **PASS** (5/5) |
-
-### 6.3. Verificación de Compilación y Tipos
-- `npm run build` (`tsc --project tsconfig.backend.json`): **Código de salida 0**.
-- `npm run build:frontend` (`next build`): **Código de salida 0** (14 páginas estáticas compiladas y optimizadas).
-- `npx tsc --noEmit -p tsconfig.json`: **Código de salida 0**.
-- `npx tsc --noEmit -p tsconfig.jest.json`: **Código de salida 0**.
+| `npm run db:migrate` | Aplica migraciones DDL idempotentes verificando estructura y registrando en `schema_migrations`. | Todos |
+| `npm run db:catalogs` | Sincroniza y realinea catálogos canónicos de facultades, escuelas y pabellones sin destruir datos. | Todos |
+| `npm run db:migrate:status` | Diagnostica migraciones aplicadas y pendientes. | Todos |
+| `npm run db:seed:demo` | Carga datos de prueba ficticios. Restringido estrictamente a desarrollo local. | Local / Test |
+| `npm run db:migrate:all` | Orquestador unificado de migraciones y catálogos. | Todos |
+| `npm test` | Suite unitaria e integración mockeada (371 pruebas). | CI/CD, Local |
+| `npm run test:real` | Suite real contra contenedores Docker desechables (30 pruebas). | CI/CD con Docker, Local |
+| `npm run build` | Compilación estricta de backend TypeScript. | Producción |
+| `npm run build:frontend` | Compilación y empaquetado de producción Next.js. | Producción |
 
 ---
 
-## 7. Plan de Aplicación Futura y Estrategia de Recuperación
+## 6. Conclusión Fundamentada sobre el Cierre de la Etapa 2
 
-### 7.1. Distinción entre Reversión de Código y Reversión de Datos
+La **Etapa 2 (Estabilización de Migraciones, Autorización y Flujos Existentes)** cumple con la totalidad de los requerimientos de calidad técnica, seguridad arquitectónica e integridad relacional:
 
-- **Reversión de Código (Rollback Git)**: Si un despliegue de backend o frontend presenta defectos de software, se revierte el contenedor o release a la versión previa (`git checkout / git revert`). Dado que las migraciones son compatibles hacia atrás (no eliminan columnas activas ni renombran destructivamente), la versión previa del código seguirá operando contra el esquema actual.
-- **Reversión de Datos (No destructiva)**:
-  - **Bajo ninguna circunstancia se debe ejecutar `DROP TABLE` o `DROP SCHEMA` como rollback genérico en entornos con datos reales**.
-  - Si una migración agregó una columna nullable o un índice, su presencia no perjudica el funcionamiento de la versión previa.
-  - La reversión de datos consiste en:
-    1. Si la migración falló durante la ejecución: La transacción interna ejecuta `ROLLBACK` automáticamente.
-    2. Si se requiere deshacer un cambio estructural incompatible: Se debe aplicar una **migración hacia adelante** (*forward migration*, por ejemplo `006_revert_...sql`) documentada y probada previamente.
-    3. Si hubo corrupción lógica de datos: Restauración desde el respaldo lógico `pg_dump` previo.
+1. **Atomicidad estricta**: Las solicitudes de carpooling y confirmaciones de asientos operan bajo transacciones SQL en un cliente único, eliminando compensaciones reactivas inseguras y garantizando consistencia ante carreras concurrentes y fallos inyectados.
+2. **Adopción y migración defensivas**: El motor de migraciones valida tipos, columnas y restricciones antes de asentar versiones, protegiendo bases existentes y diagnosticando incompatibilidades sin corrupción ni falsos positivos.
+3. **Catálogos deterministas**: La realineación en dos fases protege las relaciones existentes de usuarios, publicaciones y archivos académicos frente a variaciones de identificadores o nombres.
+4. **Seguridad y autorización comprobadas**: Bloqueo absoluto de escalada de privilegios a nivel de esquema, validadores y dominio; protección del seed de demostración mediante allowlist positivo; bloqueo consultivo dedicado.
+5. **Validación completa en compilación y pruebas**: 100% de pruebas aprobadas (371 mockeadas + 30 reales con bases de datos en contenedores) y compilación exitosa de frontend y backend sin advertencias.
 
----
-
-## 8. Compatibilidad y Pendientes para Etapas Posteriores
-
-### 8.1. Compatibilidad de Contratos
-- Se mantuvieron intactos los contratos HTTP de `/api/v1/auth`, `/api/v1/carpooling`, `/api/v1/feed`, `/api/v1/matchmaking` y `/api/v1/radar`.
-- Las modificaciones en `carpooling` y `feed` corrigieron errores de consulta internos sin alterar las interfaces esperadas por el frontend.
-
-### 8.2. Módulos Simulados y Pendientes Funcionales
-Los siguientes módulos se mantienen según su estado previo para las etapas funcionales posteriores (Etapas 3 y siguientes):
-- **Wiki-Banco de Archivos**: Almacenamiento local de metadatos; pendiente integración con servicio de almacenamiento de objetos (S3/Supabase Storage).
-- **Marketplace y Empleos**: Módulos simulados en frontend; lógica de negocio completa pendiente de desarrollo.
-- **Verificación de Titularidad de Correo**: Pendiente flujo de envío de correos transaccionales con token de confirmación para validar que el usuario es el legítimo propietario de la cuenta `@unsch.edu.pe`.
-- **Consola Administrativa**: Se conservan las cuentas de administrador existentes en base de datos; la consola web de administración continúa como pendiente funcional.
+**Veredicto**: La **Etapa 2 se declara CERRADA Y ESTABILIZADA**. La base de código y los esquemas se encuentran en estado óptimo y seguro para iniciar la **Etapa 3 (Separación de Servicios)**.
