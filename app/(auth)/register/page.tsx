@@ -17,9 +17,35 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'student' | 'alumnus' | 'professor'>('student');
   const [schoolId, setSchoolId] = useState('');
+  const [schoolsByFaculty, setSchoolsByFaculty] = useState(SCHOOLS_BY_FACULTY);
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  // Carga de catálogos persistidos con IDs reales del backend
+  React.useEffect(() => {
+    let isMounted = true;
+    api.get<any>('/catalogs')
+      .then((res) => {
+        const data = res?.data || res;
+        if (!isMounted || !data?.faculties || !data?.schools) return;
+        const grouped = data.faculties
+          .map((fac: any) => ({
+            faculty: fac,
+            schools: data.schools.filter((s: any) => s.faculty_id === fac.id),
+          }))
+          .filter((g: any) => g.schools.length > 0);
+        if (grouped.length > 0) {
+          setSchoolsByFaculty(grouped);
+        }
+      })
+      .catch(() => {
+        // Conserva fallback local a SCHOOLS_BY_FACULTY
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Validación de dominio institucional en tiempo real
   const isEmailError = email.length > 0 && !email.toLowerCase().endsWith('@unsch.edu.pe');
@@ -160,7 +186,7 @@ export default function RegisterPage() {
               className="w-full pl-11 pr-4 py-3 text-sm font-medium bg-white border border-secondary/40 text-primary rounded-xl transition-all outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary appearance-none cursor-pointer"
             >
               <option value="">Selecciona tu carrera...</option>
-              {SCHOOLS_BY_FACULTY.map((group) => (
+              {schoolsByFaculty.map((group) => (
                 <optgroup key={group.faculty.id} label={`${group.faculty.name} (${group.faculty.abbreviation})`}>
                   {group.schools.map((school) => (
                     <option key={school.id} value={school.id}>

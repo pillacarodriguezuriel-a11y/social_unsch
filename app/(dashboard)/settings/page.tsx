@@ -22,6 +22,7 @@ import {
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Alert } from '../../../components/ui/Alert';
+import { api } from '../../lib/api';
 import { SCHOOLS_BY_FACULTY } from '../../lib/unsch.constants';
 
 type Tab = 'perfil' | 'privacidad' | 'notificaciones' | 'cuenta';
@@ -82,7 +83,33 @@ export default function SettingsPage() {
   const [success, setSuccess]   = useState<string | null>(null);
   const [showPass, setShowPass] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [schoolsByFaculty, setSchoolsByFaculty] = useState(SCHOOLS_BY_FACULTY);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.get<any>('/catalogs')
+      .then((res) => {
+        const data = res?.data || res;
+        if (!isMounted || !data?.faculties || !data?.schools) return;
+        const grouped = data.faculties
+          .map((fac: any) => ({
+            faculty: fac,
+            schools: data.schools.filter((s: any) => s.faculty_id === fac.id),
+          }))
+          .filter((g: any) => g.schools.length > 0);
+        if (grouped.length > 0) {
+          setSchoolsByFaculty(grouped);
+        }
+      })
+      .catch(() => {
+        // Fallback a constantes locales
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -270,7 +297,7 @@ export default function SettingsPage() {
                     onChange={(e) => setProfile({ ...profile, school_id: parseInt(e.target.value, 10) })}
                     className="w-full px-4 py-3 text-sm font-medium bg-white border border-secondary/40 text-primary rounded-xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary appearance-none cursor-pointer"
                   >
-                    {SCHOOLS_BY_FACULTY.map((fac) => (
+                    {schoolsByFaculty.map((fac) => (
                       <optgroup key={fac.faculty.id} label={`${fac.faculty.name} (${fac.faculty.abbreviation})`}>
                         {fac.schools.map((s) => (
                           <option key={s.id} value={s.id}>{s.name}</option>

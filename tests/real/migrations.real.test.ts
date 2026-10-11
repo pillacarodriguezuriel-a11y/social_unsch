@@ -9,6 +9,8 @@ import {
 import { runMigrations, getMigrationStatus } from '../../src/database/migrations/migrator';
 import { loadCatalogs } from '../../src/database/migrations/load_catalogs';
 import { loadDemoSeed, assertSafeDemoEnvironment } from '../../src/database/migrations/load_demo_seed';
+import request from 'supertest';
+import app from '../../src/app';
 
 describe('Real Migrations & Catalogs Engine (PostgreSQL Real)', () => {
   let pool: Pool;
@@ -258,67 +260,137 @@ describe('Real Migrations & Catalogs Engine (PostgreSQL Real)', () => {
     expect(checkUserData.rows[0].credits_balance).toBe('diez_creditos');
   });
 
-  it('Scenario 8: Catálogos e identificadores con resolución de colisiones, nombres ambiguos y preservación de relaciones', async () => {
+  it('Scenario 8: Escuela existente con ID distinto al esperado por constantes conserva su ID y relaciones', async () => {
     await runMigrations(pool);
 
-    // Simular base existente con desalineación de IDs y colisión:
-    // En la base previa:
-    // ID 5 = "Ingeniería en Sistemas" (código ambiguo/alias, canónico es ID 20)
-    // ID 20 = "Educación Secundaria" (colisión! ocupa el 20, su canónico es ID 8)
-    await pool.query("INSERT INTO faculties (id, name, abbreviation) VALUES (1, 'Facultad Temporal', 'FT')");
-    await pool.query(`
-      INSERT INTO professional_schools (id, faculty_id, name, code)
-      VALUES 
-        (5, 1, 'Ingeniería en Sistemas', 'ISI'),
-        (20, 1, 'Educación Secundaria', 'EDS')
-    `);
-
-    // Asociar usuarios y publicaciones a los IDs antiguos
-    const userSistemasId = '11111111-aaaa-bbbb-cccc-111111111111';
-    const userEducacionId = '22222222-aaaa-bbbb-cccc-222222222222';
+    // Insertar escuela existente con ID 99 (en lugar del 20 de las constantes)
+    await pool.query("INSERT INTO faculties (id, name, abbreviation) VALUES (7, 'Ingeniería de Minas, Geología y Civil', 'FIMGC')");
     await pool.query(
-      `INSERT INTO users (id, full_name, email, password_hash, role, professional_school_id)
-       VALUES 
-        ($1, 'Estudiante Sistemas', 'sistemas@unsch.edu.pe', 'hash1', 'student', 5),
-        ($2, 'Estudiante Educacion', 'educacion@unsch.edu.pe', 'hash2', 'student', 20)`,
-      [userSistemasId, userEducacionId]
+      "INSERT INTO professional_schools (id, faculty_id, name, code) VALUES (99, 7, 'Ingeniería de Sistemas', 'ISI')"
     );
 
+    // Asociar usuario y post al ID 99
+    const userId = '11111111-aaaa-bbbb-cccc-111111111111';
+    await pool.query(
+      `INSERT INTO users (id, full_name, email, password_hash, role, professional_school_id)
+       VALUES ($1, 'Estudiante Sistemas', 'sistemas@unsch.edu.pe', 'hash1', 'student', 99)`,
+      [userId]
+    );
     await pool.query(
       `INSERT INTO feed_posts (user_id, professional_school_id, content)
-       VALUES ($1, 5, 'Post de sistemas con ID previo 5')`,
-      [userSistemasId]
+       VALUES ($1, 99, 'Post de sistemas con ID existente 99')`,
+      [userId]
     );
 
     // Ejecutar sincronización de catálogos
     await loadCatalogs(pool);
 
-    // Garantía 1: "Ingeniería de Sistemas" se re-alineó a su ID canónico 20
-    const sistemasSchool = (
+    // 1. Conserva estrictamente el ID 99
+    const schoolRow = (
       await pool.query("SELECT id, name, code FROM professional_schools WHERE name = 'Ingeniería de Sistemas'")
     ).rows[0];
-    expect(sistemasSchool.id).toBe(20);
+    expect(schoolRow.id).toBe(99);
 
-    // Garantía 2: "Educación Secundaria" se re-alineó a su ID canónico 8 sin colisionar
-    const educacionSchool = (
-      await pool.query("SELECT id, name, code FROM professional_schools WHERE name = 'Educación Secundaria'")
-    ).rows[0];
-    expect(educacionSchool.id).toBe(8);
+    // 2. Conserva relaciones de usuarios y publicaciones sin alterar la clave foránea
+    const userRow = (await pool.query('SELECT professional_school_id FROM users WHERE id = $1', [userId])).rows[0];
+    expect(userRow.professional_school_id).toBe(99);
 
-    // Garantía 3: El usuario de Sistemas se actualizó al ID 20 (preserva su escuela correcta en la UI)
-    const checkUserSistemas = (await pool.query('SELECT professional_school_id FROM users WHERE id = $1', [userSistemasId])).rows[0];
-    expect(checkUserSistemas.professional_school_id).toBe(20);
-
-    // Garantía 4: El usuario de Educación se actualizó al ID 8 (evita que la UI lo asigne a Sistemas)
-    const checkUserEducacion = (await pool.query('SELECT professional_school_id FROM users WHERE id = $1', [userEducacionId])).rows[0];
-    expect(checkUserEducacion.professional_school_id).toBe(8);
-
-    // Garantía 5: La publicación del feed se actualizó al ID 20 conservando su asociación
-    const checkPost = (await pool.query('SELECT professional_school_id FROM feed_posts WHERE user_id = $1', [userSistemasId])).rows[0];
-    expect(checkPost.professional_school_id).toBe(20);
+    const postRow = (await pool.query('SELECT professional_school_id FROM feed_posts WHERE user_id = $1', [userId])).rows[0];
+    expect(postRow.professional_school_id).toBe(99);
   });
 
-  it('Scenario 9: Bloqueo consultivo de sesión (pg_try_advisory_lock) impide dos ejecutores simultáneos en paralelo', async () => {
+  it('Scenario 9: Colisión de ID con entidad previa no sobrescribe ni reasigna, y segunda carga es idempotente', async () => {
+    await runMigrations(pool);
+
+    // Insertar facultad y una entidad histórica ocupando ID 20 (que suele ser el ID preferido de Sistemas)
+    await pool.query("INSERT INTO faculties (id, name, abbreviation) VALUES (1, 'Ciencias Agrarias', 'FCA')");
+    await pool.query(
+      "INSERT INTO professional_schools (id, faculty_id, name, code) VALUES (20, 1, 'Escuela Especial Previa', 'EEP')"
+    );
+
+    // Ejecutar sincronización de catálogos
+    await loadCatalogs(pool);
+
+    // 1. La entidad previa conservó su ID 20 intacto
+    const previaRow = (
+      await pool.query("SELECT id, name, code FROM professional_schools WHERE id = 20")
+    ).rows[0];
+    expect(previaRow.name).toBe('Escuela Especial Previa');
+    expect(previaRow.code).toBe('EEP');
+
+    // 2. Ingeniería de Sistemas fue insertada con un ID disponible sin sobrescribir ni robar el ID 20
+    const sistemasRow = (
+      await pool.query("SELECT id, name, code FROM professional_schools WHERE name = 'Ingeniería de Sistemas'")
+    ).rows[0];
+    expect(sistemasRow).toBeDefined();
+    expect(sistemasRow.id).not.toBe(20);
+
+    // 3. Segunda carga consecutiva no duplica ni modifica nada
+    const countBefore = (await pool.query('SELECT COUNT(*) FROM professional_schools')).rows[0].count;
+    const load2 = await loadCatalogs(pool);
+    const countAfter = (await pool.query('SELECT COUNT(*) FROM professional_schools')).rows[0].count;
+
+    expect(load2.schoolsInserted).toBe(0);
+    expect(countBefore).toBe(countAfter);
+  });
+
+  it('Scenario 10: Correspondencia ambigua aborta transaccionalmente sin cambios parciales', async () => {
+    await runMigrations(pool);
+    await pool.query("INSERT INTO faculties (id, name, abbreviation) VALUES (1, 'Facultad Base', 'FB')");
+
+    // Crear escuela con conflicto deliberado: nombre 'Ingeniería de Sistemas' pero código 'DER' (Derecho)
+    await pool.query(
+      "INSERT INTO professional_schools (id, faculty_id, name, code) VALUES (50, 1, 'Ingeniería de Sistemas', 'DER')"
+    );
+
+    const countBefore = (await pool.query('SELECT COUNT(*) FROM professional_schools')).rows[0].count;
+
+    // Ejecutar loadCatalogs esperando rechazo transaccional
+    await expect(loadCatalogs(pool)).rejects.toThrow('Correspondencia ambigua detectada');
+
+    // Comprobar rollback garantizado: no hubo inserciones parciales
+    const countAfter = (await pool.query('SELECT COUNT(*) FROM professional_schools')).rows[0].count;
+    expect(countAfter).toBe(countBefore);
+  });
+
+  it('Scenario 11: El consumidor del catálogo obtiene y envía el ID real en registro', async () => {
+    await runMigrations(pool);
+
+    // Cargar catálogos teniendo una escuela previa con ID no estándar (ID 99)
+    await pool.query("INSERT INTO faculties (id, name, abbreviation) VALUES (7, 'Ingeniería de Minas, Geología y Civil', 'FIMGC')");
+    await pool.query(
+      "INSERT INTO professional_schools (id, faculty_id, name, code) VALUES (99, 7, 'Ingeniería de Sistemas', 'ISI')"
+    );
+    await loadCatalogs(pool);
+
+    // 1. El endpoint público GET /api/v1/catalogs devuelve el ID real persistido (99)
+    const catalogRes = await request(app).get('/api/v1/catalogs');
+    expect(catalogRes.status).toBe(200);
+    const sistemasInCatalog = catalogRes.body.data.schools.find((s: any) => s.name === 'Ingeniería de Sistemas');
+    expect(sistemasInCatalog).toBeDefined();
+    expect(sistemasInCatalog.id).toBe(99);
+
+    // 2. El consumidor frontend envía el ID real 99 al registrar un usuario
+    const registerRes = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        full_name: 'Estudiante Catálogo Real',
+        email: 'cat.real@unsch.edu.pe',
+        password: 'Password123#',
+        role: 'student',
+        professional_school_id: sistemasInCatalog.id, // envía 99
+      });
+
+    expect(registerRes.status).toBe(201);
+
+    // 3. Verificar en base de datos que se persistió exactamente con ID 99
+    const userInDb = (
+      await pool.query("SELECT professional_school_id FROM users WHERE email = 'cat.real@unsch.edu.pe'")
+    ).rows[0];
+    expect(userInDb.professional_school_id).toBe(99);
+  });
+
+  it('Scenario 12: Bloqueo consultivo de sesión (pg_try_advisory_lock) impide dos ejecutores simultáneos en paralelo', async () => {
     // Disparar dos ejecutores simultáneos compitiendo por la misma base de datos
     const [run1, run2] = await Promise.allSettled([
       runMigrations(pool),
@@ -341,7 +413,7 @@ describe('Real Migrations & Catalogs Engine (PostgreSQL Real)', () => {
     expect(status.applied.length).toBe(5);
   });
 
-  it('Scenario 10: Validación positiva del seed de demostración (Allowlist) y conservación de usuarios existentes', async () => {
+  it('Scenario 13: Validación positiva del seed de demostración (Allowlist) y conservación de usuarios existentes', async () => {
     await runMigrations(pool);
     await loadCatalogs(pool);
 
@@ -389,7 +461,7 @@ describe('Real Migrations & Catalogs Engine (PostgreSQL Real)', () => {
     expect(checkUser.has_accepted_terms).toBe(false);
   });
 
-  it('Scenario 11: Ejecución del comando de migración como subproceso con fallo deliberado y salida no cero', async () => {
+  it('Scenario 14: Ejecución del comando de migración como subproceso con fallo deliberado y salida no cero', async () => {
     // 1. Crear un script DDL con fallo sintáctico deliberado en sql/
     const sqlDir = path.join(__dirname, '../../src/database/migrations/sql');
     const failingMigrationPath = path.join(sqlDir, '999_deliberate_failure_test.sql');

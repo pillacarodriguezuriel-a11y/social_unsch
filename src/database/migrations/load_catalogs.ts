@@ -60,12 +60,16 @@ export interface CatalogLoadResult {
 }
 
 /**
- * Carga y sincronización de catálogos canónicos de forma estrictamente NO destructiva.
- * - NUNCA ejecuta DELETE en faculties ni professional_schools.
- * - NUNCA actualiza professional_school_id = NULL en usuarios, publicaciones ni archivos.
- * - Resuelve colisiones de IDs y desalineaciones históricas reasignando a los IDs canónicos
- *   (1..31 para escuelas, 1..9 para facultades) y propagando en cascada hacia las tablas dependientes.
- * - Soporta nombres ambiguos y alias canónicos sin adivinar ni sobreescribir entidades desconocidas.
+ * Carga y sincronización de catálogos canónicos conservando estrictamente los IDs existentes.
+ * 
+ * Principios de diseño:
+ * 1. Conservación estricta de IDs: NUNCA se ejecutan UPDATEs sobre claves primarias ni IDs negativos temporales.
+ * 2. Resolución inequívoca por claves naturales: búsqueda por nombre normalizado o código.
+ * 3. Detección y aborto transaccional ante correspondencias ambiguas: si una entidad coincide
+ *    con múltiples escuelas canónicas o si nombre y código apuntan a entidades distintas, se aborta con error claro.
+ * 4. Inserción de entidades faltantes sin colisiones: si el ID canónico preferido ya está ocupado
+ *    por otra entidad existente, se inserta respetando la secuencia sin sobreescribir ni despojar el ID existente.
+ * 5. Preservación absoluta de relaciones existentes de usuarios, publicaciones y archivos académicos.
  */
 export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult> {
   const activePool = customPool || pool;
@@ -81,11 +85,9 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
     await client.query('BEGIN');
 
     // ─────────────────────────────────────────────────────────────
-    // 1. Carga y Sincronización de Facultades
+    // 1. Carga y Sincronización de Facultades (Conservando IDs existentes)
     // ─────────────────────────────────────────────────────────────
-    console.log('[Catalogs]: Sincronizando catálogo de Facultades...');
-    await client.query('ALTER TABLE professional_schools DROP CONSTRAINT IF EXISTS professional_schools_faculty_id_fkey');
-    await client.query('ALTER TABLE feed_posts DROP CONSTRAINT IF EXISTS feed_posts_faculty_id_fkey');
+    console.log('[Catalogs]: Sincronizando catálogo de Facultades conservando IDs...');
 
     const existingFaculties = (
       await client.query<{ id: number; name: string; abbreviation: string | null }>(
@@ -93,70 +95,85 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
       )
     ).rows;
 
-    for (const f of FACULTIES) {
-      const match = existingFaculties.find(
-        (ef) =>
-          ef.name.trim().toLowerCase() === f.name.trim().toLowerCase() ||
-          ef.abbreviation === f.abbreviation
+    const existingFacultyIds = new Set(existingFaculties.map((f) => f.id));
+    const matchedFacultyCanonicalIds = new Set<number>();
+
+    for (const ef of existingFaculties) {
+      const efName = ef.name.trim().toLowerCase();
+      const efAbbr = ef.abbreviation?.trim().toUpperCase();
+
+      const matches = FACULTIES.filter(
+        (f) =>
+          f.name.trim().toLowerCase() === efName ||
+          (efAbbr && f.abbreviation.trim().toUpperCase() === efAbbr)
       );
 
-      if (match) {
-        facultiesPreserved++;
-        if (match.id !== f.id) {
-          // Re-alinear ID si difería del canónico
-          const tempId = -(match.id + 100);
-          await client.query('UPDATE faculties SET id = $1 WHERE id = $2', [tempId, match.id]);
-          await client.query('UPDATE professional_schools SET faculty_id = $1 WHERE faculty_id = $2', [tempId, match.id]);
-          await client.query('UPDATE feed_posts SET faculty_id = $1 WHERE faculty_id = $2', [tempId, match.id]);
+      if (matches.length > 1) {
+        throw new Error(
+          `[Catalogs]: Correspondencia ambigua detectada en facultades: la facultad existente ID ${ef.id} ('${ef.name}') coincide con ${matches.length} facultades canónicas.`
+        );
+      }
 
-          await client.query('UPDATE faculties SET id = $1, abbreviation = $2 WHERE id = $3', [f.id, f.abbreviation, tempId]);
-          await client.query('UPDATE professional_schools SET faculty_id = $1 WHERE faculty_id = $2', [f.id, tempId]);
-          await client.query('UPDATE feed_posts SET faculty_id = $1 WHERE faculty_id = $2', [f.id, tempId]);
-        } else {
-          await client.query(
-            'UPDATE faculties SET abbreviation = COALESCE(abbreviation, $1) WHERE id = $2',
-            [f.abbreviation, f.id]
+      if (matches.length === 1) {
+        const matched = matches[0];
+        if (matchedFacultyCanonicalIds.has(matched.id)) {
+          throw new Error(
+            `[Catalogs]: Correspondencia ambigua detectada: múltiples facultades existentes coinciden con la facultad canónica '${matched.name}'.`
           );
         }
+        matchedFacultyCanonicalIds.add(matched.id);
+        facultiesPreserved++;
+
+        // Conservar su ID original intacto. Actualizar abreviatura si estaba ausente.
+        if (!ef.abbreviation && matched.abbreviation) {
+          await client.query('UPDATE faculties SET abbreviation = $1 WHERE id = $2', [
+            matched.abbreviation,
+            ef.id,
+          ]);
+        }
       } else {
-        await client.query(
-          `INSERT INTO faculties (id, name, abbreviation)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, abbreviation = EXCLUDED.abbreviation`,
-          [f.id, f.name, f.abbreviation]
+        // Facultad no canónica preexistente: conservar intacta con su ID
+        facultiesPreserved++;
+        console.warn(
+          `[Catalogs]: ℹ Facultad existente no canónica conservada con su ID original: ID ${ef.id} ('${ef.name}')`
         );
+      }
+    }
+
+    // Insertar facultades canónicas faltantes sin pisar IDs ocupados
+    for (const f of FACULTIES) {
+      if (!matchedFacultyCanonicalIds.has(f.id)) {
+        if (!existingFacultyIds.has(f.id)) {
+          // ID preferido está libre: insertar con f.id
+          await client.query(
+            'INSERT INTO faculties (id, name, abbreviation) VALUES ($1, $2, $3)',
+            [f.id, f.name, f.abbreviation]
+          );
+          existingFacultyIds.add(f.id);
+        } else {
+          // ID preferido ocupado por otra entidad: asignar el siguiente ID libre garantizado
+          const maxRes = await client.query<{ next_id: number }>(
+            'SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM faculties'
+          );
+          const nextId = maxRes.rows[0].next_id;
+          await client.query(
+            'INSERT INTO faculties (id, name, abbreviation) VALUES ($1, $2, $3)',
+            [nextId, f.name, f.abbreviation]
+          );
+          existingFacultyIds.add(nextId);
+        }
         facultiesInserted++;
       }
     }
 
     await client.query(
-      'ALTER TABLE professional_schools ADD CONSTRAINT professional_schools_faculty_id_fkey FOREIGN KEY (faculty_id) REFERENCES faculties(id) ON DELETE CASCADE'
-    );
-    await client.query(
-      'ALTER TABLE feed_posts ADD CONSTRAINT feed_posts_faculty_id_fkey FOREIGN KEY (faculty_id) REFERENCES faculties(id) ON DELETE SET NULL'
-    );
-    await client.query(
-      "SELECT setval('faculties_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM faculties), 10))"
+      "SELECT setval('faculties_id_seq', (SELECT COALESCE(MAX(id), 1) FROM faculties))"
     );
 
     // ─────────────────────────────────────────────────────────────
     // 2. Carga y Sincronización de Escuelas Profesionales
     // ─────────────────────────────────────────────────────────────
-    console.log('[Catalogs]: Sincronizando catálogo de Escuelas Profesionales...');
-    await client.query('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_professional_school_id_fkey');
-    await client.query('ALTER TABLE feed_posts DROP CONSTRAINT IF EXISTS feed_posts_professional_school_id_fkey');
-
-    const hasAcademicFiles = (
-      await client.query(
-        "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'academic_files'"
-      )
-    ).rows.length > 0;
-
-    if (hasAcademicFiles) {
-      await client.query(
-        'ALTER TABLE academic_files DROP CONSTRAINT IF EXISTS academic_files_school_id_fkey'
-      );
-    }
+    console.log('[Catalogs]: Sincronizando catálogo de Escuelas Profesionales conservando IDs...');
 
     const existingSchools = (
       await client.query<{ id: number; faculty_id: number; name: string; code: string | null }>(
@@ -164,128 +181,109 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
       )
     ).rows;
 
-    const matchedCanonicalIds = new Set<number>();
-    const realignmentPlan: Array<{
-      oldId: number;
-      canonicalId: number;
-      name: string;
-      facultyId: number;
-      code: string;
-    }> = [];
-    const unalignedSchools: Array<{ id: number; name: string }> = [];
+    const existingSchoolIds = new Set(existingSchools.map((s) => s.id));
+    const matchedSchoolCanonicalIds = new Set<number>();
+    const facultyMapByName = new Map(
+      (await client.query<{ id: number; name: string }>('SELECT id, name FROM faculties')).rows.map(
+        (f) => [f.name.trim().toLowerCase(), f.id]
+      )
+    );
 
     for (const es of existingSchools) {
-      const normalized = normalizeSchoolName(es.name);
-      const canonicalMatch = PROFESSIONAL_SCHOOLS.find(
-        (cs) =>
-          cs.name.trim().toLowerCase() === normalized.trim().toLowerCase() ||
-          (es.code && SCHOOL_CODES[cs.id] === es.code.trim().toUpperCase())
+      const normalizedName = normalizeSchoolName(es.name).trim().toLowerCase();
+      const esCode = es.code?.trim().toUpperCase();
+
+      // Búsqueda por clave natural inequívoca
+      const nameMatches = PROFESSIONAL_SCHOOLS.filter(
+        (cs) => normalizeSchoolName(cs.name).trim().toLowerCase() === normalizedName
       );
 
-      if (canonicalMatch) {
-        matchedCanonicalIds.add(canonicalMatch.id);
-        const expectedCode = SCHOOL_CODES[canonicalMatch.id] || es.code || '';
-        realignmentPlan.push({
-          oldId: es.id,
-          canonicalId: canonicalMatch.id,
-          name: canonicalMatch.name,
-          facultyId: canonicalMatch.faculty_id,
-          code: expectedCode,
-        });
-      } else {
-        unalignedSchools.push({ id: es.id, name: es.name });
-      }
-    }
+      const codeMatches = esCode
+        ? PROFESSIONAL_SCHOOLS.filter((cs) => SCHOOL_CODES[cs.id] === esCode)
+        : [];
 
-    // Paso 2a: Cambio temporal a IDs negativos para evitar colisiones primarias durante realineación
-    for (const plan of realignmentPlan) {
-      if (plan.oldId !== plan.canonicalId) {
-        const tempId = -(plan.oldId + 10000);
-        await client.query('UPDATE professional_schools SET id = $1 WHERE id = $2', [tempId, plan.oldId]);
-        await client.query(
-          'UPDATE users SET professional_school_id = $1 WHERE professional_school_id = $2',
-          [tempId, plan.oldId]
-        );
-        await client.query(
-          'UPDATE feed_posts SET professional_school_id = $1 WHERE professional_school_id = $2',
-          [tempId, plan.oldId]
-        );
-        if (hasAcademicFiles) {
-          await client.query(
-            'UPDATE academic_files SET school_id = $1 WHERE school_id = $2',
-            [tempId, plan.oldId]
+      // Diagnóstico de ambigüedad entre nombre y código
+      if (nameMatches.length > 0 && codeMatches.length > 0) {
+        if (nameMatches[0].id !== codeMatches[0].id) {
+          throw new Error(
+            `[Catalogs]: Correspondencia ambigua detectada en escuela existente ID ${es.id}: el nombre '${es.name}' coincide con la escuela canónica ID ${nameMatches[0].id} ('${nameMatches[0].name}'), pero el código '${es.code}' coincide con ID ${codeMatches[0].id} ('${codeMatches[0].name}'). Transacción abortada para evitar corrupción.`
           );
         }
-        plan.oldId = tempId;
       }
-    }
 
-    // Paso 2b: Asignación de ID canónico definitivo
-    for (const plan of realignmentPlan) {
-      if (plan.oldId < 0) {
-        await client.query(
-          'UPDATE professional_schools SET id = $1, faculty_id = $2, name = $3, code = $4 WHERE id = $5',
-          [plan.canonicalId, plan.facultyId, plan.name, plan.code, plan.oldId]
+      const effectiveMatches = nameMatches.length > 0 ? nameMatches : codeMatches;
+
+      if (effectiveMatches.length > 1) {
+        throw new Error(
+          `[Catalogs]: Correspondencia ambigua detectada: la escuela existente ID ${es.id} ('${es.name}') coincide con múltiples escuelas canónicas.`
         );
-        await client.query(
-          'UPDATE users SET professional_school_id = $1 WHERE professional_school_id = $2',
-          [plan.canonicalId, plan.oldId]
-        );
-        await client.query(
-          'UPDATE feed_posts SET professional_school_id = $1 WHERE professional_school_id = $2',
-          [plan.canonicalId, plan.oldId]
-        );
-        if (hasAcademicFiles) {
-          await client.query(
-            'UPDATE academic_files SET school_id = $1 WHERE school_id = $2',
-            [plan.canonicalId, plan.oldId]
+      }
+
+      if (effectiveMatches.length === 1) {
+        const canonical = effectiveMatches[0];
+        if (matchedSchoolCanonicalIds.has(canonical.id)) {
+          throw new Error(
+            `[Catalogs]: Correspondencia ambigua detectada: múltiples escuelas existentes en base de datos coinciden con la escuela canónica '${canonical.name}'. Transacción abortada.`
           );
         }
+
+        matchedSchoolCanonicalIds.add(canonical.id);
+        schoolsPreserved++;
+
+        // Conservar su ID original intacto. Actualizar código canónico si estaba nulo.
+        const canonicalCode = SCHOOL_CODES[canonical.id];
+        if (!es.code && canonicalCode) {
+          await client.query('UPDATE professional_schools SET code = $1 WHERE id = $2', [
+            canonicalCode,
+            es.id,
+          ]);
+        }
       } else {
-        await client.query(
-          'UPDATE professional_schools SET faculty_id = $1, name = $2, code = $3 WHERE id = $4',
-          [plan.facultyId, plan.name, plan.code, plan.canonicalId]
+        // Escuela no canónica preexistente: conservar intacta con su ID
+        schoolsPreserved++;
+        console.warn(
+          `[Catalogs]: ℹ Escuela existente no canónica conservada con su ID original: ID ${es.id} ('${es.name}')`
         );
       }
-      schoolsPreserved++;
     }
 
-    // Paso 2c: Inserción de escuelas canónicas faltantes
+    // Inserción de escuelas canónicas faltantes
     for (const cs of PROFESSIONAL_SCHOOLS) {
-      if (!matchedCanonicalIds.has(cs.id)) {
+      if (!matchedSchoolCanonicalIds.has(cs.id)) {
         const schoolCode = SCHOOL_CODES[cs.id] || null;
-        await client.query(
-          `INSERT INTO professional_schools (id, faculty_id, name, code)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, code = EXCLUDED.code`,
-          [cs.id, cs.faculty_id, cs.name, schoolCode]
-        );
+
+        // Resolver la facultad de la escuela canónica si la facultad tuvo un ID diferente
+        const canonicalFaculty = FACULTIES.find((f) => f.id === cs.faculty_id);
+        const resolvedFacultyId = canonicalFaculty
+          ? facultyMapByName.get(canonicalFaculty.name.trim().toLowerCase()) || cs.faculty_id
+          : cs.faculty_id;
+
+        if (!existingSchoolIds.has(cs.id)) {
+          // ID preferido está libre: insertar con cs.id
+          await client.query(
+            'INSERT INTO professional_schools (id, faculty_id, name, code) VALUES ($1, $2, $3, $4)',
+            [cs.id, resolvedFacultyId, cs.name, schoolCode]
+          );
+          existingSchoolIds.add(cs.id);
+        } else {
+          // ID preferido ocupado por otra entidad existente: NO sobrescribir ni reasignar
+          // Insertar con el siguiente ID disponible garantizado
+          const maxRes = await client.query<{ next_id: number }>(
+            'SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM professional_schools'
+          );
+          const nextId = maxRes.rows[0].next_id;
+          await client.query(
+            'INSERT INTO professional_schools (id, faculty_id, name, code) VALUES ($1, $2, $3, $4)',
+            [nextId, resolvedFacultyId, cs.name, schoolCode]
+          );
+          existingSchoolIds.add(nextId);
+        }
         schoolsInserted++;
       }
     }
 
-    // Paso 2d: Entidades no reconocidas: preservar intactas sin borrar
-    for (const unknown of unalignedSchools) {
-      console.warn(
-        `[Catalogs]: ⚠️ Entidad existente no canónica conservada sin alteración: ID ${unknown.id} ('${unknown.name}')`
-      );
-    }
-
-    // Re-crear restricciones de clave foránea
     await client.query(
-      'ALTER TABLE users ADD CONSTRAINT users_professional_school_id_fkey FOREIGN KEY (professional_school_id) REFERENCES professional_schools(id) ON DELETE SET NULL'
-    );
-    await client.query(
-      'ALTER TABLE feed_posts ADD CONSTRAINT feed_posts_professional_school_id_fkey FOREIGN KEY (professional_school_id) REFERENCES professional_schools(id) ON DELETE SET NULL'
-    );
-    if (hasAcademicFiles) {
-      await client.query(
-        'ALTER TABLE academic_files ADD CONSTRAINT academic_files_school_id_fkey FOREIGN KEY (school_id) REFERENCES professional_schools(id) ON DELETE CASCADE'
-      );
-    }
-
-    await client.query(
-      "SELECT setval('professional_schools_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM professional_schools), 50))"
+      "SELECT setval('professional_schools_id_seq', (SELECT COALESCE(MAX(id), 1) FROM professional_schools))"
     );
 
     // ─────────────────────────────────────────────────────────────
@@ -304,7 +302,7 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
 
     await client.query('COMMIT');
     console.log(
-      `[Catalogs]: ✔ Catálogos sincronizados con éxito (Facultades: ${facultiesInserted} nuevas / ${facultiesPreserved} existentes; Escuelas: ${schoolsInserted} nuevas / ${schoolsPreserved} existentes; Pabellones: ${pavilionsLoaded}).`
+      `[Catalogs]: ✔ Catálogos sincronizados con éxito conservando todos los IDs existentes (Facultades: ${facultiesInserted} nuevas / ${facultiesPreserved} conservadas; Escuelas: ${schoolsInserted} nuevas / ${schoolsPreserved} conservadas; Pabellones: ${pavilionsLoaded}).`
     );
 
     return {
@@ -316,7 +314,7 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
     };
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('[Catalogs]: ✘ Error al sincronizar catálogos:', (err as Error).message);
+    console.error('[Catalogs]: ✘ Error al sincronizar catálogos (transacción revertida):', (err as Error).message);
     throw err;
   } finally {
     client.release();
