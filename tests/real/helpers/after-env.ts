@@ -1,15 +1,11 @@
 import { pool } from '../../../src/config/database';
 import { redis } from '../../../src/config/redis';
 
-afterAll(() => {
-  // Reemplazar listeners por no-op para evitar errores no manejados al destruir contenedores
-  pool.removeAllListeners('error');
-  pool.on('error', () => {});
-
-  redis.removeAllListeners('error');
-  redis.on('error', () => {});
-
+afterAll(async () => {
+  // Cierre limpio y explícito de recursos sin enmascarar errores
   try {
+    await redis.quit();
+  } catch {
     redis.disconnect();
-  } catch {}
+  }
 });

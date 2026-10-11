@@ -7,14 +7,41 @@ export interface DemoSeedResult {
   projectsInserted: number;
 }
 
+const ALLOWED_LOCAL_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+]);
+
+const ALLOWED_LOCAL_DATABASES = new Set([
+  'social_unsch',
+  'social_unsch_dev',
+  'social_unsch_test',
+]);
+
 /**
- * Valida de forma estricta que el entorno sea seguro antes de permitir la carga de datos demo.
- * No confía únicamente en NODE_ENV: valida la cadena de conexión y exige confirmación explícita.
+ * Valida de forma estricta que el entorno sea un destino local de desarrollo/pruebas permitido
+ * mediante VALIDACIÓN POSITIVA (Allowlist).
+ *
+ * Garantías:
+ * - NODE_ENV=production siempre bloquea.
+ * - La confirmación explícita por sí sola no habilita un destino remoto.
+ * - Exige un destino local de desarrollo/pruebas identificado de forma explícita.
+ * - Rechaza destinos desconocidos o remotos.
+ * - Se ejecuta antes de abrir conexiones o escribir.
  */
 export function assertSafeDemoEnvironment(
   customDatabaseUrl?: string,
   env: NodeJS.ProcessEnv = process.env
 ): void {
+  // 1. NODE_ENV=production siempre bloquea de forma incondicional
+  if (env.NODE_ENV === 'production') {
+    throw new Error(
+      'Carga de datos demo BLOQUEADA EN PRODUCCIÓN: NODE_ENV está configurado como production. Los datos de demostración están terminantemente prohibidos en producción.'
+    );
+  }
+
+  // 2. La confirmación explícita es requisito obligatorio, pero por sí sola NO habilita destinos remotos
   const isExplicitlyConfirmed =
     env.ALLOW_DEMO_SEED === 'true' || process.argv.includes('--confirm-demo');
 
@@ -25,30 +52,55 @@ export function assertSafeDemoEnvironment(
   }
 
   const dbUrl = customDatabaseUrl || env.DATABASE_URL || '';
+  if (!dbUrl) {
+    throw new Error('Carga de datos demo BLOQUEADA: No se especificó DATABASE_URL para validación.');
+  }
 
-  // Rechazar conexiones hacia proveedores en la nube conocidos o dominios de producción
-  const isRemoteHost =
-    /supabase\.co|onrender\.com|aws\.amazon|amazonaws\.com|pooler\.supabase|azure|gcp/i.test(
-      dbUrl
-    );
+  let hostname = '';
+  let dbName = '';
 
-  const isProductionMode = env.NODE_ENV === 'production';
+  try {
+    const parsed = new URL(dbUrl);
+    hostname = parsed.hostname.toLowerCase();
+    dbName = parsed.pathname.replace(/^\//, '').toLowerCase();
+  } catch {
+    const hostMatch = dbUrl.match(/@([^:/]+)/);
+    hostname = hostMatch ? hostMatch[1].toLowerCase() : '';
+    const dbMatch = dbUrl.match(/\/([^/?]+)(?:\?.*)?$/);
+    dbName = dbMatch ? dbMatch[1].toLowerCase() : '';
+  }
 
-  if (isRemoteHost || isProductionMode) {
+  // 3. Validación POSITIVA del host permitido
+  if (!hostname || !ALLOWED_LOCAL_HOSTS.has(hostname)) {
     throw new Error(
-      'Carga de datos demo BLOQUEADA EN PRODUCCIÓN: Se detectó una base de datos remota o NODE_ENV=production. Los datos de demostración están restringidos a entornos de pruebas locales o desechables.'
+      `Carga de datos demo BLOQUEADA: El destino '${hostname || 'desconocido'}' no está en la lista positiva de destinos locales permitidos ([${Array.from(ALLOWED_LOCAL_HOSTS).join(', ')}]). La confirmación explícita por sí sola no habilita un destino remoto.`
+    );
+  }
+
+  // 4. Validación POSITIVA de la base de datos permitida
+  if (
+    !ALLOWED_LOCAL_DATABASES.has(dbName) &&
+    !dbName.includes('test') &&
+    !dbName.includes('dev')
+  ) {
+    throw new Error(
+      `Carga de datos demo BLOQUEADA: La base de datos '${dbName}' no es un destino local de desarrollo o pruebas identificado de forma explícita.`
     );
   }
 }
 
 /**
  * Carga de datos de demostración para entornos locales de desarrollo/pruebas.
+ * - Ejecuta la validación positiva antes de abrir conexiones o escribir.
  * - Requiere confirmación explícita y bloqueo en producción.
  * - NUNCA sobrescribe contraseñas, roles ni términos de usuarios existentes (ON CONFLICT DO NOTHING).
  * - No altera las cuentas administrativas reales existentes.
  */
-export async function loadDemoSeed(customPool?: Pool): Promise<DemoSeedResult> {
-  assertSafeDemoEnvironment();
+export async function loadDemoSeed(customPool?: Pool, customDbUrl?: string): Promise<DemoSeedResult> {
+  const dbUrlToValidate =
+    customDbUrl || (customPool as any)?.options?.connectionString || process.env.DATABASE_URL;
+  // Validación positiva ejecutada ANTES de abrir conexiones
+  assertSafeDemoEnvironment(dbUrlToValidate);
 
   const activePool = customPool || pool;
   const client = await activePool.connect();

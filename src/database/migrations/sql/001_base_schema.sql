@@ -80,6 +80,16 @@ CREATE TABLE IF NOT EXISTS feed_posts (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 7. Crear Índices de Rendimiento
+-- 7. Asegurar compatibilidad de columnas en tablas existentes pre-Etapa 2
+ALTER TABLE users ADD COLUMN IF NOT EXISTS current_academic_cycle INTEGER;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS academic_cycle INTEGER CHECK (academic_cycle BETWEEN 1 AND 10);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS credits_balance INTEGER NOT NULL DEFAULT 5;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS has_accepted_terms BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_link VARCHAR(255);
+
+ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS in_audit_queue BOOLEAN NOT NULL DEFAULT false;
+
+-- 8. Crear Índices de Rendimiento
 CREATE INDEX IF NOT EXISTS idx_feed_posts_school_created ON feed_posts (professional_school_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
