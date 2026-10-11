@@ -182,8 +182,8 @@ describe('Carpooling HTTP Routes — Integration', () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [mockRoute], rowCount: 1 }) // findRouteById
         .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // no existing request
-        .mockResolvedValueOnce({ rows: [mockSeatRequest], rowCount: 1 }) // createRequest
-        .mockResolvedValueOnce({ rows: [passengerMeta], rowCount: 1 }); // getPassengerMeta
+        .mockResolvedValueOnce({ rows: [passengerMeta], rowCount: 1 }) // getPassengerMeta
+        .mockResolvedValueOnce({ rows: [mockSeatRequest], rowCount: 1 }); // createRequest
 
       const response = await request(app)
         .post(`/api/v1/carpooling/${routeId}/request`)

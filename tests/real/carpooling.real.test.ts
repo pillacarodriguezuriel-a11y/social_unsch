@@ -47,8 +47,13 @@ describe('Real Carpooling Concurrency & Atomicity (PostgreSQL Real)', () => {
     );
   });
 
-  it('Scenario 1: Consulta de metadatos con columnas correctas (professional_school_id y academic_cycle)', async () => {
-    // Crear una ruta académica con 2 asientos disponibles
+  it('Scenario 1: Consulta de metadatos con política canónica de ciclo académico (prioriza current_academic_cycle y null cuando es desconocido)', async () => {
+    // Caso A: Usuario con discrepancia explícita (current_academic_cycle=8 vs legacy academic_cycle=1)
+    await pool.query(
+      'UPDATE users SET current_academic_cycle = 8, academic_cycle = 1 WHERE id = $1',
+      [passenger1Id]
+    );
+
     const routeRes = await pool.query(
       `INSERT INTO carpooling_routes (driver_id, origin_district, destination, departure_time, available_seats, price_soles, driver_alias)
        VALUES ($1, 'San Juan Bautista', 'Campus Central', NOW() + INTERVAL '2 hours', 2, 2.50, 'Ing. Conductor')
@@ -57,22 +62,24 @@ describe('Real Carpooling Concurrency & Atomicity (PostgreSQL Real)', () => {
     );
     const routeId = routeRes.rows[0].id;
 
-    // Solicitar asiento como Pasajero 1
+    // Solicitar asiento: la política canónica debe priorizar current_academic_cycle (8) sobre 1
     const booking = await carpoolingService.requestSeat(routeId, passenger1Id);
-
     expect(booking.request_id).toBeDefined();
     expect(booking.status).toBe('SEAT_REQUESTED');
     expect(booking.passenger_meta.first_name).toBe('Juan');
     expect(booking.passenger_meta.school).toBe('Ingeniería de Sistemas');
-    expect(booking.passenger_meta.cycle).toBe(5);
+    expect(booking.passenger_meta.cycle).toBe(8); // Prioriza el campo canónico 8
 
-    // Verificar en BD que la solicitud se registró con estado correcto
-    const dbReq = await pool.query('SELECT * FROM carpooling_requests WHERE id = $1', [booking.request_id]);
-    expect(dbReq.rows.length).toBe(1);
-    expect(dbReq.rows[0].status).toBe('SEAT_REQUESTED');
+    // Caso B: Usuario con ciclo desconocido (ambos NULL, p.ej. egresado o docente pasajero)
+    await pool.query(
+      'UPDATE users SET current_academic_cycle = NULL, academic_cycle = NULL WHERE id = $1',
+      [passenger2Id]
+    );
+    const bookingUnknown = await carpoolingService.requestSeat(routeId, passenger2Id);
+    expect(bookingUnknown.passenger_meta.cycle).toBeNull(); // NUNCA inventa el ciclo 1
   });
 
-  it('Scenario 2: Rechazo de solicitudes duplicadas para la misma ruta activa', async () => {
+  it('Scenario 2: Carrera concurrente con dos solicitudes simultáneas para el mismo pasajero y ruta', async () => {
     const routeRes = await pool.query(
       `INSERT INTO carpooling_routes (driver_id, origin_district, destination, departure_time, available_seats, price_soles, driver_alias)
        VALUES ($1, 'Carmen Alto', 'Campus Central', NOW() + INTERVAL '2 hours', 2, 2.50, 'Ing. Conductor')
@@ -81,13 +88,31 @@ describe('Real Carpooling Concurrency & Atomicity (PostgreSQL Real)', () => {
     );
     const routeId = routeRes.rows[0].id;
 
-    // Primera solicitud: éxito
-    await carpoolingService.requestSeat(routeId, passenger1Id);
+    // Disparar dos solicitudes en paralelo compitiendo exactamente en el mismo instante
+    const [res1, res2] = await Promise.allSettled([
+      carpoolingService.requestSeat(routeId, passenger1Id),
+      carpoolingService.requestSeat(routeId, passenger1Id),
+    ]);
 
-    // Segunda solicitud del mismo pasajero: rechazada
-    await expect(carpoolingService.requestSeat(routeId, passenger1Id)).rejects.toThrow(
-      'Ya cuentas con una solicitud activa o confirmada para esta ruta.'
+    const successes = [res1, res2].filter((r) => r.status === 'fulfilled');
+    const failures = [res1, res2].filter((r) => r.status === 'rejected');
+
+    // Garantía 1: Exactamente una solicitud debe tener éxito
+    expect(successes.length).toBe(1);
+
+    // Garantía 2: La solicitud derrotada en la carrera debe traducirse a error de negocio 400
+    expect(failures.length).toBe(1);
+    const rejectedReason: any = (failures[0] as PromiseRejectedResult).reason;
+    expect(rejectedReason.statusCode).toBe(400);
+    expect(rejectedReason.errorCode).toBe('ERR_CARPOOLING_DUPLICATE_REQUEST');
+    expect(rejectedReason.message).toContain('Ya cuentas con una solicitud activa o confirmada');
+
+    // Garantía 3: Solo un registro persistido en la base de datos
+    const checkCount = await pool.query(
+      'SELECT COUNT(*) FROM carpooling_requests WHERE route_id = $1 AND passenger_id = $2',
+      [routeId, passenger1Id]
     );
+    expect(Number(checkCount.rows[0].count)).toBe(1);
   });
 
   it('Scenario 3: Verificación estricta de conductor autorizado al confirmar', async () => {
@@ -205,7 +230,7 @@ describe('Real Carpooling Concurrency & Atomicity (PostgreSQL Real)', () => {
     expect(seatsNow).toBe(0);
   });
 
-  it('Scenario 7: Fallo intermedio no deja persistencia parcial inesperada (compensación)', async () => {
+  it('Scenario 7: Fallo transaccional deliberado revierte la solicitud (Rollback real en PostgreSQL sin depender de DELETE posterior)', async () => {
     const routeRes = await pool.query(
       `INSERT INTO carpooling_routes (driver_id, origin_district, destination, departure_time, available_seats, price_soles, driver_alias)
        VALUES ($1, 'Huamanga Centro', 'Campus Central', NOW() + INTERVAL '2 hours', 2, 2.50, 'Ing. Conductor')
@@ -214,22 +239,20 @@ describe('Real Carpooling Concurrency & Atomicity (PostgreSQL Real)', () => {
     );
     const routeId = routeRes.rows[0].id;
 
-    // Simular un fallo forzado en getPassengerMeta
-    jest.spyOn(CarpoolingRepository.prototype, 'getPassengerMeta').mockRejectedValueOnce(
-      new Error('ERROR_SIMULADO_POST_CREACION')
-    );
+    // Disparar solicitud con fallo inyectado dentro de la transacción antes del COMMIT
+    await expect(
+      carpoolingService.requestSeat(routeId, passenger1Id, { injectedFailure: true })
+    ).rejects.toMatchObject({
+      statusCode: 500,
+      errorCode: 'ERR_INJECTED_FAILURE',
+    });
 
-    await expect(carpoolingService.requestSeat(routeId, passenger1Id)).rejects.toThrow(
-      'ERROR_SIMULADO_POST_CREACION'
-    );
-
-    // Verificar que la solicitud huérfana fue compensada y eliminada
+    // Garantía: PostgreSQL revirtió automáticamente la transacción;
+    // Cero solicitudes persistidas en base de datos sin depender de DELETE posterior
     const checkRequests = await pool.query(
       'SELECT * FROM carpooling_requests WHERE route_id = $1 AND passenger_id = $2',
       [routeId, passenger1Id]
     );
     expect(checkRequests.rows.length).toBe(0);
-
-    jest.restoreAllMocks();
   });
 });
