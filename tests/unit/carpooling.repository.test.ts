@@ -252,4 +252,66 @@ describe('CarpoolingRepository', () => {
       expect(callArg.text).toContain('professional_schools');
     });
   });
+
+  // ════════════════════════════════════════════════════════════════════
+  // createRequestTransaction()
+  // ════════════════════════════════════════════════════════════════════
+
+  describe('createRequestTransaction()', () => {
+    const buildMockClient = () => ({
+      query: jest.fn(),
+      release: jest.fn(),
+    });
+
+    it('should execute transaction, commit and return request and meta', async () => {
+      const client = buildMockClient();
+      mockConnect.mockResolvedValueOnce(client);
+      const meta = { full_name: 'Ana', academic_cycle: 4, school_name: 'Sistemas' };
+      const req = makeRequest();
+
+      client.query
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [meta] }) // meta
+        .mockResolvedValueOnce({ rows: [req] }) // insert
+        .mockResolvedValueOnce(undefined); // COMMIT
+
+      const res = await repo.createRequestTransaction('r1', 'p1');
+      expect(res.request.id).toBe(req.id);
+      expect(res.passengerMeta?.full_name).toBe('Ana');
+      expect(client.release).toHaveBeenCalled();
+    });
+
+    it('should rollback and release client on error before commit', async () => {
+      const client = buildMockClient();
+      mockConnect.mockResolvedValueOnce(client);
+
+      client.query
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockRejectedValueOnce(new Error('DB_FAIL')) // error
+        .mockResolvedValueOnce(undefined); // ROLLBACK
+
+      await expect(repo.createRequestTransaction('r1', 'p1')).rejects.toThrow('DB_FAIL');
+      expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+      expect(client.release).toHaveBeenCalled();
+    });
+
+    it('should translate 23505 unique error to ERR_CARPOOLING_DUPLICATE_REQUEST', async () => {
+      const client = buildMockClient();
+      mockConnect.mockResolvedValueOnce(client);
+
+      const pgErr: any = new Error('duplicate key value violates unique constraint');
+      pgErr.code = '23505';
+
+      client.query
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ full_name: 'Ana', academic_cycle: 4, school_name: 'Sistemas' }] })
+        .mockRejectedValueOnce(pgErr) // duplicate error on insert
+        .mockResolvedValueOnce(undefined); // ROLLBACK
+
+      await expect(repo.createRequestTransaction('r1', 'p1')).rejects.toThrow(
+        'ERR_CARPOOLING_DUPLICATE_REQUEST'
+      );
+      expect(client.release).toHaveBeenCalled();
+    });
+  });
 });

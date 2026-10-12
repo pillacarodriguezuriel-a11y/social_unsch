@@ -12,6 +12,7 @@ async function runModerationMigration() {
     console.log('[Migration]: Tablas, triggers y estructuras de carpooling y moderación creadas/verificadas con éxito.');
   } catch (error) {
     console.error('[Migration]: Error al ejecutar la migración de moderación/carpooling:', error);
+    process.exitCode = 1;
   } finally {
     await pool.end();
   }

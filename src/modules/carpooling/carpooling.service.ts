@@ -13,8 +13,25 @@ export class CarpoolingService {
 
   /**
    * Registra una solicitud de asiento, comprobando validez y minimizando datos visibles en el retorno.
+   *
+   * POLÍTICA DE ATOMICIDAD Y CONCURRENCIA:
+   * - Se realiza validación previa en lectura para descarte rápido sin bloquear.
+   * - La persistencia y lectura de metadata se confirman bajo la misma transacción PostgreSQL en una única sesión.
+   * - Toda falla antes del COMMIT revierte la transacción automáticamente (no depende de eliminación compensatoria).
+   * - Las carreras concurrentes están protegidas por el índice único parcial 'uq_active_carpooling_request'.
+   * - Las violaciones de unicidad se capturan y traducen a ERR_CARPOOLING_DUPLICATE_REQUEST (HTTP 400).
+   *
+   * POLÍTICA DE CICLO ACADÉMICO:
+   * - Campo canónico: users.current_academic_cycle.
+   * - Campo secundario: users.academic_cycle.
+   * - Si ambos difieren, se prioriza current_academic_cycle sin sobreescribir datos en BD.
+   * - Si ambos son desconocidos, cycle es null (nunca se inventa el ciclo 1).
    */
-  async requestSeat(routeId: string, passengerId: string) {
+  async requestSeat(
+    routeId: string,
+    passengerId: string,
+    options?: { injectedFailure?: boolean }
+  ) {
     // 1. Obtener la ruta
     const route = await this.carpoolingRepository.findRouteById(routeId);
     if (!route) {
@@ -39,9 +56,12 @@ export class CarpoolingService {
       );
     }
 
-    // 4. Verificar solicitud previa activa
+    // 4. Verificación previa en lectura (optimización de descarte temprano)
     const existingRequest = await this.carpoolingRepository.findRequest(routeId, passengerId);
-    if (existingRequest && (existingRequest.status === 'SEAT_REQUESTED' || existingRequest.status === 'SEAT_CONFIRMED')) {
+    if (
+      existingRequest &&
+      (existingRequest.status === 'SEAT_REQUESTED' || existingRequest.status === 'SEAT_CONFIRMED')
+    ) {
       throw new AppError(
         'Ya cuentas con una solicitud activa o confirmada para esta ruta.',
         400,
@@ -49,29 +69,51 @@ export class CarpoolingService {
       );
     }
 
-    // 5. Crear solicitud en base de datos
-    const request = await this.carpoolingRepository.createRequest(routeId, passengerId);
+    // 5. Crear solicitud y consultar metadata de forma atómica bajo transacción PostgreSQL
+    try {
+      const { request, passengerMeta } =
+        await this.carpoolingRepository.createRequestTransaction(routeId, passengerId, options);
 
-    // 6. Obtener metadata del pasajero para el conductor
-    const passengerMeta = await this.carpoolingRepository.getPassengerMeta(passengerId);
-    
-    // Extraer solo el primer nombre
-    const firstName = passengerMeta?.full_name ? passengerMeta.full_name.split(' ')[0] : 'Estudiante';
-    const school = passengerMeta?.school_name || 'Comunidad';
-    const cycle = passengerMeta?.academic_cycle || 1;
+      // Extraer solo el primer nombre
+      const firstName = passengerMeta?.full_name
+        ? passengerMeta.full_name.split(' ')[0]
+        : 'Estudiante';
+      const school = passengerMeta?.school_name || 'Comunidad';
+      const cycle = passengerMeta?.academic_cycle ?? null;
 
-    return {
-      request_id: request.id,
-      route_id: request.route_id,
-      status: request.status,
-      driver_alias: route.driver_alias,
-      available_seats: route.available_seats,
-      passenger_meta: {
-        first_name: firstName,
-        school: school,
-        cycle: cycle,
-      },
-    };
+      return {
+        request_id: request.id,
+        route_id: request.route_id,
+        status: request.status,
+        driver_alias: route.driver_alias,
+        available_seats: route.available_seats,
+        passenger_meta: {
+          first_name: firstName,
+          school: school,
+          cycle: cycle,
+        },
+      };
+    } catch (error: any) {
+      if (
+        error.message === 'ERR_CARPOOLING_DUPLICATE_REQUEST' ||
+        error.code === 'ERR_CARPOOLING_DUPLICATE_REQUEST' ||
+        error.code === '23505'
+      ) {
+        throw new AppError(
+          'Ya cuentas con una solicitud activa o confirmada para esta ruta.',
+          400,
+          'ERR_CARPOOLING_DUPLICATE_REQUEST'
+        );
+      }
+      if (error.message === 'INJECTED_TRANSACTION_FAILURE') {
+        throw new AppError(
+          'Fallo transaccional provocado para prueba de rollback.',
+          500,
+          'ERR_INJECTED_FAILURE'
+        );
+      }
+      throw error;
+    }
   }
 
   /**

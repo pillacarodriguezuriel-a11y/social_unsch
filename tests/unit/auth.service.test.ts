@@ -137,6 +137,30 @@ describe('AuthService', () => {
 
       expect(error).toBeInstanceOf(AppError);
     });
+
+    it('should reject registration attempt with role "administrator" with 403 ERR_AUTH_FORBIDDEN_ROLE', async () => {
+      await expect(
+        authService.register({ ...registerInput, role: 'administrator' as any })
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        errorCode: 'ERR_AUTH_FORBIDDEN_ROLE',
+      });
+
+      expect(mockQuery).not.toHaveBeenCalled();
+      expect(mockBcryptHash).not.toHaveBeenCalled();
+    });
+
+    it('should reject registration attempt with invalid role with 400 ERR_AUTH_INVALID_ROLE', async () => {
+      await expect(
+        authService.register({ ...registerInput, role: 'unknown_role' as any })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        errorCode: 'ERR_AUTH_INVALID_ROLE',
+      });
+
+      expect(mockQuery).not.toHaveBeenCalled();
+      expect(mockBcryptHash).not.toHaveBeenCalled();
+    });
   });
 
   // ══════════════════════════════════════════════════════════════════════════════

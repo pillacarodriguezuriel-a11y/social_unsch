@@ -12,6 +12,7 @@ async function runCreditsMigration() {
     console.log('[Migration]: Tablas, triggers y funciones de créditos creados/verificados con éxito.');
   } catch (error) {
     console.error('[Migration]: Error al ejecutar la migración de créditos:', error);
+    process.exitCode = 1;
   } finally {
     await pool.end();
   }

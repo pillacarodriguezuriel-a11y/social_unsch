@@ -49,9 +49,17 @@ describe('registerSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should accept role "administrator" as valid', () => {
+  it('should reject role "administrator" from public registration', () => {
     const result = registerSchema.safeParse({ ...validRegisterInput, role: 'administrator' });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.errors[0].message).toContain('Los roles administrativos no pueden ser autoasignados');
+    }
+  });
+
+  it('should reject unknown roles like "superadmin" or "guest"', () => {
+    const result = registerSchema.safeParse({ ...validRegisterInput, role: 'guest' });
+    expect(result.success).toBe(false);
   });
 
   it('should reject email not belonging to @unsch.edu.pe domain', () => {

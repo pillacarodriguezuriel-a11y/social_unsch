@@ -7,6 +7,7 @@ import radarRoutes from './modules/radar/radar.routes';
 import feedRoutes from './modules/feed/feed.routes';
 import matchmakingRoutes from './modules/matchmaking/matchmaking.routes';
 import carpoolingRoutes from './modules/carpooling/carpooling.routes';
+import catalogsRoutes from './modules/catalogs/catalogs.routes';
 import { errorMiddleware } from './middlewares/error.middleware';
 
 const app: Application = express();
@@ -63,6 +64,9 @@ app.use('/api/v1/matchmaking', matchmakingRoutes);
 
 // Registrar las rutas de carpooling bajo el prefijo universal /api/v1/carpooling
 app.use('/api/v1/carpooling', carpoolingRoutes);
+
+// Registrar las rutas públicas de catálogos bajo el prefijo universal /api/v1/catalogs
+app.use('/api/v1/catalogs', catalogsRoutes);
 
 // Middleware centralizado de manejo de errores (debe registrarse al final)
 app.use(errorMiddleware);

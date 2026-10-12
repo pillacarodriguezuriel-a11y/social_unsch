@@ -172,6 +172,29 @@ describe('CarpoolingService', () => {
       });
     });
 
+    it('should throw AppError 400 ERR_CARPOOLING_DUPLICATE_REQUEST when repository throws code 23505', async () => {
+      const route = makeRoute({ driver_id: driverId, available_seats: 2 });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [route], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+        .mockRejectedValueOnce(Object.assign(new Error('unique violation'), { code: '23505' }));
+
+      await expect(service.requestSeat(routeId, passengerId)).rejects.toMatchObject({
+        statusCode: 400,
+        errorCode: 'ERR_CARPOOLING_DUPLICATE_REQUEST',
+      });
+    });
+
+    it('should rethrow unexpected error occurring in requestSeat transaction', async () => {
+      const route = makeRoute({ driver_id: driverId, available_seats: 2 });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [route], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+        .mockRejectedValueOnce(new Error('Fatal DB failure'));
+
+      await expect(service.requestSeat(routeId, passengerId)).rejects.toThrow('Fatal DB failure');
+    });
+
     it('should allow request if existing status is SEAT_REJECTED', async () => {
       const route = makeRoute({ driver_id: driverId, available_seats: 2 });
       const rejectedRequest = makeRequest({ status: 'SEAT_REJECTED' });
@@ -180,8 +203,8 @@ describe('CarpoolingService', () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [route], rowCount: 1 }) // findRouteById
         .mockResolvedValueOnce({ rows: [rejectedRequest], rowCount: 1 }) // findRequest (rejected, allowed)
-        .mockResolvedValueOnce({ rows: [newRequest], rowCount: 1 }) // createRequest
-        .mockResolvedValueOnce({ rows: [passengerMeta], rowCount: 1 }); // getPassengerMeta
+        .mockResolvedValueOnce({ rows: [passengerMeta], rowCount: 1 }) // getPassengerMeta
+        .mockResolvedValueOnce({ rows: [newRequest], rowCount: 1 }); // createRequest
       const result = await service.requestSeat(routeId, passengerId);
       expect(result.request_id).toBe(newRequest.id);
     });
@@ -193,8 +216,8 @@ describe('CarpoolingService', () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [route], rowCount: 1 })
         .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // no existing request
-        .mockResolvedValueOnce({ rows: [newRequest], rowCount: 1 })
-        .mockResolvedValueOnce({ rows: [passengerMeta], rowCount: 1 });
+        .mockResolvedValueOnce({ rows: [passengerMeta], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [newRequest], rowCount: 1 });
 
       const result = await service.requestSeat(routeId, passengerId);
       expect(result.request_id).toBe(newRequest.id);
@@ -212,8 +235,8 @@ describe('CarpoolingService', () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [route] })
         .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [newRequest] })
-        .mockResolvedValueOnce({ rows: [{ full_name: null, academic_cycle: null, school_name: null }] });
+        .mockResolvedValueOnce({ rows: [{ full_name: null, academic_cycle: null, school_name: null }] })
+        .mockResolvedValueOnce({ rows: [newRequest] });
 
       const result = await service.requestSeat(routeId, passengerId);
       expect(result.passenger_meta.first_name).toBe('Estudiante');
@@ -225,24 +248,24 @@ describe('CarpoolingService', () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [route] })
         .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [newRequest] })
-        .mockResolvedValueOnce({ rows: [{ full_name: null, academic_cycle: null, school_name: null }] });
+        .mockResolvedValueOnce({ rows: [{ full_name: null, academic_cycle: null, school_name: null }] })
+        .mockResolvedValueOnce({ rows: [newRequest] });
 
       const result = await service.requestSeat(routeId, passengerId);
       expect(result.passenger_meta.school).toBe('Comunidad');
     });
 
-    it('should use cycle=1 as default when academic_cycle is null', async () => {
+    it('should return null when academic_cycle is null (never invent cycle 1)', async () => {
       const route = makeRoute({ driver_id: driverId, available_seats: 1 });
       const newRequest = makeRequest();
       mockQuery
         .mockResolvedValueOnce({ rows: [route] })
         .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [newRequest] })
-        .mockResolvedValueOnce({ rows: [{ full_name: null, academic_cycle: null, school_name: null }] });
+        .mockResolvedValueOnce({ rows: [{ full_name: null, academic_cycle: null, school_name: null }] }) // getPassengerMeta inside tx
+        .mockResolvedValueOnce({ rows: [newRequest] }); // insert inside tx
 
       const result = await service.requestSeat(routeId, passengerId);
-      expect(result.passenger_meta.cycle).toBe(1);
+      expect(result.passenger_meta.cycle).toBeNull();
     });
   });
 

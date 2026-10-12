@@ -59,10 +59,34 @@ La plataforma está diseñada con una arquitectura moderna y robusta para mejora
     *   **Backend**: `npm run dev:backend` (corre en el puerto `3000`)
     *   **Orquestador**: `npm run dev` (ejecuta ambos simultáneamente)
 
-3.  **Migraciones y Datos de Prueba**:
-    ```bash
-    npx ts-node src/database/migrations/migrate_all.ts
-    ```
+3.  **Gestión de Base de Datos y Catálogos**:
+    *   **Evolución del Esquema (DDL Idempotente)**:
+        ```bash
+        npm run db:migrate
+        ```
+    *   **Sincronización de Catálogos Canónicos (Facultades, Escuelas, Pabellones)**:
+        ```bash
+        npm run db:catalogs
+        ```
+    *   **Estado de Migraciones**:
+        ```bash
+        npm run db:migrate:status
+        ```
+    *   **Carga de Datos Demo (Solo Local / Opcional)**:
+        ```bash
+        ALLOW_DEMO_SEED=true npm run db:seed:demo
+        ```
+
+4.  **Pruebas Automatizadas**:
+    *   **Suite Mockeada con Cobertura (18 suites, >=90% cobertura)**:
+        ```bash
+        npm test
+        npm run test:coverage
+        ```
+    *   **Suite de Integración Real (PostgreSQL 15 y Redis 7 Aislados)**:
+        ```bash
+        npm run test:real
+        ```
 
 ---
 
