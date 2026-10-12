@@ -8,6 +8,9 @@ node_modules/
 *.tsbuildinfo
 .npm
 .eslintcache
+/coverage
+__pycache__/
+*.pyc
 
 # Sensitive Environment variables and credentials
 .env
