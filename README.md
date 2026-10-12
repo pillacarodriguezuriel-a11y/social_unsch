@@ -6,6 +6,29 @@ La plataforma está diseñada con una arquitectura moderna y robusta para mejora
 
 ---
 
+## 📌 Estado actual y documentación
+
+> Línea base documentada: commit `8e56bfa` de `main` (2026-10-12).
+
+SOCIAL-UNSCH es hoy un **monolito modular**: una aplicación web Next.js y **una única API Express**, con PostgreSQL para los datos persistentes y Redis para el radar del campus. La separación en servicios por dominio es una **propuesta de evolución**; todavía no está implementada.
+
+| Área | Estado |
+|---|---|
+| Registro, inicio de sesión, catálogos | Implementado |
+| Campus Radar | Implementado |
+| Feed de publicaciones | Implementado (los filtros existen en la API; la pantalla aún no los usa) |
+| Matchmaking | Parcial: descubrir e interactuar funcionan; no hay API para crear perfiles ni proyectos |
+| Carpooling | Parcial: la API existe y está probada; la pantalla usa datos del navegador |
+| Wiki-banco, moderación, marketplace, empleo, ajustes | Simulado en el navegador; sin API |
+
+La descripción de módulos que sigue presenta la visión del producto. Qué parte está construida se detalla, con evidencia, en la documentación:
+
+- **[Documentación arquitectónica](docs/README.md)**: análisis, arquitectura actual, de transición y objetivo, diseño, modelo C4, despliegue, decisiones y plan de migración.
+- [Inventario de implementación](docs/07-evaluacion-y-evolucion/01-inventario-de-implementacion.md): estado de cada funcionalidad.
+- [Informes de las etapas 1 y 2](docs/migracion/ETAPA_02_ESTABILIZACION.md).
+
+---
+
 ## 🚀 Módulos y Características Principales
 
 ### 📡 1. Campus Radar (Crowdsourcing en Tiempo Real)
@@ -48,16 +71,18 @@ La plataforma está diseñada con una arquitectura moderna y robusta para mejora
 
 ### Pasos para iniciar localmente
 
-1.  **Instalar dependencias**:
+1.  **Instalar dependencias** y crear el archivo de entorno a partir de la plantilla:
     ```bash
-    npm install
+    npm ci
+    cp .env.example .env
     ```
+    Las variables se explican en [Configuración y entornos](docs/05-despliegue-y-operacion/02-configuracion-y-entornos.md).
 
 2.  **Iniciar servicios de desarrollo**:
     La plataforma provee scripts integrados para levantar el entorno de desarrollo local:
     *   **Frontend**: `npm run dev:frontend` (corre en el puerto `3001`)
     *   **Backend**: `npm run dev:backend` (corre en el puerto `3000`)
-    *   **Orquestador**: `npm run dev` (ejecuta ambos simultáneamente)
+    *   **Ambos a la vez**: `npm run dev:all` (`npm run dev` levanta solo el backend)
 
 3.  **Gestión de Base de Datos y Catálogos**:
     *   **Evolución del Esquema (DDL Idempotente)**:
@@ -78,7 +103,7 @@ La plataforma está diseñada con una arquitectura moderna y robusta para mejora
         ```
 
 4.  **Pruebas Automatizadas**:
-    *   **Suite Mockeada con Cobertura (18 suites, >=90% cobertura)**:
+    *   **Suite con dobles de prueba y cobertura (19 suites, umbral de cobertura del 90 %)**:
         ```bash
         npm test
         npm run test:coverage
