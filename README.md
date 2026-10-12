@@ -90,5 +90,5 @@ La plataforma está diseñada con una arquitectura moderna y robusta para mejora
 
 ---
 
-## 🔒 Seguridad y Privacidad
-El proyecto opera de forma restringida exclusivamente para correos institucionales `@unsch.edu.pe`. Todos los datos sensibles (contraseñas hasheadas con Bcrypt con factor de costo 12) y tokens están excluidos del repositorio público mediante configuraciones estrictas en `.gitignore`.
+## EXPOSICIÓN PARA DEFENDER EL CURSO
+https://canva.link/b26bvy2rx25ldmx
