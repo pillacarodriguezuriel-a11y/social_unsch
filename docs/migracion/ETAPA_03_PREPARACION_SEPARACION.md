@@ -210,7 +210,7 @@ No se tuvo acceso a los paneles: no se sabe con certeza qué tienen configurado.
 | Root Directory | `apps/web` |
 | Incluir archivos fuera del Root Directory | Activado (necesario para `packages/contracts` y el lockfile de la raíz) |
 | Install Command | El predeterminado, si Vercel detecta los workspaces; si no, `cd ../.. && npm ci` |
-| Build Command | `npm run build` (compila el contrato y después `next build`) |
+| Build Command | `npm run build` (compila el contrato y después `next build`). El comando anterior del panel, `npm run build:frontend`, también funciona: `apps/web` lo conserva como alias |
 | Output Directory | Predeterminado (`.next`) |
 | Variables | `NEXT_PUBLIC_API_URL` |
 

@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "npm run build --prefix ../../packages/contracts && next build",
+    "build:frontend": "npm run build",
     "start": "next start -p 3001",
     "typecheck": "npm run build --prefix ../../packages/contracts && tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.jest.json",
     "test": "jest"
