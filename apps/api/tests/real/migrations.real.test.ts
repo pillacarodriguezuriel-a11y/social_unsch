@@ -475,7 +475,7 @@ describe('Real Migrations & Catalogs Engine (PostgreSQL Real)', () => {
       // 2. Ejecutar el comando de migración como subproceso
       const proc = spawnSync(
         'npx',
-        ['ts-node', '--project', 'tsconfig.backend.json', 'src/database/migrations/run_migrate.ts'],
+        ['ts-node', '--project', 'tsconfig.json', 'src/database/migrations/run_migrate.ts'],
         {
           cwd: path.join(__dirname, '../..'),
           env: {

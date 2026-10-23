@@ -1,15 +1,15 @@
 /**
- * Unit Test Suite: catálogo del frontend (app/lib/catalogs.ts)
+ * Unit Test Suite: catálogo del frontend (apps/web/app/lib/catalogs.ts)
  *
  * Regresión: el frontend enviaba IDs de constantes locales cuando la carga del catálogo fallaba,
  * y además leía la respuesta con una forma incorrecta, por lo que nunca aplicaba el catálogo real.
  */
 
-jest.mock('../../app/lib/api', () => ({
+jest.mock('../app/lib/api', () => ({
   api: { get: jest.fn() },
 }));
 
-import { api } from '../../app/lib/api';
+import { api } from '../app/lib/api';
 import {
   CatalogUnavailableError,
   findSchool,
@@ -17,7 +17,7 @@ import {
   loadCatalogs,
   parseCatalogResponse,
   resolveSchoolSelection,
-} from '../../app/lib/catalogs';
+} from '../app/lib/catalogs';
 
 const mockGet = api.get as jest.Mock;
 

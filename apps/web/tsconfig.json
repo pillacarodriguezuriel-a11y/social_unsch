@@ -28,12 +28,12 @@
   },
   "include": [
     "next-env.d.ts",
-    "src/**/*",
     "app/**/*",
     "components/**/*",
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "tests"
   ]
 }

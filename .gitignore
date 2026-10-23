@@ -1,14 +1,14 @@
 # Dependency directories
 node_modules/
-/dist
-/.next
-/out
+dist/
+.next/
+out/
 
 # Build cache / outputs
 *.tsbuildinfo
 .npm
 .eslintcache
-/coverage
+coverage/
 __pycache__/
 *.pyc
 

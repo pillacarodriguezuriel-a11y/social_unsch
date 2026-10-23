@@ -1,7 +1,6 @@
 import jwt, { SignOptions, VerifyOptions } from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import './load-env';
 
-dotenv.config();
 
 // Cargar llaves RSA desde variables de entorno
 const privateKey = process.env.JWT_PRIVATE_KEY ? process.env.JWT_PRIVATE_KEY.replace(/\\n/g, '\n') : '';
