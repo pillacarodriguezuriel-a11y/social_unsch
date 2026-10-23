@@ -23,7 +23,8 @@ Ningún registro tiene aprobación documentada. La fecha indicada es la de redac
 | [ADR-004](ADR-004-extraccion-inicial-de-radar.md) | Radar como primer servicio extraído | Propuesto | En discusión |
 | [ADR-005](ADR-005-propiedad-gradual-de-datos.md) | Propiedad gradual de los datos por dominio | Propuesto | En discusión |
 | [ADR-006](ADR-006-plataformas-de-despliegue.md) | Plataformas gestionadas para el despliegue | Retrospectivo | Vigente; configuración pendiente de verificación |
-| [ADR-007](ADR-007-workspaces-y-montaje-de-radar.md) | Separación en npm workspaces y montaje reemplazable de Radar | Decisión de la etapa 3 | Implementada en rama; pendiente de fusión |
+| [ADR-007](ADR-007-workspaces-y-montaje-de-radar.md) | Separación en npm workspaces y montaje reemplazable de Radar | Decisión de la etapa 3 | Implementada en `main` (PR n.º 4) |
+| [ADR-008](ADR-008-extraccion-radar-servicio-independiente.md) | Extracción de Radar como servicio independiente y enrutamiento reversible | Decisión de la etapa 4 | Implementada en rama; pendiente de PR y autorización para despliegue |
 
 ## Relación entre decisiones
 
@@ -36,7 +37,8 @@ flowchart LR
     A3 --> A4["ADR-004<br/>radar primero"]
     A3 --> A5["ADR-005<br/>propiedad de datos"]
     A3 --> A7["ADR-007<br/>workspaces y montaje de Radar"]
-    A7 --> A4
+    A7 --> A8["ADR-008<br/>extracción de Radar independiente"]
+    A4 --> A8
 
     classDef propuesto stroke-dasharray: 5 5
     class A3,A4,A5 propuesto

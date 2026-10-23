@@ -22,7 +22,7 @@ export function createAppResources(config: ServerConfig): AppResources {
 
   let radar;
   if (config.radar.mode === 'proxy') {
-    radar = createRadarProxyModule({ target: config.radar.target, timeoutMs: config.radar.timeoutMs });
+    radar = createRadarProxyModule({ target: config.radar.target, timeoutMs: config.radar.timeoutMs, healthPath: '/health/ready' });
   } else {
     const redis = createRedisClient(config.redisUrl);
     closers.push(() => redis.quit().catch(() => redis.disconnect()));

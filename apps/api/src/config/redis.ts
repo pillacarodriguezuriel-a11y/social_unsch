@@ -9,15 +9,16 @@ export const DEFAULT_LOCAL_REDIS_URL = 'redis://127.0.0.1:6379';
  * Los registros nunca incluyen la URL, que puede contener credenciales.
  */
 export function createRedisClient(url: string): Redis {
+  const isTls = url.startsWith('rediss://');
   const client = new Redis(url, {
-    maxRetriesPerRequest: 3,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
     retryStrategy(times) {
-      if (times > 5) {
-        console.warn('[Redis]: Se alcanzó el límite de reintentos. El servidor continuará ejecutándose sin Redis (Radar en estado degradado).');
-        return null; // Detiene el bucle de reintentos infinitos
-      }
-      return Math.min(times * 50, 2000);
+      // Reconexión resiliente: reintentos con backoff exponencial con techo (máximo 3000ms),
+      // permitiendo recuperación tras fallos temporales sin encolar indefinidamente.
+      return Math.min(times * 100, 3000);
     },
+    tls: isTls ? {} : undefined,
   });
 
   client.on('connect', () => {

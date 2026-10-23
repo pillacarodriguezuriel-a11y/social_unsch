@@ -179,10 +179,16 @@ describe('destino fijado por la configuración del servidor', () => {
 });
 
 describe('readiness del modo proxy', () => {
-  it('consulta /health/live del destino', async () => {
+  it('consulta /health/live del destino por defecto', async () => {
     const mod = createRadarProxyModule({ target: upstreamUrl, timeoutMs: 500 });
     await expect(mod.checkReady()).resolves.toBe(true);
     expect(captured[0].url).toBe('/health/live');
+  });
+
+  it('permite configurar /health/ready para verificar dependencias del destino', async () => {
+    const mod = createRadarProxyModule({ target: upstreamUrl, timeoutMs: 500, healthPath: '/health/ready' });
+    await expect(mod.checkReady()).resolves.toBe(true);
+    expect(captured[0].url).toBe('/health/ready');
   });
 
   it('devuelve false si el destino no responde a tiempo', async () => {
@@ -193,3 +199,4 @@ describe('readiness del modo proxy', () => {
     await expect(mod.checkReady()).resolves.toBe(false);
   });
 });
+

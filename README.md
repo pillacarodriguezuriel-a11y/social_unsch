@@ -8,14 +8,14 @@ La plataforma está diseñada con una arquitectura moderna y robusta para mejora
 
 ## 📌 Estado actual y documentación
 
-> Línea base documentada: commit `8e56bfa` de `main` (2026-10-12), actualizada con la [etapa 3](docs/migracion/ETAPA_03_PREPARACION_SEPARACION.md) (2026-10-23).
+> Línea base documentada: commit `8e56bfa` de `main` (2026-10-12), actualizada con la [etapa 3](docs/migracion/ETAPA_03_PREPARACION_SEPARACION.md) y la [etapa 4](docs/migracion/ETAPA_04_EXTRACCION_RADAR.md) (2026-10-23).
 
-SOCIAL-UNSCH es hoy un **monolito modular**: una aplicación web Next.js y **una única API Express**, con PostgreSQL para los datos persistentes y Redis para el radar del campus. La separación en servicios por dominio es una **propuesta de evolución**; todavía no está implementada.
+SOCIAL-UNSCH avanza hacia su arquitectura de transición: una aplicación web Next.js (`apps/web`), **una API principal Express (`apps/api`)** y el **primer microservicio independiente: Campus Radar (`apps/radar`)**, consumido mediante proxy reversible en la API. Los datos relacionales residen en PostgreSQL y el estado temporal en Redis.
 
 | Área | Estado |
 |---|---|
 | Registro, inicio de sesión, catálogos | Implementado |
-| Campus Radar | Implementado |
+| Campus Radar | Implementado (extraído a `apps/radar` con proxy reversible) |
 | Feed de publicaciones | Implementado (los filtros existen en la API; la pantalla aún no los usa) |
 | Matchmaking | Parcial: descubrir e interactuar funcionan; no hay API para crear perfiles ni proyectos |
 | Carpooling | Parcial: la API existe y está probada; la pantalla usa datos del navegador |
@@ -25,18 +25,20 @@ La descripción de módulos que sigue presenta la visión del producto. Qué par
 
 - **[Documentación arquitectónica](docs/README.md)**: análisis, arquitectura actual, de transición y objetivo, diseño, modelo C4, despliegue, decisiones y plan de migración.
 - [Inventario de implementación](docs/07-evaluacion-y-evolucion/01-inventario-de-implementacion.md): estado de cada funcionalidad.
-- Informes de migración: [etapa 1](docs/migracion/ETAPA_01_LINEA_BASE.md), [etapa 2](docs/migracion/ETAPA_02_ESTABILIZACION.md) y [etapa 3](docs/migracion/ETAPA_03_PREPARACION_SEPARACION.md).
+- Informes de migración: [etapa 1](docs/migracion/ETAPA_01_LINEA_BASE.md), [etapa 2](docs/migracion/ETAPA_02_ESTABILIZACION.md), [etapa 3](docs/migracion/ETAPA_03_PREPARACION_SEPARACION.md) y [etapa 4](docs/migracion/ETAPA_04_EXTRACCION_RADAR.md).
+- Decisiones arquitectónicas: [ADR-007 (Workspaces)](docs/06-decisiones-arquitectonicas/ADR-007-workspaces-y-montaje-de-radar.md) y [ADR-008 (Extracción de Radar)](docs/06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md).
 
 ### Estructura del repositorio
 
-Monorepo con npm workspaces. Sigue habiendo **una sola API desplegable**: el monorepo organiza el código, no lo convierte en microservicios.
+Monorepo con npm workspaces y lockfile único:
 
 | Ruta | Contenido |
 |---|---|
 | `apps/web` | Aplicación web Next.js (`@social-unsch/web`) |
-| `apps/api` | API Express (`@social-unsch/api`), migraciones y pruebas |
+| `apps/api` | API Express (`@social-unsch/api`), auth, feed, carpooling y proxy de Radar |
+| `apps/radar` | Servicio independiente de Campus Radar (`@social-unsch/radar`) |
 | `packages/contracts` | Contratos de intercambio de Radar y formato de error (Zod) |
-| `scripts` | Arranque conjunto y comprobación de límites |
+| `scripts` | Arranque conjunto, límites arquitectónicos y benchmark de latencia |
 | `docs` | Documentación arquitectónica e informes de migración |
 
 ---

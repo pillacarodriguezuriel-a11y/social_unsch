@@ -71,6 +71,9 @@ function checkBoundaries(root) {
   const report = (rule, file, spec, detail) =>
     violations.push({ rule, file: path.relative(root, file).split(path.sep).join('/'), spec, detail });
 
+  const radarApp = path.join(root, 'apps', 'radar');
+  const radarAppSrc = path.join(radarApp, 'src');
+
   for (const file of listFiles(web)) {
     for (const { spec, typeOnly } of parseImports(fs.readFileSync(file, 'utf8'))) {
       if (isRelative(spec)) {
@@ -80,7 +83,7 @@ function checkBoundaries(root) {
         continue;
       }
       const pkg = packageName(spec);
-      if (SERVER_ONLY.includes(pkg) || pkg === '@social-unsch/api') {
+      if (SERVER_ONLY.includes(pkg) || pkg === '@social-unsch/api' || pkg === '@social-unsch/radar') {
         report('web-sin-servidor', file, spec, 'paquete de servidor importado desde el frontend');
       }
       if (pkg === '@social-unsch/contracts' && !typeOnly) {
@@ -107,6 +110,7 @@ function checkBoundaries(root) {
     for (const { spec, typeOnly } of parseImports(fs.readFileSync(file, 'utf8'))) {
       if (!isRelative(spec)) {
         if (packageName(spec) === '@social-unsch/web') report('api-sin-web', file, spec, 'el backend no importa el frontend');
+        if (packageName(spec) === '@social-unsch/radar') report('api-sin-radar-interno', file, spec, 'la API no debe importar el paquete interno de apps/radar');
         if (isInside(file, radarDir)) {
           if (spec === 'pg') report('radar-sin-conexiones', file, spec, 'el radar no usa PostgreSQL');
           if (spec === 'ioredis' && !typeOnly) {
@@ -117,6 +121,7 @@ function checkBoundaries(root) {
       }
       const target = path.resolve(path.dirname(file), spec);
       if (!isInside(target, api)) report('api-sin-web', file, spec, 'import relativo fuera de apps/api');
+      if (isInside(target, radarApp)) report('api-sin-radar-interno', file, spec, 'import relativo a apps/radar desde apps/api');
       const targetModule = moduleOf(target);
       if (ownModule && targetModule && targetModule !== ownModule) {
         report('modulos-aislados', file, spec, `el módulo ${ownModule} importa un archivo del módulo ${targetModule}`);
@@ -127,6 +132,21 @@ function checkBoundaries(root) {
           report('radar-sin-conexiones', file, spec, 'el radar no abre conexiones; las recibe de la composición');
         }
       }
+    }
+  }
+
+  for (const file of listFiles(radarAppSrc)) {
+    for (const { spec } of parseImports(fs.readFileSync(file, 'utf8'))) {
+      if (isRelative(spec)) {
+        if (!isInside(path.resolve(path.dirname(file), spec), radarApp)) {
+          report('radar-sin-api', file, spec, 'import relativo fuera de apps/radar');
+        }
+        continue;
+      }
+      const pkg = packageName(spec);
+      if (pkg === '@social-unsch/api') report('radar-sin-api', file, spec, 'el servicio radar no importa apps/api');
+      if (pkg === '@social-unsch/web') report('radar-sin-web', file, spec, 'el servicio radar no importa apps/web');
+      if (pkg === 'pg') report('radar-sin-pg', file, spec, 'el servicio radar no usa PostgreSQL');
     }
   }
 
