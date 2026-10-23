@@ -15,15 +15,6 @@
 // ─── Module Mocks ─────────────────────────────────────────────────────────────
 
 // Prevent ioredis from attempting a real TCP connection on startup
-jest.mock('../../src/config/redis', () => ({
-  redis: {
-    on: jest.fn(),
-    get: jest.fn(),
-    set: jest.fn(),
-    del: jest.fn(),
-  },
-}));
-
 // Prevent pg from opening a real database connection
 jest.mock('../../src/config/database', () => ({
   pool: {
@@ -49,7 +40,9 @@ import request from 'supertest';
 import bcrypt from 'bcrypt';
 import { pool } from '../../src/config/database';
 import { verifyAccessToken } from '../../src/config/jwt';
-import app from '../../src/app';
+import { createTestApp } from '../helpers/test-app';
+
+const app = createTestApp();
 import { User } from '../../src/modules/auth/auth.repository';
 import { TokenPayload } from '../../src/config/jwt';
 

@@ -1,37 +1,22 @@
-import { RadarRepository, RadarStatusResponse } from './radar.repository';
+import {
+  RADAR_CAMPUS_ALERT_STATUSES,
+  RADAR_COMEDOR_STATUSES,
+  RADAR_LIBRARY_OCCUPANCY_MAX,
+  RADAR_LIBRARY_OCCUPANCY_MIN,
+  RADAR_NODES,
+  RADAR_RECTORADO_STATUSES,
+} from '@social-unsch/contracts';
+import { RadarStatusResponse, RadarStore, RadarVoteResult } from './radar.repository';
 import { AppError } from '../../shared/errors/AppError';
 
 export class RadarService {
-  private radarRepository = new RadarRepository();
+  // Los valores permitidos provienen del contrato (@social-unsch/contracts): una sola definición.
+  private readonly allowedNodes: readonly string[] = RADAR_NODES;
+  private readonly allowedComedorStatuses: readonly string[] = RADAR_COMEDOR_STATUSES;
+  private readonly allowedRectoradoStatuses: readonly string[] = RADAR_RECTORADO_STATUSES;
+  private readonly allowedAlertStatuses: readonly string[] = RADAR_CAMPUS_ALERT_STATUSES;
 
-  // Nodos permitidos del Campus Radar
-  private allowedNodes = [
-    'comedor',
-    'rectorado',
-    'biblioteca_floor_1',
-    'biblioteca_floor_2',
-    'biblioteca_floor_3',
-    'biblioteca_floor_4',
-    'campus_alert',
-  ];
-
-  // Estados permitidos para el Comedor
-  private allowedComedorStatuses = [
-    'fluid', 'medium_queue', 'long_queue', 'closed', // Inglés
-    'Fluido', 'Cola Media', 'Cola Larga', 'Cerrado' // Español
-  ];
-
-  // Estados permitidos para el Rectorado
-  private allowedRectoradoStatuses = [
-    'empty_window', 'waiting_15', 'collapsed', // Inglés
-    'Ventanilla vacía', 'Espera de 15 min', 'Colapsado' // Español
-  ];
-
-  // Estados permitidos para las alertas de campus
-  private allowedAlertStatuses = [
-    'class_suspended', 'cultural_event', 'lost_item_dni', 'lost_item_keys', 'lost_item_other',
-    'Clase suspendida', 'Evento cultural', 'Pérdida de DNI', 'Pérdida de Llaves', 'Pérdida de objeto'
-  ];
+  constructor(private readonly radarRepository: RadarStore) {}
 
   /**
    * Obtiene el estado consolidado del Campus Radar.
@@ -47,7 +32,7 @@ export class RadarService {
     node: string,
     status: string,
     userId: string
-  ): Promise<{ updated: boolean; votesCount: number; message: string }> {
+  ): Promise<RadarVoteResult> {
     // 1. Validar existencia del nodo
     if (!this.allowedNodes.includes(node)) {
       throw new AppError(
@@ -88,7 +73,11 @@ export class RadarService {
       );
     } else if (node.startsWith('biblioteca_floor_')) {
       const occupancyVal = Number(status);
-      if (isNaN(occupancyVal) || occupancyVal < 0 || occupancyVal > 100) {
+      if (
+        isNaN(occupancyVal) ||
+        occupancyVal < RADAR_LIBRARY_OCCUPANCY_MIN ||
+        occupancyVal > RADAR_LIBRARY_OCCUPANCY_MAX
+      ) {
         throw new AppError(
           'El aforo de la biblioteca debe ser un porcentaje entero entre 0 y 100.',
           400,

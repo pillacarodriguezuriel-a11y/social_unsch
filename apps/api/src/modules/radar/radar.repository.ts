@@ -1,27 +1,41 @@
-import { redis } from '../../config/redis';
+import type Redis from 'ioredis';
+import {
+  RADAR_TTL_SECONDS,
+  RADAR_UNDEFINED_VALUE,
+  RADAR_VOTE_THRESHOLD,
+  RadarStatusResponse,
+} from '@social-unsch/contracts';
 
-export interface RadarStatusResponse {
-  comedor: {
-    status: string;
-    is_definite: boolean;
-  };
-  rectorado: {
-    status: string;
-    is_definite: boolean;
-  };
-  biblioteca: {
-    floor_1: { occupancy: string | number; is_definite: boolean };
-    floor_2: { occupancy: string | number; is_definite: boolean };
-    floor_3: { occupancy: string | number; is_definite: boolean };
-    floor_4: { occupancy: string | number; is_definite: boolean };
-  };
-  campus_alert: {
-    status: string;
-    is_definite: boolean;
-  };
+export type { RadarStatusResponse };
+
+type LibraryOccupancy = RadarStatusResponse['biblioteca']['floor_1']['occupancy'];
+
+/** Operaciones de Redis que usa el repositorio. El cliente se inyecta; el módulo no abre conexiones. */
+export type RadarRedisClient = Pick<Redis, 'pipeline' | 'eval'>;
+
+/** Resultado de registrar un voto. */
+export interface RadarVoteResult {
+  updated: boolean;
+  votesCount: number;
+  message: string;
 }
 
-export class RadarRepository {
+/** Puerto de almacenamiento del radar. RadarRepository es la implementación sobre Redis. */
+export interface RadarStore {
+  getStatus(): Promise<RadarStatusResponse>;
+  submitReport(
+    node: string,
+    statusValue: string,
+    userId: string,
+    fieldName: 'status' | 'occupancy',
+    allSets: string[]
+  ): Promise<RadarVoteResult>;
+}
+
+
+export class RadarRepository implements RadarStore {
+  constructor(private readonly redis: RadarRedisClient) {}
+
   // Definición del script Lua para votación y agregación atómica
   private luaVoteScript = `
     local already_voted = redis.call('SISMEMBER', KEYS[1], ARGV[1])
@@ -55,7 +69,7 @@ export class RadarRepository {
    * Lee simultáneamente el estado de todos los nodos del Campus Radar vía pipelines.
    */
   async getStatus(): Promise<RadarStatusResponse> {
-    const pipeline = redis.pipeline();
+    const pipeline = this.redis.pipeline();
     pipeline.hgetall('radar:comedor:status');
     pipeline.hgetall('radar:rectorado:status');
     pipeline.hgetall('radar:biblioteca:floor:1:occupancy');
@@ -73,7 +87,7 @@ export class RadarRepository {
     const parseNodeStatus = (res: any, field: 'status' | 'occupancy') => {
       const data = res[1] as Record<string, string> | null;
       if (!data || Object.keys(data).length === 0) {
-        return { value: 'indefinido', isDefinite: false };
+        return { value: RADAR_UNDEFINED_VALUE, isDefinite: false };
       }
       return {
         value: field === 'occupancy' ? Number(data.occupancy) : data.status,
@@ -99,10 +113,10 @@ export class RadarRepository {
         is_definite: rectoradoInfo.isDefinite,
       },
       biblioteca: {
-        floor_1: { occupancy: b1Info.value, is_definite: b1Info.isDefinite },
-        floor_2: { occupancy: b2Info.value, is_definite: b2Info.isDefinite },
-        floor_3: { occupancy: b3Info.value, is_definite: b3Info.isDefinite },
-        floor_4: { occupancy: b4Info.value, is_definite: b4Info.isDefinite },
+        floor_1: { occupancy: b1Info.value as LibraryOccupancy, is_definite: b1Info.isDefinite },
+        floor_2: { occupancy: b2Info.value as LibraryOccupancy, is_definite: b2Info.isDefinite },
+        floor_3: { occupancy: b3Info.value as LibraryOccupancy, is_definite: b3Info.isDefinite },
+        floor_4: { occupancy: b4Info.value as LibraryOccupancy, is_definite: b4Info.isDefinite },
       },
       campus_alert: {
         status: campusAlertInfo.value as string,
@@ -125,7 +139,7 @@ export class RadarRepository {
     userId: string,
     fieldName: 'status' | 'occupancy',
     allSets: string[]
-  ): Promise<{ updated: boolean; votesCount: number; message: string }> {
+  ): Promise<RadarVoteResult> {
     const setKey = `radar:${node}:reports:${statusValue.replace(/\s+/g, '_')}`;
     let hashKey = `radar:${node}:status`;
     if (node.startsWith('biblioteca_floor_')) {
@@ -134,11 +148,11 @@ export class RadarRepository {
     }
 
     const currentTimestamp = Math.floor(Date.now() / 1000).toString();
-    const ttl = '900'; // 15 minutos de Time-To-Live
-    const threshold = '3'; // Se requieren 3 votos coincidentes
+    const ttl = String(RADAR_TTL_SECONDS); // 15 minutos de Time-To-Live
+    const threshold = String(RADAR_VOTE_THRESHOLD); // Se requieren 3 votos coincidentes
 
     // Invocar la ejecución del script Lua
-    const rawResult = await redis.eval(
+    const rawResult = await this.redis.eval(
       this.luaVoteScript,
       2, // Número de llaves
       setKey,

@@ -9,16 +9,12 @@
  *     campus_alert estados válidos e inválidos, ya votado (votesCount = -1)
  */
 
-jest.mock('../../src/config/redis', () => ({
-  redis: {
-    pipeline: jest.fn(),
-    eval: jest.fn(),
-  },
-}));
-
-import { redis } from '../../src/config/redis';
+import { RadarRepository } from '../../src/modules/radar/radar.repository';
 import { RadarService } from '../../src/modules/radar/radar.service';
 import { AppError } from '../../src/shared/errors/AppError';
+
+// Cliente Redis falso inyectado en el repositorio (composición explícita)
+const redis = { pipeline: jest.fn(), eval: jest.fn() };
 
 const mockPipeline = redis.pipeline as jest.Mock;
 const mockEval = redis.eval as jest.Mock;
@@ -39,7 +35,7 @@ describe('RadarService', () => {
   let service: RadarService;
 
   beforeEach(() => {
-    service = new RadarService();
+    service = new RadarService(new RadarRepository(redis as any));
   });
 
   // ════════════════════════════════════════════════════════════════════

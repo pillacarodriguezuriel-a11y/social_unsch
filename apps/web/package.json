@@ -8,12 +8,13 @@
   },
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "next build",
+    "build": "npm run build --prefix ../../packages/contracts && next build",
     "start": "next start -p 3001",
-    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "typecheck": "npm run build --prefix ../../packages/contracts && tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.jest.json",
     "test": "jest"
   },
   "dependencies": {
+    "@social-unsch/contracts": "1.0.0",
     "axios": "^1.7.2",
     "lucide-react": "^0.395.0",
     "next": "^14.2.4",

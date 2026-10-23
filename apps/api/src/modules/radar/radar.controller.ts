@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import { RADAR_VOTE_THRESHOLD } from '@social-unsch/contracts';
 import { RadarService } from './radar.service';
 
 export class RadarController {
-  private radarService = new RadarService();
+  constructor(private readonly radarService: RadarService) {}
 
   /**
    * Obtiene el estado consolidado de afluencia de todos los nodos del Campus Radar.
@@ -56,7 +57,7 @@ export class RadarController {
           message: 'Reporte registrado. Se necesitan más confirmaciones para actualizar el estado.',
           updated: false,
           votes_current: result.votesCount,
-          votes_required: 3,
+          votes_required: RADAR_VOTE_THRESHOLD,
         });
       }
     } catch (error) {

@@ -11,10 +11,6 @@
 
 // ─── Module Mocks ─────────────────────────────────────────────────────────────
 
-jest.mock('../../src/config/redis', () => ({
-  redis: { on: jest.fn(), get: jest.fn(), set: jest.fn(), del: jest.fn() },
-}));
-
 jest.mock('../../src/config/database', () => ({
   pool: { query: jest.fn() },
 }));
@@ -29,7 +25,9 @@ jest.mock('../../src/config/jwt', () => ({
 import request from 'supertest';
 import { pool } from '../../src/config/database';
 import { verifyAccessToken } from '../../src/config/jwt';
-import app from '../../src/app';
+import { createTestApp } from '../helpers/test-app';
+
+const app = createTestApp();
 import { TokenPayload } from '../../src/config/jwt';
 
 const mockQuery = pool.query as jest.Mock;

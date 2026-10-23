@@ -3,72 +3,72 @@ import helmet from 'helmet';
 import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes';
 import usersRoutes from './modules/users/users.routes';
-import radarRoutes from './modules/radar/radar.routes';
 import feedRoutes from './modules/feed/feed.routes';
 import matchmakingRoutes from './modules/matchmaking/matchmaking.routes';
 import carpoolingRoutes from './modules/carpooling/carpooling.routes';
 import catalogsRoutes from './modules/catalogs/catalogs.routes';
+import { RadarModule } from './modules/radar/radar.module';
+import { createHealthRouter, DependencyCheck } from './health/health.routes';
 import { errorMiddleware } from './middlewares/error.middleware';
+import { resolveAllowedOrigins } from './config/env';
 
-const app: Application = express();
+/** Prefijo bajo el que se monta el radar, sea local o proxy. El frontend no cambia. */
+export const RADAR_MOUNT_PATH = '/api/v1/radar';
 
-// Middleware de seguridad Helmet
-app.use(helmet());
-
-// Configuración de CORS basada en variables de entorno o valores por defecto seguros
-const defaultOrigins = ['https://social.unsch.edu.pe'];
-
-// En desarrollo local siempre permitir localhost
-if (process.env.NODE_ENV !== 'production') {
-  defaultOrigins.push('http://localhost:3001', 'http://localhost:3000');
+export interface AppDependencies {
+  /** Unidad de radar a montar (local por defecto; proxy previsto para la etapa 4). */
+  radar: RadarModule;
+  /** Comprobaciones para GET /health/ready. */
+  readinessChecks: DependencyCheck[];
+  /** Orígenes CORS permitidos. Si se omite, se calculan desde el entorno como antes. */
+  allowedOrigins?: string[];
 }
 
-const allowedOriginsList = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : defaultOrigins;
+/**
+ * Construye la aplicación Express sin abrir conexiones ni escuchar puertos.
+ * El arranque del proceso (configuración, conexiones, puerto y apagado) está en bootstrap.ts.
+ */
+export function createApp(deps: AppDependencies): Application {
+  const app: Application = express();
+  const allowedOrigins = deps.allowedOrigins ?? resolveAllowedOrigins(process.env);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Permitir peticiones sin cabecera de origen (como clientes REST, cURL, etc.)
-      if (!origin) {
-        return callback(null, true);
-      }
-      if (allowedOriginsList.includes(origin) || allowedOriginsList.indexOf(origin) !== -1) {
-        return callback(null, true);
-      }
-      return callback(new Error('Bloqueado por la política de CORS de la aplicación.'));
-    },
-    credentials: true,
-  })
-);
+  // Middleware de seguridad Helmet
+  app.use(helmet());
 
-// Habilitar el análisis de cuerpos JSON y formularios URL-encoded
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  // Salud: fuera de /api/v1 y antes de CORS (la consulta la plataforma, no el navegador)
+  app.use('/health', createHealthRouter(deps.readinessChecks));
 
-// Registrar las rutas del módulo de autenticación bajo el prefijo universal /api/v1/auth
-app.use('/api/v1/auth', authRoutes);
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Permitir peticiones sin cabecera de origen (como clientes REST, cURL, etc.)
+        if (!origin) {
+          return callback(null, true);
+        }
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Bloqueado por la política de CORS de la aplicación.'));
+      },
+      credentials: true,
+    })
+  );
 
-// Registrar las rutas del módulo de usuarios bajo el prefijo universal /api/v1/users
-app.use('/api/v1/users', usersRoutes);
+  // Habilitar el análisis de cuerpos JSON y formularios URL-encoded
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-// Registrar las rutas de Campus Radar bajo el prefijo universal /api/v1/radar
-app.use('/api/v1/radar', radarRoutes);
+  app.use('/api/v1/auth', authRoutes);
+  app.use('/api/v1/users', usersRoutes);
+  // Punto de montaje reemplazable del radar (ADR-007)
+  app.use(RADAR_MOUNT_PATH, deps.radar.router);
+  app.use('/api/v1/feed', feedRoutes);
+  app.use('/api/v1/matchmaking', matchmakingRoutes);
+  app.use('/api/v1/carpooling', carpoolingRoutes);
+  app.use('/api/v1/catalogs', catalogsRoutes);
 
-// Registrar las rutas del feed académico bajo el prefijo universal /api/v1/feed
-app.use('/api/v1/feed', feedRoutes);
+  // Middleware centralizado de manejo de errores (debe registrarse al final)
+  app.use(errorMiddleware);
 
-// Registrar las rutas del emparejamiento académico bajo el prefijo universal /api/v1/matchmaking
-app.use('/api/v1/matchmaking', matchmakingRoutes);
-
-// Registrar las rutas de carpooling bajo el prefijo universal /api/v1/carpooling
-app.use('/api/v1/carpooling', carpoolingRoutes);
-
-// Registrar las rutas públicas de catálogos bajo el prefijo universal /api/v1/catalogs
-app.use('/api/v1/catalogs', catalogsRoutes);
-
-// Middleware centralizado de manejo de errores (debe registrarse al final)
-app.use(errorMiddleware);
-
-export default app;
+  return app;
+}

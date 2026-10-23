@@ -12,13 +12,6 @@
 
 // ─── Module Mocks ─────────────────────────────────────────────────────────────
 
-jest.mock('../../src/config/redis', () => ({
-  redis: {
-    pipeline: jest.fn(),
-    eval: jest.fn(),
-  },
-}));
-
 jest.mock('../../src/config/database', () => ({
   pool: { query: jest.fn() },
 }));
@@ -31,9 +24,12 @@ jest.mock('../../src/config/jwt', () => ({
 // ─── Imports ──────────────────────────────────────────────────────────────────
 
 import request from 'supertest';
-import { redis } from '../../src/config/redis';
 import { verifyAccessToken } from '../../src/config/jwt';
-import app from '../../src/app';
+import { createFakeRedis, createTestApp } from '../helpers/test-app';
+
+// Cliente Redis falso inyectado en el módulo de radar (composición explícita)
+const redis = createFakeRedis();
+const app = createTestApp({ redis });
 import { TokenPayload } from '../../src/config/jwt';
 
 const mockPipeline = redis.pipeline as jest.Mock;

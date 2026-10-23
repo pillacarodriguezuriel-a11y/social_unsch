@@ -6,17 +6,15 @@
  * - Asserts that persisted IDs from database are returned directly without fixed ID mapping.
  */
 
-jest.mock('../../src/config/redis', () => ({
-  redis: { on: jest.fn(), get: jest.fn(), set: jest.fn(), del: jest.fn() },
-}));
-
 jest.mock('../../src/config/database', () => ({
   pool: { query: jest.fn() },
 }));
 
 import request from 'supertest';
 import { pool } from '../../src/config/database';
-import app from '../../src/app';
+import { createTestApp } from '../helpers/test-app';
+
+const app = createTestApp();
 
 const mockQuery = pool.query as jest.Mock;
 

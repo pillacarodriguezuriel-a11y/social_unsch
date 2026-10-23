@@ -10,7 +10,6 @@
  */
 
 jest.mock('../../src/config/database', () => ({ pool: { query: jest.fn() } }));
-jest.mock('../../src/config/redis', () => ({ redis: { on: jest.fn(), get: jest.fn(), set: jest.fn(), del: jest.fn() } }));
 jest.mock('../../src/config/jwt', () => ({ signAccessToken: jest.fn(), verifyAccessToken: jest.fn() }));
 
 import { registerSchema, loginSchema } from '../../src/modules/auth/auth.validators';

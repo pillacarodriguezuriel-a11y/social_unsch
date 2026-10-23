@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Radio, ShieldAlert, Check, RefreshCw } from 'lucide-react';
 import { api } from '../../app/lib/api';
+import type { RadarReportResponse, RadarStatusResponse } from '@social-unsch/contracts';
 import { Alert } from './Alert';
 
 interface RadarNode {
@@ -27,8 +28,8 @@ export function CampusRadar() {
 
   const fetchRadarStatus = async () => {
     try {
-      const response = await api.get('/radar/status');
-      const data = response?.data || {};
+      const response = await api.get<RadarStatusResponse>('/radar/status');
+      const data: Partial<RadarStatusResponse> = response?.data ?? {};
 
       setComedor({ 
         name: 'comedor', 
@@ -154,7 +155,7 @@ export function CampusRadar() {
     setErrorAlert(null);
 
     try {
-      const response = await api.post('/radar/report', {
+      const response = await api.post<RadarReportResponse>('/radar/report', {
         node: node.name,
         status: newStatus,
       });

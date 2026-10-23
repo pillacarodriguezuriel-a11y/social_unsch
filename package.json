@@ -8,6 +8,7 @@
     "npm": ">=10.8.0"
   },
   "workspaces": [
+    "packages/contracts",
     "apps/api",
     "apps/web"
   ],
@@ -21,7 +22,7 @@
     "dev:backend": "npm run dev -w @social-unsch/api",
     "dev:frontend": "npm run dev -w @social-unsch/web",
     "dev:all": "node scripts/dev-all.js",
-    "typecheck": "npm run typecheck -w @social-unsch/api && npm run typecheck -w @social-unsch/web",
+    "typecheck": "npm run typecheck -w @social-unsch/contracts && npm run typecheck -w @social-unsch/api && npm run typecheck -w @social-unsch/web",
     "test": "npm test -w @social-unsch/api && npm test -w @social-unsch/web",
     "test:watch": "npm run test:watch -w @social-unsch/api",
     "test:coverage": "npm run test:coverage -w @social-unsch/api",
@@ -31,6 +32,10 @@
     "db:catalogs": "npm run db:catalogs -w @social-unsch/api",
     "db:seed:demo": "npm run db:seed:demo -w @social-unsch/api --",
     "db:migrate:status": "npm run db:migrate:status -w @social-unsch/api",
-    "db:migrate:all": "npm run db:migrate:all -w @social-unsch/api"
+    "db:migrate:all": "npm run db:migrate:all -w @social-unsch/api",
+    "build:contracts": "npm run build -w @social-unsch/contracts",
+    "check:boundaries": "node scripts/check-boundaries.js",
+    "test:boundaries": "node --test scripts/check-boundaries.test.js",
+    "verify": "npm run check:boundaries && npm run test:boundaries && npm run typecheck && npm run test:coverage && npm run test:web && npm run build:all"
   }
 }

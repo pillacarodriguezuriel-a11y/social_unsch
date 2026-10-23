@@ -1,11 +1,9 @@
 import { pool } from '../../../src/config/database';
-import { redis } from '../../../src/config/redis';
 
+/**
+ * Cierre explícito, por archivo de pruebas, del pool compartido que usan los repositorios.
+ * Desde la etapa 3 no existe un cliente Redis global: cada prueba crea y cierra el suyo.
+ */
 afterAll(async () => {
-  // Cierre limpio y explícito de recursos sin enmascarar errores
-  try {
-    await redis.quit();
-  } catch {
-    redis.disconnect();
-  }
+  await pool.end().catch(() => undefined);
 });

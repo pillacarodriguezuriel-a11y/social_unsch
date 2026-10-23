@@ -3,7 +3,9 @@ import { Pool } from 'pg';
 import { getTestPool } from './helpers/test-environment';
 import { runMigrations } from '../../src/database/migrations/migrator';
 import { loadCatalogs } from '../../src/database/migrations/load_catalogs';
-import app from '../../src/app';
+import { createTestApp } from '../helpers/test-app';
+
+const app = createTestApp();
 
 describe('Real Authentication & Role Authorization (PostgreSQL Real)', () => {
   let pool: Pool;

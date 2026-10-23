@@ -8,10 +8,10 @@
     "node": "^20.14.0 || ^22.11.0 || ^24.0.0"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "npm run build --prefix ../../packages/contracts && tsc --project tsconfig.json",
     "start": "node dist/server.js",
-    "dev": "ts-node-dev --project tsconfig.json --respawn --transpile-only src/server.ts",
-    "typecheck": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.jest.json",
+    "dev": "npm run build --prefix ../../packages/contracts && ts-node-dev --project tsconfig.json --respawn --transpile-only src/server.ts",
+    "typecheck": "npm run build --prefix ../../packages/contracts && tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.jest.json",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -23,6 +23,7 @@
     "db:migrate:all": "ts-node --project tsconfig.json src/database/migrations/migrate_all.ts"
   },
   "dependencies": {
+    "@social-unsch/contracts": "1.0.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

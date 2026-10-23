@@ -3,6 +3,11 @@ import type { Config } from 'jest';
 const config: Config = {
   // Use ts-jest transformer explicitly (replaces deprecated 'preset' + 'globals' pattern)
   testEnvironment: 'node',
+  // El contrato se prueba desde su código fuente; no hace falta compilarlo antes.
+  moduleNameMapper: {
+    '^@social-unsch/contracts$': '<rootDir>/../../packages/contracts/src/index.ts',
+  },
+
 
   transform: {
     '^.+\\.tsx?$': [
@@ -16,10 +21,11 @@ const config: Config = {
     ],
   },
 
-  // Discover test files in both unit and integration subdirectories
+  // Pruebas unitarias, de rutas con dobles y de contrato (las reales usan jest.real.config.ts)
   testMatch: [
     '<rootDir>/tests/unit/**/*.test.ts',
     '<rootDir>/tests/integration/**/*.test.ts',
+    '<rootDir>/tests/contract/**/*.test.ts',
   ],
 
   // Collect coverage from all application source modules.
@@ -46,6 +52,15 @@ const config: Config = {
     'src/modules/radar/radar.repository.ts',
     'src/modules/radar/radar.controller.ts',
     'src/modules/catalogs/catalogs.controller.ts',
+    // Etapa 3: composición, arranque, configuración, salud y montaje de Radar
+    'src/app.ts',
+    'src/bootstrap.ts',
+    'src/composition.ts',
+    'src/config/env.ts',
+    'src/health/health.routes.ts',
+    'src/modules/radar/radar.module.ts',
+    'src/modules/radar/radar.proxy.ts',
+    'src/modules/radar/radar.routes.ts',
     'src/middlewares/auth.middleware.ts',
     'src/middlewares/error.middleware.ts',
     'src/shared/errors/AppError.ts',

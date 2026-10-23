@@ -10,7 +10,9 @@ import { runMigrations, getMigrationStatus } from '../../src/database/migrations
 import { loadCatalogs } from '../../src/database/migrations/load_catalogs';
 import { loadDemoSeed, assertSafeDemoEnvironment } from '../../src/database/migrations/load_demo_seed';
 import request from 'supertest';
-import app from '../../src/app';
+import { createTestApp } from '../helpers/test-app';
+
+const app = createTestApp();
 
 describe('Real Migrations & Catalogs Engine (PostgreSQL Real)', () => {
   let pool: Pool;

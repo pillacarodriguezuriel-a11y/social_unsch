@@ -1,7 +1,16 @@
 import Redis from 'ioredis';
 import { getTestRedis } from './helpers/test-environment';
 import { RadarService } from '../../src/modules/radar/radar.service';
-import { redis as appRedis } from '../../src/config/redis';
+import { RadarRepository } from '../../src/modules/radar/radar.repository';
+import request from 'supertest';
+import {
+  RADAR_ROUTES,
+  RADAR_TTL_SECONDS,
+  RadarReportResponseSchema,
+  RadarStatusResponseSchema,
+} from '@social-unsch/contracts';
+import { signAccessToken } from '../../src/config/jwt';
+import { createTestApp } from '../helpers/test-app';
 
 describe('Real Radar Engine with Redis (Redis 7 Real)', () => {
   let redis: Redis;
@@ -9,7 +18,7 @@ describe('Real Radar Engine with Redis (Redis 7 Real)', () => {
 
   beforeAll(async () => {
     redis = getTestRedis();
-    radarService = new RadarService();
+    radarService = new RadarService(new RadarRepository(redis));
   });
 
   afterAll(async () => {
@@ -121,5 +130,40 @@ describe('Real Radar Engine with Redis (Redis 7 Real)', () => {
     await expect(radarService.submitReport('biblioteca_floor_1', '150', 'usr-1')).rejects.toThrow(
       'El aforo de la biblioteca debe ser un porcentaje entero entre 0 y 100.'
     );
+  });
+
+  it('Scenario 6: Contrato HTTP contra Redis real con la aplicación compuesta (radar local)', async () => {
+    const app = createTestApp({ redis });
+    const tokenFor = (userId: string) =>
+      `Bearer ${signAccessToken({
+        jti: `jti-${userId}`,
+        user_id: userId,
+        role: 'student',
+        school_id: null,
+        has_accepted_terms: true,
+        facultad_id: null,
+        escuela_id: null,
+        ciclo: null,
+      })}`;
+
+    const initial = await request(app).get(RADAR_ROUTES.status.path).set('Authorization', tokenFor('u-1'));
+    expect(initial.status).toBe(200);
+    expect(RadarStatusResponseSchema.parse(initial.body).comedor.status).toBe('indefinido');
+
+    for (const [i, user] of ['u-1', 'u-2', 'u-3'].entries()) {
+      const res = await request(app)
+        .post(RADAR_ROUTES.report.path)
+        .set('Authorization', tokenFor(user))
+        .send({ node: 'biblioteca_floor_2', status: '40' });
+      expect(res.status).toBe(200);
+      expect(RadarReportResponseSchema.parse(res.body).updated).toBe(i === 2);
+    }
+
+    const after = await request(app).get(RADAR_ROUTES.status.path).set('Authorization', tokenFor('u-1'));
+    const body = RadarStatusResponseSchema.parse(after.body);
+    expect(body.biblioteca.floor_2).toEqual({ occupancy: 40, is_definite: true });
+    const ttl = await redis.ttl('radar:biblioteca:floor:2:occupancy');
+    expect(ttl).toBeGreaterThan(0);
+    expect(ttl).toBeLessThanOrEqual(RADAR_TTL_SECONDS);
   });
 });

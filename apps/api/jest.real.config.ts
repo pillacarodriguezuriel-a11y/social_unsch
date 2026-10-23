@@ -2,6 +2,11 @@ import type { Config } from 'jest';
 
 const config: Config = {
   testEnvironment: 'node',
+  // El contrato se prueba desde su código fuente; no hace falta compilarlo antes.
+  moduleNameMapper: {
+    '^@social-unsch/contracts$': '<rootDir>/../../packages/contracts/src/index.ts',
+  },
+
 
   transform: {
     '^.+\\.tsx?$': [
