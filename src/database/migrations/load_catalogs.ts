@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import { pool } from '../../config/database';
 import { FACULTIES, PROFESSIONAL_SCHOOLS } from '../../shared/constants/unsch.constants';
 
@@ -57,6 +57,23 @@ export interface CatalogLoadResult {
   schoolsInserted: number;
   schoolsPreserved: number;
   pavilionsLoaded: number;
+  /** Mapa explícito: ID canónico de facultad → ID real persistido. */
+  facultyIdMap: Record<number, number>;
+  /** Mapa explícito: ID canónico de escuela → ID real persistido. */
+  schoolIdMap: Record<number, number>;
+}
+
+/**
+ * Sincroniza la secuencia de una tabla de catálogo para que el siguiente nextval()
+ * devuelva MAX(id) + 1. Se ejecuta con la tabla bloqueada (ver loadCatalogs).
+ */
+async function syncIdSequence(
+  client: PoolClient,
+  table: 'faculties' | 'professional_schools'
+): Promise<void> {
+  await client.query(
+    `SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE((SELECT MAX(id) FROM ${table}), 0) + 1, false)`
+  );
 }
 
 /**
@@ -70,6 +87,11 @@ export interface CatalogLoadResult {
  * 4. Inserción de entidades faltantes sin colisiones: si el ID canónico preferido ya está ocupado
  *    por otra entidad existente, se inserta respetando la secuencia sin sobreescribir ni despojar el ID existente.
  * 5. Preservación absoluta de relaciones existentes de usuarios, publicaciones y archivos académicos.
+ * 6. Mapa explícito canónico → real: las escuelas nuevas se asocian a la facultad real resuelta
+ *    (por nombre o por abreviatura). Si no puede resolverse, se aborta en lugar de usar el ID canónico.
+ * 7. Concurrencia: las tablas de catálogo se bloquean en modo SHARE ROW EXCLUSIVE durante la
+ *    transacción. Dos cargas simultáneas se serializan; las lecturas y las comprobaciones de claves
+ *    foráneas no se bloquean. Los IDs alternativos los asigna la secuencia, sincronizada bajo el bloqueo.
  */
 export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult> {
   const activePool = customPool || pool;
@@ -83,6 +105,13 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
 
   try {
     await client.query('BEGIN');
+    // Serializa cargas concurrentes y bloquea escrituras ajenas sobre los catálogos mientras se
+    // calculan IDs. SELECT y las comprobaciones de claves foráneas siguen permitidas.
+    await client.query(
+      'LOCK TABLE faculties, professional_schools IN SHARE ROW EXCLUSIVE MODE'
+    );
+    const facultyIdMap = new Map<number, number>();
+    const schoolIdMap = new Map<number, number>();
 
     // ─────────────────────────────────────────────────────────────
     // 1. Carga y Sincronización de Facultades (Conservando IDs existentes)
@@ -122,6 +151,7 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
           );
         }
         matchedFacultyCanonicalIds.add(matched.id);
+        facultyIdMap.set(matched.id, ef.id);
         facultiesPreserved++;
 
         // Conservar su ID original intacto. Actualizar abreviatura si estaba ausente.
@@ -141,34 +171,31 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
     }
 
     // Insertar facultades canónicas faltantes sin pisar IDs ocupados
+    await syncIdSequence(client, 'faculties');
     for (const f of FACULTIES) {
       if (!matchedFacultyCanonicalIds.has(f.id)) {
+        let realId: number;
         if (!existingFacultyIds.has(f.id)) {
           // ID preferido está libre: insertar con f.id
           await client.query(
             'INSERT INTO faculties (id, name, abbreviation) VALUES ($1, $2, $3)',
             [f.id, f.name, f.abbreviation]
           );
-          existingFacultyIds.add(f.id);
+          realId = f.id;
         } else {
-          // ID preferido ocupado por otra entidad: asignar el siguiente ID libre garantizado
-          const maxRes = await client.query<{ next_id: number }>(
-            'SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM faculties'
+          // ID preferido ocupado por otra entidad: la secuencia asigna el siguiente ID libre
+          const insertRes = await client.query<{ id: number }>(
+            'INSERT INTO faculties (name, abbreviation) VALUES ($1, $2) RETURNING id',
+            [f.name, f.abbreviation]
           );
-          const nextId = maxRes.rows[0].next_id;
-          await client.query(
-            'INSERT INTO faculties (id, name, abbreviation) VALUES ($1, $2, $3)',
-            [nextId, f.name, f.abbreviation]
-          );
-          existingFacultyIds.add(nextId);
+          realId = insertRes.rows[0].id;
         }
+        existingFacultyIds.add(realId);
+        facultyIdMap.set(f.id, realId);
+        await syncIdSequence(client, 'faculties');
         facultiesInserted++;
       }
     }
-
-    await client.query(
-      "SELECT setval('faculties_id_seq', (SELECT COALESCE(MAX(id), 1) FROM faculties))"
-    );
 
     // ─────────────────────────────────────────────────────────────
     // 2. Carga y Sincronización de Escuelas Profesionales
@@ -183,11 +210,6 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
 
     const existingSchoolIds = new Set(existingSchools.map((s) => s.id));
     const matchedSchoolCanonicalIds = new Set<number>();
-    const facultyMapByName = new Map(
-      (await client.query<{ id: number; name: string }>('SELECT id, name FROM faculties')).rows.map(
-        (f) => [f.name.trim().toLowerCase(), f.id]
-      )
-    );
 
     for (const es of existingSchools) {
       const normalizedName = normalizeSchoolName(es.name).trim().toLowerCase();
@@ -228,6 +250,7 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
         }
 
         matchedSchoolCanonicalIds.add(canonical.id);
+        schoolIdMap.set(canonical.id, es.id);
         schoolsPreserved++;
 
         // Conservar su ID original intacto. Actualizar código canónico si estaba nulo.
@@ -248,43 +271,43 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
     }
 
     // Inserción de escuelas canónicas faltantes
+    await syncIdSequence(client, 'professional_schools');
     for (const cs of PROFESSIONAL_SCHOOLS) {
       if (!matchedSchoolCanonicalIds.has(cs.id)) {
         const schoolCode = SCHOOL_CODES[cs.id] || null;
 
-        // Resolver la facultad de la escuela canónica si la facultad tuvo un ID diferente
-        const canonicalFaculty = FACULTIES.find((f) => f.id === cs.faculty_id);
-        const resolvedFacultyId = canonicalFaculty
-          ? facultyMapByName.get(canonicalFaculty.name.trim().toLowerCase()) || cs.faculty_id
-          : cs.faculty_id;
+        // La facultad sale del mapa explícito canónico → real. Nunca se usa el ID canónico como
+        // respaldo: podría pertenecer a otra facultad o no existir.
+        const resolvedFacultyId = facultyIdMap.get(cs.faculty_id);
+        if (resolvedFacultyId === undefined) {
+          throw new Error(
+            `[Catalogs]: No se pudo resolver la facultad real de la escuela canónica '${cs.name}' (facultad canónica ID ${cs.faculty_id}). Transacción abortada.`
+          );
+        }
 
+        let realId: number;
         if (!existingSchoolIds.has(cs.id)) {
           // ID preferido está libre: insertar con cs.id
           await client.query(
             'INSERT INTO professional_schools (id, faculty_id, name, code) VALUES ($1, $2, $3, $4)',
             [cs.id, resolvedFacultyId, cs.name, schoolCode]
           );
-          existingSchoolIds.add(cs.id);
+          realId = cs.id;
         } else {
-          // ID preferido ocupado por otra entidad existente: NO sobrescribir ni reasignar
-          // Insertar con el siguiente ID disponible garantizado
-          const maxRes = await client.query<{ next_id: number }>(
-            'SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM professional_schools'
+          // ID preferido ocupado por otra entidad existente: NO sobrescribir ni reasignar.
+          // La secuencia, sincronizada bajo el bloqueo, asigna el siguiente ID libre.
+          const insertRes = await client.query<{ id: number }>(
+            'INSERT INTO professional_schools (faculty_id, name, code) VALUES ($1, $2, $3) RETURNING id',
+            [resolvedFacultyId, cs.name, schoolCode]
           );
-          const nextId = maxRes.rows[0].next_id;
-          await client.query(
-            'INSERT INTO professional_schools (id, faculty_id, name, code) VALUES ($1, $2, $3, $4)',
-            [nextId, resolvedFacultyId, cs.name, schoolCode]
-          );
-          existingSchoolIds.add(nextId);
+          realId = insertRes.rows[0].id;
         }
+        existingSchoolIds.add(realId);
+        schoolIdMap.set(cs.id, realId);
+        await syncIdSequence(client, 'professional_schools');
         schoolsInserted++;
       }
     }
-
-    await client.query(
-      "SELECT setval('professional_schools_id_seq', (SELECT COALESCE(MAX(id), 1) FROM professional_schools))"
-    );
 
     // ─────────────────────────────────────────────────────────────
     // 3. Carga de Pabellones Canónicos
@@ -311,6 +334,8 @@ export async function loadCatalogs(customPool?: Pool): Promise<CatalogLoadResult
       schoolsInserted,
       schoolsPreserved,
       pavilionsLoaded,
+      facultyIdMap: Object.fromEntries(facultyIdMap),
+      schoolIdMap: Object.fromEntries(schoolIdMap),
     };
   } catch (err) {
     await client.query('ROLLBACK');

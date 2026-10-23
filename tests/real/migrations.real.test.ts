@@ -508,4 +508,53 @@ describe('Real Migrations & Catalogs Engine (PostgreSQL Real)', () => {
       }
     }
   });
+
+  it('Scenario 15: Facultad reconocida por abreviatura se usa como facultad real de las escuelas nuevas', async () => {
+    await runMigrations(pool);
+
+    // La facultad canónica 4 (FDCP) existe con otro nombre e ID 40; el ID 4 lo ocupa otra facultad.
+    await pool.query("INSERT INTO faculties (id, name, abbreviation) VALUES (4, 'Facultad Histórica', 'FH')");
+    await pool.query("INSERT INTO faculties (id, name, abbreviation) VALUES (40, 'Derecho', 'FDCP')");
+
+    const result = await loadCatalogs(pool);
+
+    expect(result.facultyIdMap[4]).toBe(40);
+    const derecho = (
+      await pool.query("SELECT faculty_id FROM professional_schools WHERE name = 'Derecho'")
+    ).rows;
+    expect(derecho).toHaveLength(1);
+    expect(derecho[0].faculty_id).toBe(40);
+
+    // No se duplicó la facultad ni se alteró la facultad histórica
+    const dup = await pool.query("SELECT 1 FROM faculties WHERE name = 'Derecho y Ciencias Políticas'");
+    expect(dup.rows).toHaveLength(0);
+    const historica = (await pool.query('SELECT name FROM faculties WHERE id = 4')).rows[0];
+    expect(historica.name).toBe('Facultad Histórica');
+  });
+
+  it('Scenario 16: Dos cargas concurrentes se serializan sin duplicados ni secuencias desfasadas', async () => {
+    await runMigrations(pool);
+
+    await pool.query("INSERT INTO faculties (id, name, abbreviation) VALUES (1, 'Ciencias Agrarias', 'FCA')");
+    // IDs preferidos ocupados para forzar asignación por secuencia en ambas cargas
+    await pool.query(
+      "INSERT INTO professional_schools (id, faculty_id, name, code) VALUES (20, 1, 'Escuela Previa A', 'EPA'), (21, 1, 'Escuela Previa B', 'EPB')"
+    );
+
+    const [first, second] = await Promise.all([loadCatalogs(pool), loadCatalogs(pool)]);
+
+    // Una de las dos cargas inserta; la otra encuentra todo resuelto
+    expect(first.schoolsInserted + second.schoolsInserted).toBe(31);
+    const sistemas = await pool.query("SELECT id FROM professional_schools WHERE name = 'Ingeniería de Sistemas'");
+    expect(sistemas.rows).toHaveLength(1);
+    const total = (await pool.query('SELECT COUNT(*)::int AS n FROM professional_schools')).rows[0].n;
+    expect(total).toBe(33);
+
+    // La secuencia quedó por delante del máximo: una inserción sin ID explícito no colisiona
+    const maxId = (await pool.query('SELECT MAX(id)::int AS m FROM professional_schools')).rows[0].m;
+    const inserted = await pool.query(
+      "INSERT INTO professional_schools (faculty_id, name) VALUES (1, 'Escuela Posterior') RETURNING id"
+    );
+    expect(inserted.rows[0].id).toBeGreaterThan(maxId);
+  });
 });
