@@ -19,10 +19,11 @@ Ningún registro tiene aprobación documentada. La fecha indicada es la de redac
 |---|---|---|---|
 | [ADR-001](ADR-001-estado-y-organizacion-actual.md) | Monolito modular con PostgreSQL, Redis y JWT propio | Retrospectivo | Vigente en el código |
 | [ADR-002](ADR-002-separacion-interna-de-responsabilidades.md) | Separación interna en capas por módulo | Retrospectivo | Vigente en el código |
-| [ADR-003](ADR-003-migracion-gradual-por-dominios.md) | Migración gradual hacia servicios por dominio | Propuesto | En discusión; etapas 1 y 2 ejecutadas |
+| [ADR-003](ADR-003-migracion-gradual-por-dominios.md) | Migración gradual hacia servicios por dominio | Propuesto | En discusión; etapas 1 a 3 ejecutadas |
 | [ADR-004](ADR-004-extraccion-inicial-de-radar.md) | Radar como primer servicio extraído | Propuesto | En discusión |
 | [ADR-005](ADR-005-propiedad-gradual-de-datos.md) | Propiedad gradual de los datos por dominio | Propuesto | En discusión |
 | [ADR-006](ADR-006-plataformas-de-despliegue.md) | Plataformas gestionadas para el despliegue | Retrospectivo | Vigente; configuración pendiente de verificación |
+| [ADR-007](ADR-007-workspaces-y-montaje-de-radar.md) | Separación en npm workspaces y montaje reemplazable de Radar | Decisión de la etapa 3 | Implementada en rama; pendiente de fusión |
 
 ## Relación entre decisiones
 
@@ -34,6 +35,8 @@ flowchart LR
     A6 --> A3
     A3 --> A4["ADR-004<br/>radar primero"]
     A3 --> A5["ADR-005<br/>propiedad de datos"]
+    A3 --> A7["ADR-007<br/>workspaces y montaje de Radar"]
+    A7 --> A4
 
     classDef propuesto stroke-dasharray: 5 5
     class A3,A4,A5 propuesto

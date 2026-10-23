@@ -2,7 +2,7 @@
 
 Propuesta de evolución desde el monolito modular actual hacia servicios por dominio, en ocho etapas.
 
-> **Qué es propuesta y qué no.** Las etapas 1 y 2 tienen evidencia de ejecución. Las etapas 3 a 8 son **propuestas**: no hay código, fechas ni aprobación. Este documento no fija plazos.
+> **Qué es propuesta y qué no.** Las etapas 1 a 3 tienen evidencia de ejecución (la 3, en una rama pendiente de fusión). Las etapas 4 a 8 son **propuestas**: no hay código, fechas ni aprobación. Este documento no fija plazos.
 
 ## Vista general
 
@@ -18,7 +18,7 @@ flowchart LR
     E7 --> E8
 
     classDef propuesto stroke-dasharray: 5 5
-    class E3,E4,E5,E6,E7,E8 propuesto
+    class E4,E5,E6,E7,E8 propuesto
 ```
 
 Trazo continuo: etapa con evidencia de ejecución. Trazo discontinuo: propuesta.
@@ -27,7 +27,7 @@ Trazo continuo: etapa con evidencia de ejecución. Trazo discontinuo: propuesta.
 |---|---|---|
 | 1 | Ejecutada; recuperación de Redis sin verificar | No |
 | 2 | Ejecutada en el código; aplicación remota parcialmente verificada | No |
-| 3 | Propuesta | No: sigue siendo un monolito, ahora en un monorepo |
+| 3 | Implementada en rama, pendiente de fusión | No: sigue siendo un monolito, ahora en un monorepo |
 | 4 | Propuesta | Sí: primer servicio fuera del monolito |
 | 5 a 7 | Propuestas | Sí |
 | 8 | Propuesta | No: consolida |
@@ -73,7 +73,22 @@ Las etapas 6 y 7 no dependen entre sí y pueden intercambiarse.
 
 ## Etapa 3 · Repositorio, límites, contratos y entrada reversible
 
-**Estado: propuesta.**
+**Estado: implementada en la rama `refactor/etapa-3-preparacion-separacion`, pendiente de fusión.** Informe: [ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md).
+
+Qué se hizo y qué no, respecto a la propuesta original:
+
+| Trabajo propuesto | Resultado |
+|---|---|
+| Dividir el repositorio en paquetes | Hecho: `apps/web`, `apps/api`, `packages/contracts` |
+| Formalizar el contrato | Hecho para Radar y el formato de error (Zod); las demás rutas siguen sin contrato formal |
+| Entrada de API | Hecho dentro de la API: montaje reemplazable y modo proxy desactivado |
+| Observabilidad mínima | Salud y validación de configuración hechas; registro de solicitudes pendiente |
+| Integración continua | Pendiente: `npm run verify` existe, sin flujo configurado |
+| Código compartido de autenticación | Pendiente: no hizo falta mientras Radar siga en la API |
+| Saneamiento | Catálogos corregidos; ejecutores heredados y respaldo, pendientes |
+| Configuración de despliegue versionada | Pendiente: los ajustes están documentados, no versionados |
+
+Propuesta original:
 
 **Objetivo:** dejar el sistema preparado para extraer servicios sin cambiar todavía su comportamiento.
 

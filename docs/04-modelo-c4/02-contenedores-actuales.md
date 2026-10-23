@@ -33,11 +33,11 @@ flowchart TB
 
 | Contenedor | Tecnología | Responsabilidad | Guarda datos | Evidencia |
 |---|---|---|---|---|
-| Aplicación web | Next.js 14, React 18, Tailwind 4, Axios | Interfaz de usuario. Once pantallas generadas como estáticas; toda la lógica se ejecuta en el navegador | Sesión y datos simulados en `localStorage` | [app/](../../app), [components/ui](../../components/ui) |
-| API | Express 4, TypeScript, Zod, `pg`, `ioredis`, `jsonwebtoken`, `bcrypt` | Autenticación, reglas de negocio y acceso a datos. 16 rutas en 7 módulos | No; no guarda estado en memoria | [src/](../../src) |
-| Herramientas de migración | TypeScript con `ts-node` | Evolución del esquema, sincronización de catálogos, datos de demostración | No | [src/database/migrations](../../src/database/migrations) |
-| PostgreSQL | PostgreSQL 15 en desarrollo local | Usuarios, catálogos, publicaciones, matchmaking, carpooling y tablas aún sin uso | Sí | [sql/](../../src/database/migrations/sql) |
-| Redis | Redis 7 en desarrollo local | Votos y estados del radar con vigencia de 15 minutos | Sí, efímeros | [radar.repository.ts](../../src/modules/radar/radar.repository.ts) |
+| Aplicación web | Next.js 14, React 18, Tailwind 4, Axios | Interfaz de usuario. Once pantallas generadas como estáticas; toda la lógica se ejecuta en el navegador | Sesión y datos simulados en `localStorage` | [app/](../../apps/web/app), [components/ui](../../apps/web/components/ui) |
+| API | Express 4, TypeScript, Zod, `pg`, `ioredis`, `jsonwebtoken`, `bcrypt` | Autenticación, reglas de negocio y acceso a datos. 16 rutas en 7 módulos | No; no guarda estado en memoria | [src/](../../apps/api/src) |
+| Herramientas de migración | TypeScript con `ts-node` | Evolución del esquema, sincronización de catálogos, datos de demostración | No | [src/database/migrations](../../apps/api/src/database/migrations) |
+| PostgreSQL | PostgreSQL 15 en desarrollo local | Usuarios, catálogos, publicaciones, matchmaking, carpooling y tablas aún sin uso | Sí | [sql/](../../apps/api/src/database/migrations/sql) |
+| Redis | Redis 7 en desarrollo local | Votos y estados del radar con vigencia de 15 minutos | Sí, efímeros | [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts) |
 
 Las versiones de PostgreSQL y Redis son las de [docker-compose.yml](../../docker-compose.yml) para desarrollo local. Las de producción están pendientes de verificación.
 
@@ -55,7 +55,7 @@ No hay comunicación entre la aplicación web y las bases de datos, ni entre Pos
 ## Características del conjunto
 
 - **Dos unidades desplegables de aplicación**: la aplicación web y la API. Es lo que define al sistema como monolito en el lado del servidor.
-- **Ambas se construyen desde el mismo paquete** ([package.json](../../package.json)).
+- **Desde la etapa 3, cada una es un workspace con su compilación y sus dependencias** ([apps/web](../../apps/web/package.json), [apps/api](../../apps/api/package.json)), con un lockfile común. El contrato de Radar ([packages/contracts](../../packages/contracts/package.json)) es una biblioteca que usan ambas, no un contenedor.
 - **La API es el único camino a los datos compartidos.**
 - **Las herramientas de migración no se despliegan**: se ejecutan desde una máquina con el código fuente y acceso a la base.
 

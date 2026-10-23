@@ -1,16 +1,21 @@
 # Organización interna
 
-Cómo está ordenado el código del backend por dentro, tal como se observa en el commit `8e56bfa`.
+Cómo está ordenado el código del backend por dentro. Descrito en el commit `8e56bfa` y actualizado con la etapa 3 ([ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md)), que movió el backend a `apps/api` y separó composición y arranque.
 
 ## Estructura de directorios
 
 ```text
-src/
-├── server.ts              Arranque del proceso
-├── app.ts                 Aplicación Express: middlewares y enrutadores
-├── config/                Conexiones y JWT
+apps/api/src/
+├── server.ts              Punto de entrada: valida configuración, arranca y atiende SIGTERM/SIGINT
+├── bootstrap.ts           startServer(): escucha y cierra conexiones al detenerse
+├── composition.ts         Único lugar que crea conexiones (Redis) y elige radar local o proxy
+├── app.ts                 createApp(dependencias): middlewares, salud y enrutadores
+├── health/                /health/live y /health/ready
+├── config/                Configuración, conexiones y JWT
+│   ├── env.ts             Validación de variables al arrancar
+│   ├── load-env.ts        Carga de apps/api/.env (y .env de la raíz por compatibilidad)
 │   ├── database.ts        Pool de PostgreSQL
-│   ├── redis.ts           Cliente Redis
+│   ├── redis.ts           createRedisClient(): no conecta al importarse
 │   ├── jwt.ts             Firma y verificación de tokens
 │   └── generate_keys.ts   Utilidad para generar un par de claves
 ├── middlewares/
@@ -21,7 +26,7 @@ src/
 │   ├── errors/AppError.ts   Error de negocio tipado
 │   └── constants/           Catálogos de la universidad
 ├── modules/               Un directorio por dominio
-│   ├── auth/  users/  radar/  feed/
+│   ├── auth/  users/  radar/ (incluye radar.module.ts y radar.proxy.ts)  feed/
 │   ├── matchmaking/  carpooling/  catalogs/
 └── database/migrations/   Migrador, catálogos, seed y SQL
 ```
@@ -64,7 +69,7 @@ sequenceDiagram
     K-->>C: 201 con post_id
 ```
 
-Archivos: [feed.routes.ts](../../src/modules/feed/feed.routes.ts), [feed.controller.ts](../../src/modules/feed/feed.controller.ts), [feed.service.ts](../../src/modules/feed/feed.service.ts), [feed.repository.ts](../../src/modules/feed/feed.repository.ts).
+Archivos: [feed.routes.ts](../../apps/api/src/modules/feed/feed.routes.ts), [feed.controller.ts](../../apps/api/src/modules/feed/feed.controller.ts), [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts), [feed.repository.ts](../../apps/api/src/modules/feed/feed.repository.ts).
 
 ## Cómo se conectan las piezas
 
@@ -85,12 +90,12 @@ La separación se respeta en general, con estas desviaciones observadas:
 
 | Desviación | Dónde | Evidencia |
 |---|---|---|
-| Controlador que consulta la base | `catalogs` | [catalogs.controller.ts](../../src/modules/catalogs/catalogs.controller.ts) |
-| Ruta con lógica en línea | `GET /auth/profile-me` responde desde el archivo de rutas | [auth.routes.ts](../../src/modules/auth/auth.routes.ts) |
-| Controladores que construyen respuestas de error sin pasar por `AppError` | Comprobaciones de usuario ausente y de parámetros en `feed`, `radar`, `carpooling`, `matchmaking` y `users` | Por ejemplo, [radar.controller.ts](../../src/modules/radar/radar.controller.ts) |
-| Reglas de negocio en el repositorio | La máquina de estados del matchmaking y las comprobaciones de la confirmación de asiento están dentro de transacciones SQL | [matchmaking.repository.ts](../../src/modules/matchmaking/matchmaking.repository.ts), [carpooling.repository.ts](../../src/modules/carpooling/carpooling.repository.ts) |
-| Reglas de negocio en el almacén | Consenso del radar en un script Lua; créditos y moderación en disparadores | [radar.repository.ts](../../src/modules/radar/radar.repository.ts), [003_credits_and_wiki.sql](../../src/database/migrations/sql/003_credits_and_wiki.sql) |
-| Código de prueba dentro del código de producción | Parámetro `injectedFailure` y cliente alternativo cuando `pool.connect` no existe | [carpooling.repository.ts](../../src/modules/carpooling/carpooling.repository.ts), [carpooling.service.ts](../../src/modules/carpooling/carpooling.service.ts) |
+| Controlador que consulta la base | `catalogs` | [catalogs.controller.ts](../../apps/api/src/modules/catalogs/catalogs.controller.ts) |
+| Ruta con lógica en línea | `GET /auth/profile-me` responde desde el archivo de rutas | [auth.routes.ts](../../apps/api/src/modules/auth/auth.routes.ts) |
+| Controladores que construyen respuestas de error sin pasar por `AppError` | Comprobaciones de usuario ausente y de parámetros en `feed`, `radar`, `carpooling`, `matchmaking` y `users` | Por ejemplo, [radar.controller.ts](../../apps/api/src/modules/radar/radar.controller.ts) |
+| Reglas de negocio en el repositorio | La máquina de estados del matchmaking y las comprobaciones de la confirmación de asiento están dentro de transacciones SQL | [matchmaking.repository.ts](../../apps/api/src/modules/matchmaking/matchmaking.repository.ts), [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts) |
+| Reglas de negocio en el almacén | Consenso del radar en un script Lua; créditos y moderación en disparadores | [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts), [003_credits_and_wiki.sql](../../apps/api/src/database/migrations/sql/003_credits_and_wiki.sql) |
+| Código de prueba dentro del código de producción | Parámetro `injectedFailure` y cliente alternativo cuando `pool.connect` no existe | [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts), [carpooling.service.ts](../../apps/api/src/modules/carpooling/carpooling.service.ts) |
 
 Colocar una regla dentro de una transacción o de un script atómico no es en sí un defecto: es la forma de garantizar que la comprobación y el cambio ocurran juntos. El costo es que la regla queda ligada a la tecnología de almacenamiento.
 
@@ -111,11 +116,11 @@ El parámetro `injectedFailure` no es alcanzable desde HTTP: el controlador no l
 
 | Ubicación | Contenido |
 |---|---|
-| [app/(auth)](../../app/%28auth%29) | Inicio de sesión y registro |
-| [app/(dashboard)](../../app/%28dashboard%29) | Pantallas tras iniciar sesión, con un `layout` común |
-| [components/ui](../../components/ui) | 19 componentes; mezclan presentación con llamadas a la API o a `localStorage` |
-| [app/lib/api.ts](../../app/lib/api.ts) | Cliente HTTP |
-| [app/lib/unsch.constants.ts](../../app/lib/unsch.constants.ts) | Catálogos y valores permitidos |
+| [app/(auth)](../../apps/web/app/%28auth%29) | Inicio de sesión y registro |
+| [app/(dashboard)](../../apps/web/app/%28dashboard%29) | Pantallas tras iniciar sesión, con un `layout` común |
+| [components/ui](../../apps/web/components/ui) | 19 componentes; mezclan presentación con llamadas a la API o a `localStorage` |
+| [app/lib/api.ts](../../apps/web/app/lib/api.ts) | Cliente HTTP |
+| [app/lib/unsch.constants.ts](../../apps/web/app/lib/unsch.constants.ts) | Catálogos y valores permitidos |
 
 No hay capa de servicios ni gestor de estado en el frontend: cada componente llama directamente al cliente HTTP o a `localStorage`.
 

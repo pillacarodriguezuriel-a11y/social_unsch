@@ -20,13 +20,13 @@ Un **monolito** es un sistema cuya lógica de servidor se compila y despliega co
 
 Evidencia de que es un monolito:
 
-- Un solo punto de arranque, [server.ts](../../src/server.ts), y una sola aplicación Express, [app.ts](../../src/app.ts), que registra todos los enrutadores.
+- Un solo punto de arranque, [server.ts](../../apps/api/src/server.ts), y una sola aplicación Express, [app.ts](../../apps/api/src/app.ts), que registra todos los enrutadores.
 - Un solo comando de compilación y uno de arranque en [package.json](../../package.json).
-- Un solo pool de PostgreSQL y un solo cliente Redis compartidos ([database.ts](../../src/config/database.ts), [redis.ts](../../src/config/redis.ts)).
+- Un solo pool de PostgreSQL y un solo cliente Redis compartidos ([database.ts](../../apps/api/src/config/database.ts), [redis.ts](../../apps/api/src/config/redis.ts)).
 
 Evidencia de que es modular:
 
-- Un directorio por dominio en [src/modules](../../src/modules).
+- Un directorio por dominio en [src/modules](../../apps/api/src/modules).
 - Ningún módulo importa código de otro módulo. Los módulos solo comparten `config`, `middlewares` y `shared`.
 
 Límite de esa modularidad: los módulos están separados en el código, pero no en los datos. Varios leen las mismas tablas. Ver [Componentes y dependencias](03-componentes-y-dependencias.md).
@@ -43,9 +43,9 @@ flowchart TB
     P --> D[("PostgreSQL o Redis")]
 ```
 
-Esto es lo que hay en seis de los siete módulos. Ejemplo: [feed.routes.ts](../../src/modules/feed/feed.routes.ts) → [feed.controller.ts](../../src/modules/feed/feed.controller.ts) → [feed.service.ts](../../src/modules/feed/feed.service.ts) → [feed.repository.ts](../../src/modules/feed/feed.repository.ts).
+Esto es lo que hay en seis de los siete módulos. Ejemplo: [feed.routes.ts](../../apps/api/src/modules/feed/feed.routes.ts) → [feed.controller.ts](../../apps/api/src/modules/feed/feed.controller.ts) → [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) → [feed.repository.ts](../../apps/api/src/modules/feed/feed.repository.ts).
 
-La excepción es `catalogs`, cuyo controlador consulta la base directamente ([catalogs.controller.ts](../../src/modules/catalogs/catalogs.controller.ts)).
+La excepción es `catalogs`, cuyo controlador consulta la base directamente ([catalogs.controller.ts](../../apps/api/src/modules/catalogs/catalogs.controller.ts)).
 
 ## Por qué no es arquitectura hexagonal
 
@@ -55,15 +55,15 @@ Tener controladores, servicios y repositorios no basta para llamarla hexagonal. 
 
 | Condición | Qué se encontró | Evidencia |
 |---|---|---|
-| ¿El negocio define interfaces para sus dependencias? | No. No hay ninguna interfaz de repositorio ni clase abstracta en los módulos | Búsqueda de `implements` y `abstract class` en [src/modules](../../src/modules): sin resultados |
-| ¿Las dependencias apuntan hacia el negocio? | No. El servicio importa la clase concreta del repositorio, y este importa el pool | `import { FeedRepository } from './feed.repository'` en [feed.service.ts](../../src/modules/feed/feed.service.ts) |
-| ¿Hay un punto de composición que conecte las piezas? | No. Cada clase crea su dependencia con `new` en un campo privado | `private feedRepository = new FeedRepository()` en [feed.service.ts](../../src/modules/feed/feed.service.ts) |
+| ¿El negocio define interfaces para sus dependencias? | No. No hay ninguna interfaz de repositorio ni clase abstracta en los módulos | Búsqueda de `implements` y `abstract class` en [src/modules](../../apps/api/src/modules): sin resultados |
+| ¿Las dependencias apuntan hacia el negocio? | No. El servicio importa la clase concreta del repositorio, y este importa el pool | `import { FeedRepository } from './feed.repository'` en [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
+| ¿Hay un punto de composición que conecte las piezas? | No. Cada clase crea su dependencia con `new` en un campo privado | `private feedRepository = new FeedRepository()` en [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
 
-Además, algunas reglas de negocio están fuera de los servicios: en SQL dentro de los repositorios (la máquina de estados del matchmaking, en [matchmaking.repository.ts](../../src/modules/matchmaking/matchmaking.repository.ts)), en un script de Redis (el consenso del radar) y en disparadores de la base de datos (créditos y moderación).
+Además, algunas reglas de negocio están fuera de los servicios: en SQL dentro de los repositorios (la máquina de estados del matchmaking, en [matchmaking.repository.ts](../../apps/api/src/modules/matchmaking/matchmaking.repository.ts)), en un script de Redis (el consenso del radar) y en disparadores de la base de datos (créditos y moderación).
 
 Conclusión: el sistema es **en capas**, con dependencias directas hacia la infraestructura. La arquitectura hexagonal es un enfoque **propuesto** para los servicios futuros, no una descripción del código actual.
 
-Una señal práctica de la diferencia: las pruebas sustituyen la base de datos interceptando el módulo de configuración con `jest.mock`, no entregando un repositorio alternativo ([tests/unit](../../tests/unit)).
+Una señal práctica de la diferencia: las pruebas sustituyen la base de datos interceptando el módulo de configuración con `jest.mock`, no entregando un repositorio alternativo ([tests/unit](../../apps/api/tests/unit)).
 
 ## Estilo propuesto: servicios por dominio
 
@@ -97,7 +97,7 @@ La propuesta los limita a casos justificados, por ejemplo acreditar créditos tr
 
 Un **monorepo** es un único repositorio que contiene varios paquetes con dependencias y construcción propias. No es un estilo arquitectónico: un monorepo puede contener un monolito o veinte servicios.
 
-Hoy hay un repositorio con **un solo paquete** que mezcla frontend y backend. La propuesta es mantener un repositorio y dividirlo en paquetes (aplicación web, cada servicio y contratos compartidos), lo que permite cambios coordinados con un solo historial. **Estado: Propuesto.**
+Desde la etapa 3 el repositorio es un **monorepo con npm workspaces**: `apps/web`, `apps/api` y `packages/contracts`, con un único lockfile. Sigue habiendo una sola API desplegable: el monorepo organiza el código, no cambia el estilo ([ADR-007](../06-decisiones-arquitectonicas/ADR-007-workspaces-y-montaje-de-radar.md)).
 
 ## Resumen
 
@@ -109,6 +109,6 @@ Hoy hay un repositorio con **un solo paquete** que mezcla frontend y backend. La
 | Servicios por dominio | Estilo | Propuesto |
 | Strangler Fig | Estrategia de migración | Propuesto |
 | Eventos asíncronos | Mecanismo de integración | Propuesto, selectivo |
-| Monorepo con varios paquetes | Organización del repositorio | Propuesto; hoy es un solo paquete |
+| Monorepo con varios paquetes | Organización del repositorio | Implementado en la etapa 3 (npm workspaces) |
 
 [← Índice](../README.md)

@@ -58,7 +58,7 @@ No se ejecutó la suite del proyecto como parte de esta tarea, porque solo se mo
 
 El commit `fa85296` y la línea base `8e56bfa` difieren únicamente en el README, por lo que esos resultados corresponden al mismo código fuente.
 
-La cobertura mide solo los archivos listados en [jest.config.ts](../jest.config.ts); excluye la configuración, el migrador y todo el frontend.
+La cobertura mide solo los archivos listados en [jest.config.ts](../apps/api/jest.config.ts); excluye la configuración, el migrador y todo el frontend.
 
 ### Sobre los despliegues
 

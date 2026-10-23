@@ -58,12 +58,12 @@ classDiagram
 
 | Elemento | Archivo |
 |---|---|
-| `RadarController` | [radar.controller.ts](../../src/modules/radar/radar.controller.ts) |
-| `RadarService` | [radar.service.ts](../../src/modules/radar/radar.service.ts) |
-| `RadarRepository`, `RadarStatusResponse` | [radar.repository.ts](../../src/modules/radar/radar.repository.ts) |
-| `AppError` | [AppError.ts](../../src/shared/errors/AppError.ts) |
-| `requireAuth` | [auth.middleware.ts](../../src/middlewares/auth.middleware.ts) |
-| `redis` | [redis.ts](../../src/config/redis.ts) |
+| `RadarController` | [radar.controller.ts](../../apps/api/src/modules/radar/radar.controller.ts) |
+| `RadarService` | [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) |
+| `RadarRepository`, `RadarStatusResponse` | [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts) |
+| `AppError` | [AppError.ts](../../apps/api/src/shared/errors/AppError.ts) |
+| `requireAuth` | [auth.middleware.ts](../../apps/api/src/middlewares/auth.middleware.ts) |
+| `redis` | [redis.ts](../../apps/api/src/config/redis.ts) |
 
 Observaciones sobre el diagrama:
 
@@ -146,7 +146,7 @@ sequenceDiagram
     W->>W: guardar token y usuario en localStorage
 ```
 
-Archivos: [auth.controller.ts](../../src/modules/auth/auth.controller.ts), [auth.service.ts](../../src/modules/auth/auth.service.ts), [auth.repository.ts](../../src/modules/auth/auth.repository.ts), [jwt.ts](../../src/config/jwt.ts), [login/page.tsx](../../app/%28auth%29/login/page.tsx).
+Archivos: [auth.controller.ts](../../apps/api/src/modules/auth/auth.controller.ts), [auth.service.ts](../../apps/api/src/modules/auth/auth.service.ts), [auth.repository.ts](../../apps/api/src/modules/auth/auth.repository.ts), [jwt.ts](../../apps/api/src/config/jwt.ts), [login/page.tsx](../../apps/web/app/%28auth%29/login/page.tsx).
 
 ## Secuencia: confirmación de asiento
 
@@ -185,7 +185,7 @@ sequenceDiagram
     end
 ```
 
-El participante es «cliente HTTP» y no una pantalla porque el frontend no consume esta ruta. Archivos: [carpooling.controller.ts](../../src/modules/carpooling/carpooling.controller.ts), [carpooling.service.ts](../../src/modules/carpooling/carpooling.service.ts), [carpooling.repository.ts](../../src/modules/carpooling/carpooling.repository.ts).
+El participante es «cliente HTTP» y no una pantalla porque el frontend no consume esta ruta. Archivos: [carpooling.controller.ts](../../apps/api/src/modules/carpooling/carpooling.controller.ts), [carpooling.service.ts](../../apps/api/src/modules/carpooling/carpooling.service.ts), [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts).
 
 ## Qué enseñan estos diagramas sobre el diseño
 

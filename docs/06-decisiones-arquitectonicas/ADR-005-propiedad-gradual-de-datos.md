@@ -11,7 +11,7 @@
 
 Separar el código en servicios no basta si todos siguen leyendo las mismas tablas: el acoplamiento se mantiene, solo que oculto en la base de datos. Hoy:
 
-- Todos los módulos con PostgreSQL comparten una base y una credencial ([database.ts](../../src/config/database.ts)).
+- Todos los módulos con PostgreSQL comparten una base y una credencial ([database.ts](../../apps/api/src/config/database.ts)).
 - La tabla `users` la escriben dos módulos y la leen tres más con `JOIN`.
 - Hay claves foráneas entre dominios y dos disparadores que modifican tablas de otro dominio.
 
@@ -82,9 +82,9 @@ Reglas:
 
 | Aspecto | Archivo |
 |---|---|
-| Lecturas de `users` desde otros módulos | [feed.repository.ts](../../src/modules/feed/feed.repository.ts), [matchmaking.repository.ts](../../src/modules/matchmaking/matchmaking.repository.ts), [carpooling.repository.ts](../../src/modules/carpooling/carpooling.repository.ts) |
-| Disparadores entre dominios | [003_credits_and_wiki.sql](../../src/database/migrations/sql/003_credits_and_wiki.sql), [004_moderation_and_carpooling.sql](../../src/database/migrations/sql/004_moderation_and_carpooling.sql) |
-| Credencial única | [database.ts](../../src/config/database.ts) |
+| Lecturas de `users` desde otros módulos | [feed.repository.ts](../../apps/api/src/modules/feed/feed.repository.ts), [matchmaking.repository.ts](../../apps/api/src/modules/matchmaking/matchmaking.repository.ts), [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts) |
+| Disparadores entre dominios | [003_credits_and_wiki.sql](../../apps/api/src/database/migrations/sql/003_credits_and_wiki.sql), [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) |
+| Credencial única | [database.ts](../../apps/api/src/config/database.ts) |
 
 Ningún nivel superior al 0 está implementado.
 

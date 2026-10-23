@@ -15,7 +15,7 @@ flowchart LR
     M -- "otro" --> I["500, mensaje genérico<br/>detalle solo en el registro del servidor"]
 ```
 
-Evidencia: [error.middleware.ts](../../src/middlewares/error.middleware.ts), [AppError.ts](../../src/shared/errors/AppError.ts).
+Evidencia: [error.middleware.ts](../../apps/api/src/middlewares/error.middleware.ts), [AppError.ts](../../apps/api/src/shared/errors/AppError.ts).
 
 Forma de toda respuesta de error:
 
@@ -33,13 +33,13 @@ Forma de toda respuesta de error:
 
 | Hueco | Efecto | Evidencia |
 |---|---|---|
-| Errores de la base de datos no traducidos | Una violación de restricción llega como 500 genérico, salvo el duplicado de carpooling | [auth.repository.ts](../../src/modules/auth/auth.repository.ts) no trata el código `23505` |
-| Identificadores con formato inválido | En carpooling, un `route_id` que no sea UUID provoca un error de PostgreSQL y un 500 en lugar de un 400 o 404. Inferencia a partir del código: el parámetro no se valida antes de la consulta | [carpooling.controller.ts](../../src/modules/carpooling/carpooling.controller.ts) |
-| Errores del repositorio identificados por texto | El servicio compara `error.message` con cadenas; un cambio de texto rompe la traducción sin que el compilador avise | [carpooling.service.ts](../../src/modules/carpooling/carpooling.service.ts), [matchmaking.service.ts](../../src/modules/matchmaking/matchmaking.service.ts) |
-| Fallo de un servicio externo indistinguible | Base de datos o Redis caídos producen el mismo 500 que un defecto de programación | [error.middleware.ts](../../src/middlewares/error.middleware.ts) |
-| Códigos tomados de otro dominio | Matchmaking usa `ERR_FEED_POST_NOT_FOUND` y `ERR_MOD_SELF_REPORT` | [matchmaking.service.ts](../../src/modules/matchmaking/matchmaking.service.ts) |
-| Rechazo de CORS como error genérico | Un origen no permitido termina en 500 | [app.ts](../../src/app.ts) |
-| Ruta inexistente | Responde con la página 404 por defecto de Express, no con el formato JSON del resto | [app.ts](../../src/app.ts) no registra un manejador de 404 |
+| Errores de la base de datos no traducidos | Una violación de restricción llega como 500 genérico, salvo el duplicado de carpooling | [auth.repository.ts](../../apps/api/src/modules/auth/auth.repository.ts) no trata el código `23505` |
+| Identificadores con formato inválido | En carpooling, un `route_id` que no sea UUID provoca un error de PostgreSQL y un 500 en lugar de un 400 o 404. Inferencia a partir del código: el parámetro no se valida antes de la consulta | [carpooling.controller.ts](../../apps/api/src/modules/carpooling/carpooling.controller.ts) |
+| Errores del repositorio identificados por texto | El servicio compara `error.message` con cadenas; un cambio de texto rompe la traducción sin que el compilador avise | [carpooling.service.ts](../../apps/api/src/modules/carpooling/carpooling.service.ts), [matchmaking.service.ts](../../apps/api/src/modules/matchmaking/matchmaking.service.ts) |
+| Fallo de un servicio externo indistinguible | Base de datos o Redis caídos producen el mismo 500 que un defecto de programación | [error.middleware.ts](../../apps/api/src/middlewares/error.middleware.ts) |
+| Códigos tomados de otro dominio | Matchmaking usa `ERR_FEED_POST_NOT_FOUND` y `ERR_MOD_SELF_REPORT` | [matchmaking.service.ts](../../apps/api/src/modules/matchmaking/matchmaking.service.ts) |
+| Rechazo de CORS como error genérico | Un origen no permitido termina en 500 | [app.ts](../../apps/api/src/app.ts) |
+| Ruta inexistente | Responde con la página 404 por defecto de Express, no con el formato JSON del resto | [app.ts](../../apps/api/src/app.ts) no registra un manejador de 404 |
 
 ## Límites transaccionales
 
@@ -64,13 +64,13 @@ La garantía de «una sola solicitud activa por ruta y pasajero» descansa en el
 
 Tres precisiones:
 
-1. **El índice puede no existir.** La migración [005_canonical_extensions.sql](../../src/database/migrations/sql/005_canonical_extensions.sql) lo omite si encuentra duplicados previos, emite solo un aviso y se registra como aplicada. En una base con duplicados heredados, la garantía no estaría vigente. Debe comprobarse en cada base con una consulta al catálogo de índices.
+1. **El índice puede no existir.** La migración [005_canonical_extensions.sql](../../apps/api/src/database/migrations/sql/005_canonical_extensions.sql) lo omite si encuentra duplicados previos, emite solo un aviso y se registra como aplicada. En una base con duplicados heredados, la garantía no estaría vigente. Debe comprobarse en cada base con una consulta al catálogo de índices.
 2. **La comprobación de asientos disponibles no es vinculante.** Se hace fuera de la transacción y la solicitud no reserva asiento. Es correcto por diseño: varias personas pueden solicitar el último asiento y el conductor decide. La sobreventa se evita al confirmar.
 3. **La transacción de solicitud contiene una sola escritura.** Su utilidad práctica es de estructura y de prueba, no de atomicidad entre varias escrituras.
 
 ### Confirmación de asiento
 
-Es la operación con garantías más fuertes del sistema. El bloqueo `FOR UPDATE` sobre la ruta hace que dos confirmaciones simultáneas se ejecuten una tras otra; la segunda ve el número de asientos ya actualizado. La restricción `available_seats >= 0` de la base es una segunda barrera. Hay pruebas contra PostgreSQL real de la competencia por el último asiento y de la confirmación repetida ([carpooling.real.test.ts](../../tests/real/carpooling.real.test.ts)).
+Es la operación con garantías más fuertes del sistema. El bloqueo `FOR UPDATE` sobre la ruta hace que dos confirmaciones simultáneas se ejecuten una tras otra; la segunda ve el número de asientos ya actualizado. La restricción `available_seats >= 0` de la base es una segunda barrera. Hay pruebas contra PostgreSQL real de la competencia por el último asiento y de la confirmación repetida ([carpooling.real.test.ts](../../apps/api/tests/real/carpooling.real.test.ts)).
 
 ### Radar
 
@@ -93,11 +93,11 @@ El script garantiza la atomicidad dentro de un nodo y un estado. Quedan fuera:
 
 | Fallo | Comportamiento según el código | Evidencia |
 |---|---|---|
-| Redis no disponible al arrancar | El proceso arranca; tras 5 reintentos deja de intentar conectar. Las rutas del radar fallan; las demás no dependen de Redis | [redis.ts](../../src/config/redis.ts) |
-| Redis se recupera después de agotar los reintentos | **Pendiente de verificación:** al devolver `null` la estrategia de reintentos, el cliente podría no reconectar sin reiniciar el proceso | [redis.ts](../../src/config/redis.ts) |
-| PostgreSQL no disponible | El proceso arranca; cada ruta con base de datos responde 500 tras agotar los 2 segundos de espera de conexión | [database.ts](../../src/config/database.ts); observado el 2026-10-10 en [RESULTADOS_VERIFICACION.md](../migracion/RESULTADOS_VERIFICACION.md) |
-| Claves JWT ausentes | El proceso arranca; el inicio de sesión y toda ruta protegida fallan | [jwt.ts](../../src/config/jwt.ts) |
-| Señal de apagado | Se cierra el servidor HTTP; no se cierran de forma explícita el pool ni el cliente Redis | [server.ts](../../src/server.ts) |
+| Redis no disponible al arrancar | El proceso arranca; tras 5 reintentos deja de intentar conectar. Las rutas del radar fallan; las demás no dependen de Redis | [redis.ts](../../apps/api/src/config/redis.ts) |
+| Redis se recupera después de agotar los reintentos | **Pendiente de verificación:** al devolver `null` la estrategia de reintentos, el cliente podría no reconectar sin reiniciar el proceso | [redis.ts](../../apps/api/src/config/redis.ts) |
+| PostgreSQL no disponible | El proceso arranca; cada ruta con base de datos responde 500 tras agotar los 2 segundos de espera de conexión | [database.ts](../../apps/api/src/config/database.ts); observado el 2026-10-10 en [RESULTADOS_VERIFICACION.md](../migracion/RESULTADOS_VERIFICACION.md) |
+| Claves JWT ausentes | El proceso arranca; el inicio de sesión y toda ruta protegida fallan | [jwt.ts](../../apps/api/src/config/jwt.ts) |
+| Señal de apagado | Se cierra el servidor HTTP; no se cierran de forma explícita el pool ni el cliente Redis | [server.ts](../../apps/api/src/server.ts) |
 
 El sistema tiende a arrancar aunque falte una dependencia y a fallar después, solicitud a solicitud. Sin ruta de salud, ese estado no es visible desde fuera.
 

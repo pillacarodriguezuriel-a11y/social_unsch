@@ -30,12 +30,12 @@ Extraer el módulo `radar` como primer servicio independiente, conservando su co
 
 Sustentada en el código actual:
 
-- **No usa PostgreSQL.** Su repositorio solo importa el cliente Redis ([radar.repository.ts](../../src/modules/radar/radar.repository.ts)).
+- **No usa PostgreSQL.** Su repositorio solo importa el cliente Redis ([radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts)).
 - **No importa ningún otro módulo.**
 - **Es dueño exclusivo de su almacén.** Ningún otro módulo usa Redis.
-- **Solo necesita el identificador del usuario**, que ya viaja en el token ([radar.controller.ts](../../src/modules/radar/radar.controller.ts)).
+- **Solo necesita el identificador del usuario**, que ya viaja en el token ([radar.controller.ts](../../apps/api/src/modules/radar/radar.controller.ts)).
 - **Sus datos son efímeros.** Un error durante la extracción no puede causar pérdida permanente: los datos caducan a los 15 minutos.
-- **Tiene pruebas contra Redis real** ([radar.real.test.ts](../../tests/real/radar.real.test.ts)) que pueden reutilizarse para validar el servicio nuevo.
+- **Tiene pruebas contra Redis real** ([radar.real.test.ts](../../apps/api/tests/real/radar.real.test.ts)) que pueden reutilizarse para validar el servicio nuevo.
 - **Patrón de uso distinto.** Es la función de consulta más frecuente y la que más se beneficia de poder fallar sin arrastrar al resto.
 
 ## Consecuencias
@@ -59,10 +59,10 @@ Estos puntos existen hoy en el código y deben resolverse antes o durante la ext
 
 | Punto | Detalle | Evidencia |
 |---|---|---|
-| Valores duplicados en dos idiomas | Los estados se aceptan en inglés y en español y se cuentan por separado | [radar.service.ts](../../src/modules/radar/radar.service.ts) |
-| Umbral y vigencia escritos en el repositorio | Existen como constantes compartidas, sin usarse | [radar.repository.ts](../../src/modules/radar/radar.repository.ts), [unsch.constants.ts](../../src/shared/constants/unsch.constants.ts) |
-| Middleware de autenticación compartido | El servicio nuevo necesita `requireAuth` y la clave pública | [auth.middleware.ts](../../src/middlewares/auth.middleware.ts) |
-| Reconexión a Redis | El cliente deja de reintentar tras 5 fallos | [redis.ts](../../src/config/redis.ts) |
+| Valores duplicados en dos idiomas | Los estados se aceptan en inglés y en español y se cuentan por separado | [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) |
+| Umbral y vigencia escritos en el repositorio | Existen como constantes compartidas, sin usarse | [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts), [unsch.constants.ts](../../apps/api/src/shared/constants/unsch.constants.ts) |
+| Middleware de autenticación compartido | El servicio nuevo necesita `requireAuth` y la clave pública | [auth.middleware.ts](../../apps/api/src/middlewares/auth.middleware.ts) |
+| Reconexión a Redis | El cliente deja de reintentar tras 5 fallos | [redis.ts](../../apps/api/src/config/redis.ts) |
 | Estado de Redis en producción | Sin verificar | [Mapa de despliegue](../05-despliegue-y-operacion/01-mapa-de-despliegue.md) |
 
 ## Evidencias

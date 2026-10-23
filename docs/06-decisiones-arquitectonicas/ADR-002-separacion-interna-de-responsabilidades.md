@@ -68,12 +68,12 @@ Esta decisión **no equivale a arquitectura hexagonal**: no hay puertos, la dire
 
 | Aspecto | Archivo |
 |---|---|
-| Las cuatro capas | [src/modules/feed](../../src/modules/feed) |
-| Creación de dependencias con `new` | [feed.service.ts](../../src/modules/feed/feed.service.ts) |
-| Error tipado y traducción central | [AppError.ts](../../src/shared/errors/AppError.ts), [error.middleware.ts](../../src/middlewares/error.middleware.ts) |
-| Excepción a las capas | [catalogs.controller.ts](../../src/modules/catalogs/catalogs.controller.ts) |
-| Reglas en el repositorio | [matchmaking.repository.ts](../../src/modules/matchmaking/matchmaking.repository.ts) |
-| Pruebas que interceptan módulos | [tests/unit](../../tests/unit) |
+| Las cuatro capas | [src/modules/feed](../../apps/api/src/modules/feed) |
+| Creación de dependencias con `new` | [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
+| Error tipado y traducción central | [AppError.ts](../../apps/api/src/shared/errors/AppError.ts), [error.middleware.ts](../../apps/api/src/middlewares/error.middleware.ts) |
+| Excepción a las capas | [catalogs.controller.ts](../../apps/api/src/modules/catalogs/catalogs.controller.ts) |
+| Reglas en el repositorio | [matchmaking.repository.ts](../../apps/api/src/modules/matchmaking/matchmaking.repository.ts) |
+| Pruebas que interceptan módulos | [tests/unit](../../apps/api/tests/unit) |
 
 ## Condiciones para reconsiderarla
 

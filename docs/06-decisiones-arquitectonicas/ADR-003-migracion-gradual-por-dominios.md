@@ -74,7 +74,7 @@ Estos costos no son hipotéticos: son la razón por la que la propuesta incluye 
 | Aspecto | Fuente |
 |---|---|
 | Etapas 1 y 2 integradas | *Pull requests* 1 y 2, fusionados en `main` el 2026-10-12; commit `e704b8a` |
-| Módulos sin importaciones cruzadas | [src/modules](../../src/modules) |
+| Módulos sin importaciones cruzadas | [src/modules](../../apps/api/src/modules) |
 | Acoplamiento por datos que condiciona el orden | [Componentes y dependencias](../02-arquitectura-de-software/03-componentes-y-dependencias.md) |
 | Etapas 3 a 8 | Sin evidencia de ejecución: son propuesta |
 
