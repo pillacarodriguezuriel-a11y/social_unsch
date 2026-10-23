@@ -22,8 +22,8 @@ import {
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Alert } from '../../../components/ui/Alert';
-import { api } from '../../lib/api';
-import { SCHOOLS_BY_FACULTY } from '../../lib/unsch.constants';
+import { resolveSchoolSelection } from '../../lib/catalogs';
+import { useCatalogs } from '../../lib/useCatalogs';
 
 type Tab = 'perfil' | 'privacidad' | 'notificaciones' | 'cuenta';
 
@@ -31,7 +31,7 @@ interface UserProfile {
   full_name: string;
   email: string;
   role: string;
-  school_id: number;
+  school_id: number | null;
   academic_cycle: number;
   bio: string;
   avatar_initials: string;
@@ -73,7 +73,7 @@ export default function SettingsPage() {
     full_name: '',
     email: '',
     role: 'student',
-    school_id: 1,
+    school_id: null,
     academic_cycle: 5,
     bio: '',
     avatar_initials: 'ES',
@@ -83,33 +83,8 @@ export default function SettingsPage() {
   const [success, setSuccess]   = useState<string | null>(null);
   const [showPass, setShowPass] = useState(false);
   const [newPassword, setNewPassword] = useState('');
-  const [schoolsByFaculty, setSchoolsByFaculty] = useState(SCHOOLS_BY_FACULTY);
+  const { status: catalogStatus, catalog, groups: schoolsByFaculty } = useCatalogs();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    api.get<any>('/catalogs')
-      .then((res) => {
-        const data = res?.data || res;
-        if (!isMounted || !data?.faculties || !data?.schools) return;
-        const grouped = data.faculties
-          .map((fac: any) => ({
-            faculty: fac,
-            schools: data.schools.filter((s: any) => s.faculty_id === fac.id),
-          }))
-          .filter((g: any) => g.schools.length > 0);
-        if (grouped.length > 0) {
-          setSchoolsByFaculty(grouped);
-        }
-      })
-      .catch(() => {
-        // Fallback a constantes locales
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -121,7 +96,7 @@ export default function SettingsPage() {
             full_name: u.full_name || 'Estudiante UNSCH',
             email: u.email || 'usuario@unsch.edu.pe',
             role: u.role || 'student',
-            school_id: u.school_id || 1,
+            school_id: typeof u.school_id === 'number' ? u.school_id : null,
             academic_cycle: u.academic_cycle || 5,
             bio: u.bio || '',
             avatar_initials: (u.full_name || 'ES').substring(0, 2).toUpperCase(),
@@ -293,12 +268,22 @@ export default function SettingsPage() {
                     Escuela Profesional
                   </label>
                   <select
-                    value={profile.school_id}
-                    onChange={(e) => setProfile({ ...profile, school_id: parseInt(e.target.value, 10) })}
+                    value={profile.school_id ?? ''}
+                    disabled={catalogStatus !== 'ready'}
+                    onChange={(e) => {
+                      const selected = resolveSchoolSelection(catalog, e.target.value);
+                      if (selected !== undefined) setProfile({ ...profile, school_id: selected });
+                    }}
                     className="w-full px-4 py-3 text-sm font-medium bg-white border border-secondary/40 text-primary rounded-xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary appearance-none cursor-pointer"
                   >
+                    <option value="">
+                      {catalogStatus === 'ready' ? 'Sin escuela registrada' : catalogStatus === 'loading' ? 'Cargando escuelas...' : 'Catálogo no disponible'}
+                    </option>
                     {schoolsByFaculty.map((fac) => (
-                      <optgroup key={fac.faculty.id} label={`${fac.faculty.name} (${fac.faculty.abbreviation})`}>
+                      <optgroup
+                        key={fac.faculty.id}
+                        label={fac.faculty.abbreviation ? `${fac.faculty.name} (${fac.faculty.abbreviation})` : fac.faculty.name}
+                      >
                         {fac.schools.map((s) => (
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}

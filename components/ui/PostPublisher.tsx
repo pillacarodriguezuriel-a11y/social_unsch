@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Image, File, AlertTriangle, Send, X } from 'lucide-react';
 import { api } from '../../app/lib/api';
 import { Button } from './Button';
-import { SCHOOLS_BY_FACULTY } from '../../app/lib/unsch.constants';
+import { findSchool, resolveSchoolSelection } from '../../app/lib/catalogs';
+import { useCatalogs } from '../../app/lib/useCatalogs';
 
 interface PostPublisherProps {
   onPublish: (
@@ -21,6 +22,7 @@ export function PostPublisher({ onPublish }: PostPublisherProps) {
   const [attachedImageName, setAttachedImageName] = useState<string | null>(null);
   const [isAlert, setIsAlert] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { status: catalogStatus, catalog, groups: schoolsByFaculty } = useCatalogs();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -29,7 +31,8 @@ export function PostPublisher({ onPublish }: PostPublisherProps) {
         try {
           setUser(JSON.parse(userStr));
         } catch {
-          setUser({ id: 'mock-id', full_name: 'Estudiante', role: 'student', school_id: 1 });
+          // Sin datos de sesión legibles no se inventa una escuela: la publicación irá al foro general.
+          setUser(null);
         }
       }
     }
@@ -66,13 +69,18 @@ export function PostPublisher({ onPublish }: PostPublisherProps) {
 
     if (!content.trim() || content.length > 2000) return;
 
-    const selectedSchoolId = schoolId ? Number(schoolId) : (user?.school_id || null);
+    // La escuela elegida debe existir en el catálogo persistido. Sin elección, se usa la escuela
+    // de la sesión (ID real devuelto por el backend al iniciar sesión).
+    const explicitSchoolId = resolveSchoolSelection(catalog, schoolId);
+    if (explicitSchoolId === undefined) return;
+    const selectedSchoolId = explicitSchoolId ?? (typeof user?.school_id === 'number' ? user.school_id : null);
+    const selectedFacultyId = findSchool(catalog, selectedSchoolId)?.faculty_id ?? null;
 
     // 1. Construir post optimista
     const optimisticPost = {
       id: `temp-${Date.now()}`,
       user_id: user?.id || 'mock-id',
-      faculty_id: user?.faculty_id || null,
+      faculty_id: selectedFacultyId,
       professional_school_id: selectedSchoolId,
       content: isAlert ? `🚨 ALERTA URGENTE: ${content.trim()}` : content.trim(),
       is_visible: true,
@@ -85,7 +93,7 @@ export function PostPublisher({ onPublish }: PostPublisherProps) {
     // 2. Definir promesa API
     const apiPromise = api.post('/feed', {
       content: optimisticPost.content,
-      faculty_id: user?.faculty_id || null,
+      faculty_id: selectedFacultyId,
       school_id: selectedSchoolId,
     });
 
@@ -113,11 +121,15 @@ export function PostPublisher({ onPublish }: PostPublisherProps) {
           <select
             value={schoolId}
             onChange={(e) => setSchoolId(e.target.value)}
+            disabled={catalogStatus !== 'ready'}
             className="text-xs font-bold text-primary bg-surface/50 border border-secondary/10 px-3 py-1.5 rounded-lg outline-none focus:border-primary cursor-pointer"
           >
             <option value="">Escuela (Por Defecto)</option>
-            {SCHOOLS_BY_FACULTY.map((group) => (
-              <optgroup key={group.faculty.id} label={`${group.faculty.name} (${group.faculty.abbreviation})`}>
+            {schoolsByFaculty.map((group) => (
+              <optgroup
+                key={group.faculty.id}
+                label={group.faculty.abbreviation ? `${group.faculty.name} (${group.faculty.abbreviation})` : group.faculty.name}
+              >
                 {group.schools.map((school) => (
                   <option key={school.id} value={school.id}>
                     {school.name}

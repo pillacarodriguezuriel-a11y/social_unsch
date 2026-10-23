@@ -8,7 +8,8 @@ import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { Alert } from '../../../components/ui/Alert';
 import { api } from '../../lib/api';
-import { SCHOOLS_BY_FACULTY } from '../../lib/unsch.constants';
+import { resolveSchoolSelection } from '../../lib/catalogs';
+import { useCatalogs } from '../../lib/useCatalogs';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,35 +18,10 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'student' | 'alumnus' | 'professor'>('student');
   const [schoolId, setSchoolId] = useState('');
-  const [schoolsByFaculty, setSchoolsByFaculty] = useState(SCHOOLS_BY_FACULTY);
+  const { status: catalogStatus, catalog, groups: schoolsByFaculty, retry: retryCatalog } = useCatalogs();
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
-
-  // Carga de catálogos persistidos con IDs reales del backend
-  React.useEffect(() => {
-    let isMounted = true;
-    api.get<any>('/catalogs')
-      .then((res) => {
-        const data = res?.data || res;
-        if (!isMounted || !data?.faculties || !data?.schools) return;
-        const grouped = data.faculties
-          .map((fac: any) => ({
-            faculty: fac,
-            schools: data.schools.filter((s: any) => s.faculty_id === fac.id),
-          }))
-          .filter((g: any) => g.schools.length > 0);
-        if (grouped.length > 0) {
-          setSchoolsByFaculty(grouped);
-        }
-      })
-      .catch(() => {
-        // Conserva fallback local a SCHOOLS_BY_FACULTY
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Validación de dominio institucional en tiempo real
   const isEmailError = email.length > 0 && !email.toLowerCase().endsWith('@unsch.edu.pe');
@@ -67,6 +43,12 @@ export default function RegisterPage() {
       setServerError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
+    // Solo se envían IDs presentes en el catálogo persistido; nunca IDs de constantes locales.
+    const professionalSchoolId = resolveSchoolSelection(catalog, schoolId);
+    if (catalogStatus !== 'ready' || professionalSchoolId === undefined) {
+      setServerError('No se pudo validar la escuela profesional con el catálogo. Recarga el catálogo e inténtalo de nuevo.');
+      return;
+    }
 
     setIsLoading(true);
 
@@ -77,7 +59,7 @@ export default function RegisterPage() {
         email,
         password,
         role,
-        professional_school_id: schoolId ? parseInt(schoolId, 10) : null,
+        professional_school_id: professionalSchoolId,
         current_academic_cycle: null,
       });
 
@@ -183,11 +165,21 @@ export default function RegisterPage() {
               value={schoolId}
               onChange={(e) => setSchoolId(e.target.value)}
               required
+              disabled={catalogStatus !== 'ready'}
               className="w-full pl-11 pr-4 py-3 text-sm font-medium bg-white border border-secondary/40 text-primary rounded-xl transition-all outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary appearance-none cursor-pointer"
             >
-              <option value="">Selecciona tu carrera...</option>
+              <option value="">
+                {catalogStatus === 'loading'
+                  ? 'Cargando escuelas profesionales...'
+                  : catalogStatus === 'error'
+                    ? 'Catálogo no disponible'
+                    : 'Selecciona tu carrera...'}
+              </option>
               {schoolsByFaculty.map((group) => (
-                <optgroup key={group.faculty.id} label={`${group.faculty.name} (${group.faculty.abbreviation})`}>
+                <optgroup
+                  key={group.faculty.id}
+                  label={group.faculty.abbreviation ? `${group.faculty.name} (${group.faculty.abbreviation})` : group.faculty.name}
+                >
                   {group.schools.map((school) => (
                     <option key={school.id} value={school.id}>
                       {school.name}
@@ -197,6 +189,14 @@ export default function RegisterPage() {
               ))}
             </select>
           </div>
+          {catalogStatus === 'error' && (
+            <p className="text-xs text-red-600">
+              No se pudo cargar el catálogo de escuelas.{' '}
+              <button type="button" onClick={retryCatalog} className="font-bold underline">
+                Reintentar
+              </button>
+            </p>
+          )}
         </div>
 
         {/* Input de Contraseña */}

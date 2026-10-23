@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { Heart, MessageCircle, Share2, ShieldCheck, Clock } from 'lucide-react';
+import { findSchool } from '../../app/lib/catalogs';
+import { useCatalogs } from '../../app/lib/useCatalogs';
 
 interface FeedPost {
   id: string;
@@ -23,6 +25,7 @@ interface FeedListProps {
 }
 
 export function FeedList({ posts, onLikeToggle }: FeedListProps) {
+  const { catalog } = useCatalogs();
   const getRoleLabel = (role: string) => {
     switch (role.toLowerCase()) {
       case 'student':
@@ -42,14 +45,11 @@ export function FeedList({ posts, onLikeToggle }: FeedListProps) {
     }
   };
 
+  // El nombre se resuelve con el catálogo persistido; si no está disponible no se muestra un nombre
+  // tomado de constantes, que podría corresponder a otra escuela.
   const getSchoolLabel = (schoolId: number | null) => {
-    const schools: Record<number, string> = {
-      1: 'Ingeniería de Sistemas',
-      2: 'Ingeniería Civil',
-      3: 'Administración de Empresas',
-      4: 'Derecho',
-    };
-    return schoolId ? schools[schoolId] || `Escuela ${schoolId}` : 'Foro General';
+    if (!schoolId) return 'Foro General';
+    return findSchool(catalog, schoolId)?.name ?? 'Escuela profesional';
   };
 
   const formatTimestamp = (dateStr: string) => {
