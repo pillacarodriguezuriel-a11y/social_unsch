@@ -51,15 +51,23 @@ test('detecta una infracción por cada regla', () => {
       "import Redis from 'ioredis';\nimport { pool } from '../../config/database';\nimport type R from 'ioredis';",
     'apps/api/src/config/database.ts': 'export const pool = {};',
     'apps/web/tests/x.test.ts': "import { RADAR_NODES } from '@social-unsch/contracts';",
+    'apps/radar/src/a.ts': "import { createApp } from '@social-unsch/api';",
+    'apps/radar/src/b.ts': "import { something } from '@social-unsch/web';",
+    'apps/radar/src/c.ts': "import { Pool } from 'pg';",
+    'apps/api/src/server.ts': "import { createRadarApp } from '@social-unsch/radar';",
   });
 
   const rules = checkBoundaries(root).map((v) => `${v.rule}:${v.file}`);
   assert.deepEqual(rules.sort(), [
+    'api-sin-radar-interno:apps/api/src/server.ts',
     'api-sin-web:apps/api/src/app.ts',
     'contratos-puros:packages/contracts/src/index.ts',
     'modulos-aislados:apps/api/src/modules/feed/feed.service.ts',
+    'radar-sin-api:apps/radar/src/a.ts',
     'radar-sin-conexiones:apps/api/src/modules/radar/radar.repository.ts',
     'radar-sin-conexiones:apps/api/src/modules/radar/radar.repository.ts',
+    'radar-sin-pg:apps/radar/src/c.ts',
+    'radar-sin-web:apps/radar/src/b.ts',
     'web-contratos-solo-tipo:apps/web/app/b.ts',
     'web-sin-servidor:apps/web/app/a.tsx',
     'web-sin-servidor:apps/web/app/a.tsx',
