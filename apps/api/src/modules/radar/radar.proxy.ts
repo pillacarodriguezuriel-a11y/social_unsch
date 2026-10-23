@@ -19,6 +19,7 @@ export interface RadarProxyOptions {
   target: URL;
   timeoutMs: number;
   fetchImpl?: FetchLike;
+  healthPath?: string;
 }
 
 const FORWARDED_REQUEST_HEADERS = ['authorization', 'content-type', 'accept', 'accept-language', 'x-request-id'];
@@ -44,10 +45,11 @@ function sendProxyError(res: Response, code: 'ERR_RADAR_UPSTREAM_UNAVAILABLE' | 
     code === 'ERR_RADAR_UPSTREAM_TIMEOUT'
       ? 'El servicio de radar no respondió a tiempo. Inténtelo más tarde.'
       : 'El servicio de radar no está disponible. Inténtelo más tarde.';
+  res.locals.errorCode = code;
   res.status(RADAR_ERROR_CODES[code]).json({ error: true, message, code });
 }
 
-export function createRadarProxyModule({ target, timeoutMs, fetchImpl = fetch }: RadarProxyOptions): RadarModule {
+export function createRadarProxyModule({ target, timeoutMs, fetchImpl = fetch, healthPath = '/health/live' }: RadarProxyOptions): RadarModule {
   const router = Router();
 
   router.all('*', async (req: Request, res: Response, next: NextFunction) => {
@@ -67,6 +69,7 @@ export function createRadarProxyModule({ target, timeoutMs, fetchImpl = fetch }:
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
       const upstream = await fetchImpl(buildUpstreamUrl(target, req), {
         method: req.method,
@@ -97,7 +100,7 @@ export function createRadarProxyModule({ target, timeoutMs, fetchImpl = fetch }:
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const res = await fetchImpl(new URL('/health/live', target).toString(), {
+        const res = await fetchImpl(new URL(healthPath, target).toString(), {
           method: 'GET',
           signal: controller.signal,
         });
