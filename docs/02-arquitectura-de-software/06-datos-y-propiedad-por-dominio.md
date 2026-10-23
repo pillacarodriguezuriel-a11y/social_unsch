@@ -1,6 +1,6 @@
 # Datos y propiedad por dominio
 
-Qué datos guarda el sistema, quién los usa hoy y qué servicio sería su dueño en la arquitectura propuesta. El esquema corresponde a las cinco migraciones de [src/database/migrations/sql](../../src/database/migrations/sql).
+Qué datos guarda el sistema, quién los usa hoy y qué servicio sería su dueño en la arquitectura propuesta. El esquema corresponde a las cinco migraciones de [src/database/migrations/sql](../../apps/api/src/database/migrations/sql).
 
 ## Modelo relacional actual
 
@@ -25,11 +25,11 @@ erDiagram
     users ||--o{ campus_alerts : reporta
 ```
 
-Además existe `schema_migrations`, que registra las migraciones aplicadas ([migrator.ts](../../src/database/migrations/migrator.ts)).
+Además existe `schema_migrations`, que registra las migraciones aplicadas ([migrator.ts](../../apps/api/src/database/migrations/migrator.ts)).
 
 ## Tablas: uso actual
 
-«En uso por la API» significa que algún módulo de [src/modules](../../src/modules) la lee o escribe.
+«En uso por la API» significa que algún módulo de [src/modules](../../apps/api/src/modules) la lee o escribe.
 
 | Tabla | Migración | En uso por la API | Observación |
 |---|---|---|---|
@@ -50,16 +50,16 @@ Tres grupos de tablas existen sin código que las use. No deben contarse como fu
 
 | Objeto | Qué hace | Dominio que cruza | Evidencia |
 |---|---|---|---|
-| Disparador `trg_process_file_download` | Al insertar una descarga, cobra créditos al comprador, los abona al dueño y registra ambos movimientos | Recursos modifica `users` | [003_credits_and_wiki.sql](../../src/database/migrations/sql/003_credits_and_wiki.sql) |
-| Disparador `trg_auto_suppress_reported_post` | Al tercer reporte activo por el mismo motivo, oculta la publicación y la registra en auditoría | Moderación modifica `feed_posts` | [004_moderation_and_carpooling.sql](../../src/database/migrations/sql/004_moderation_and_carpooling.sql) |
-| Restricción `chk_users_institutional_email` | Exige dominio `@unsch.edu.pe` | — | [001_base_schema.sql](../../src/database/migrations/sql/001_base_schema.sql) |
-| Índice único parcial `uq_active_carpooling_request` | Una sola solicitud activa por ruta y pasajero | — | [005_canonical_extensions.sql](../../src/database/migrations/sql/005_canonical_extensions.sql) |
+| Disparador `trg_process_file_download` | Al insertar una descarga, cobra créditos al comprador, los abona al dueño y registra ambos movimientos | Recursos modifica `users` | [003_credits_and_wiki.sql](../../apps/api/src/database/migrations/sql/003_credits_and_wiki.sql) |
+| Disparador `trg_auto_suppress_reported_post` | Al tercer reporte activo por el mismo motivo, oculta la publicación y la registra en auditoría | Moderación modifica `feed_posts` | [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) |
+| Restricción `chk_users_institutional_email` | Exige dominio `@unsch.edu.pe` | — | [001_base_schema.sql](../../apps/api/src/database/migrations/sql/001_base_schema.sql) |
+| Índice único parcial `uq_active_carpooling_request` | Una sola solicitud activa por ruta y pasajero | — | [005_canonical_extensions.sql](../../apps/api/src/database/migrations/sql/005_canonical_extensions.sql) |
 
 Ninguno de los dos disparadores se ejecuta hoy en uso normal, porque ninguna ruta inserta en esas tablas.
 
 ## Datos en Redis
 
-Solo el radar usa Redis ([radar.repository.ts](../../src/modules/radar/radar.repository.ts)).
+Solo el radar usa Redis ([radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts)).
 
 | Patrón de clave | Tipo | Contenido | Vigencia |
 |---|---|---|---|
@@ -100,7 +100,7 @@ Ser **dueño** de un dato significa ser el único servicio que lo escribe y la �
 |---|---|---|
 | El saldo de créditos vive en `users` | Lo modificaría Recursos, pero la tabla es de Identidad. El disparador actual lo actualiza en la misma transacción que la descarga | 7 |
 | Columnas de ciclo académico duplicadas | `users` tiene `current_academic_cycle` y `academic_cycle`; carpooling las combina con `COALESCE` | 5 |
-| Valor inicial de créditos contradictorio | El esquema define 5 por defecto; el registro inserta 0 explícitamente ([auth.repository.ts](../../src/modules/auth/auth.repository.ts)) | 7 |
+| Valor inicial de créditos contradictorio | El esquema define 5 por defecto; el registro inserta 0 explícitamente ([auth.repository.ts](../../apps/api/src/modules/auth/auth.repository.ts)) | 7 |
 | Claves foráneas hacia `users` desde todos los dominios | Se pierden al separar bases; la integridad pasa a depender del código | 5 a 7 |
 | Borrado en cascada | Eliminar un usuario borra hoy sus publicaciones, perfiles, rutas y solicitudes | Requiere un evento «usuario eliminado» si los datos se separan |
 | Datos de contacto en la confirmación de carpooling | Se leen dentro de la transacción | 6 |

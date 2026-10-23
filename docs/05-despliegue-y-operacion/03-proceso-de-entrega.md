@@ -4,7 +4,7 @@ Cómo llega un cambio desde el código hasta producción. Se separa lo que **exi
 
 ## Lo que existe: comandos
 
-Todos están definidos en [package.json](../../package.json).
+Todos están definidos en el [package.json](../../package.json) de la raíz, que desde la etapa 3 delega en cada workspace (`apps/api`, `apps/web`, `packages/contracts`). La lista completa está en [ETAPA_03 §8](../migracion/ETAPA_03_PREPARACION_SEPARACION.md#8-comandos).
 
 ### Desarrollo
 
@@ -22,15 +22,19 @@ Todos están definidos en [package.json](../../package.json).
 
 | Comando | Qué hace | Resultado |
 |---|---|---|
-| `npm run build` | Compila la API con TypeScript | `dist/` |
-| `npm run build:frontend` | Compila la aplicación web y comprueba sus tipos | `.next/` |
+| `npm run build` | Compila el contrato y la API con TypeScript | `packages/contracts/dist/`, `apps/api/dist/` |
+| `npm run build:frontend` | Compila el contrato y la aplicación web, y comprueba sus tipos | `apps/web/.next/` |
+| `npm run build:all` | Ambas | — |
+| `npm run typecheck` | Tipos de los tres paquetes, incluidas las pruebas | — |
 | `npm start` | Ejecuta la API compilada | Proceso Node |
 
 ### Pruebas
 
 | Comando | Qué ejecuta | Requiere |
 |---|---|---|
-| `npm test` | Pruebas unitarias y de rutas con dobles | Nada externo |
+| `npm test` | Pruebas unitarias, de rutas y de contrato de la API, y pruebas de `lib/` del frontend | Nada externo |
+| `npm run check:boundaries` | Límites entre web, API, contratos y módulos | Nada externo |
+| `npm run verify` | Límites, tipos, cobertura, pruebas del frontend y ambas compilaciones | Nada externo |
 | `npm run test:coverage` | Lo anterior con umbral de cobertura del 90 % | Nada externo |
 | `npm run test:real` | Pruebas contra PostgreSQL y Redis reales | Docker en ejecución; puertos 55432 y 56379 libres |
 
@@ -39,17 +43,17 @@ Todos están definidos en [package.json](../../package.json).
 | Comando | Qué hace | Modifica datos |
 |---|---|---|
 | `npm run db:migrate:status` | Lista migraciones aplicadas y pendientes | No |
-| `npm run db:migrate` | Aplica las migraciones pendientes de [sql/](../../src/database/migrations/sql) | Sí: esquema |
+| `npm run db:migrate` | Aplica las migraciones pendientes de [sql/](../../apps/api/src/database/migrations/sql) | Sí: esquema |
 | `npm run db:catalogs` | Sincroniza facultades, escuelas y pabellones sin cambiar identificadores | Sí: catálogos |
 | `npm run db:migrate:all` | Los dos anteriores en orden | Sí |
 | `npm run db:seed:demo` | Carga usuarios y datos de demostración; exige confirmación, base local y entorno distinto de producción | Sí: solo local |
-| `node scripts/diagnostico-conexiones.js` | Ejecuta `SELECT 1` y `PING` | No |
+| `node apps/api/scripts/diagnostico-conexiones.js` | Ejecuta `SELECT 1` y `PING` | No |
 
 Todos los comandos `db:*` actúan sobre la base indicada en `DATABASE_URL`. **Conviene comprobar a qué base apunta esa variable antes de ejecutar cualquiera de ellos.**
 
 ### Código heredado que no debe ejecutarse
 
-En [src/database/migrations](../../src/database/migrations) permanecen los ejecutores y archivos SQL anteriores a la etapa 2. No tienen comando en `package.json`, pero pueden invocarse a mano.
+En [src/database/migrations](../../apps/api/src/database/migrations) permanecen los ejecutores y archivos SQL anteriores a la etapa 2. No tienen comando en `package.json`, pero pueden invocarse a mano.
 
 | Archivo | Riesgo |
 |---|---|

@@ -7,8 +7,8 @@
 | Universidad | Universidad Nacional de San Cristóbal de Huamanga |
 | Escuela | Escuela Profesional de Ingeniería de Sistemas |
 | Curso | Arquitectura de Software |
-| Línea base documentada | Commit `8e56bfa` de la rama `main` |
-| Fecha de documentación | 2026-10-12 |
+| Línea base documentada | Commit `8e56bfa` de `main` (2026-10-12) |
+| Actualización | Etapa 3, rama `refactor/etapa-3-preparacion-separacion` (2026-10-23): estructura, composición, salud, contratos y despliegue |
 
 Esta documentación explica qué hace SOCIAL-UNSCH, cómo está construido hoy, qué decisiones arquitectónicas contiene y cómo se propone que evolucione. Está escrita para dos lectores: quien evalúa el proyecto en el curso y quien se incorpora a desarrollarlo.
 
@@ -28,11 +28,11 @@ La documentación separa tres momentos: la **arquitectura actual** (lo que hay e
 
 ## Resumen en cinco líneas
 
-- El sistema actual es un **monolito modular**: una aplicación web Next.js y **una única API Express** desplegable, con siete módulos internos.
+- El sistema actual es un **monolito modular**: una aplicación web Next.js y **una única API Express** desplegable, con siete módulos internos, organizados desde la etapa 3 en un monorepo con npm workspaces (`apps/web`, `apps/api`, `packages/contracts`).
 - Los datos persistentes están en PostgreSQL; el radar del campus usa Redis con expiración de 15 minutos.
 - Autenticación propia con JWT firmado con RS256.
 - Cinco áreas del frontend consumen la API; seis pantallas siguen simuladas en el navegador.
-- La evolución propuesta es una migración gradual hacia servicios por dominio. **No está ejecutada**: solo las etapas 1 y 2 (línea base y estabilización) tienen evidencia.
+- La evolución propuesta es una migración gradual hacia servicios por dominio. **No está ejecutada**: las etapas 1 a 3 (línea base, estabilización y preparación de la separación) tienen evidencia; Radar sigue dentro de la API.
 
 ## Índice
 
@@ -88,7 +88,7 @@ La documentación separa tres momentos: la **arquitectura actual** (lo que hay e
 
 ### 6. Decisiones arquitectónicas
 
-[Índice de ADR](06-decisiones-arquitectonicas/README.md): seis registros, tres retrospectivos y tres propuestos.
+[Índice de ADR](06-decisiones-arquitectonicas/README.md): siete registros: tres retrospectivos, tres propuestos y uno de la etapa 3 ([ADR-007](06-decisiones-arquitectonicas/ADR-007-workspaces-y-montaje-de-radar.md)).
 
 ### 7. Evaluación y evolución
 
@@ -106,7 +106,8 @@ La documentación separa tres momentos: la **arquitectura actual** (lo que hay e
 | [Informe de esta documentación](INFORME_DOCUMENTACION.md) | Método, comprobaciones realizadas y limitaciones |
 | [Etapa 1: línea base](migracion/ETAPA_01_LINEA_BASE.md) | Informe histórico de la etapa 1 |
 | [Etapa 2: estabilización](migracion/ETAPA_02_ESTABILIZACION.md) | Informe histórico de la etapa 2 |
-| [Inventario de configuración](migracion/INVENTARIO_CONFIGURACION.md) | Inventario técnico de la etapa 1 |
+| [Etapa 3: preparación de la separación](migracion/ETAPA_03_PREPARACION_SEPARACION.md) | Workspaces, contratos de Radar, enrutamiento reversible, salud y ajustes de despliegue |
+| [Inventario de configuración](migracion/INVENTARIO_CONFIGURACION.md) | Inventario técnico; actualizado en la etapa 3 |
 | [Resultados de verificación](migracion/RESULTADOS_VERIFICACION.md) | Comprobaciones de la etapa 1 |
 
 Los informes de `migracion/` son registros de su momento. Donde difieren del código actual, prevalece el código; las diferencias detectadas están en [Riesgos y deuda técnica](07-evaluacion-y-evolucion/02-riesgos-y-deuda-tecnica.md#diferencias-entre-documentación-previa-y-código).

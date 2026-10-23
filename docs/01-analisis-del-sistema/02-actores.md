@@ -2,7 +2,7 @@
 
 ## Actores humanos
 
-El sistema reconoce cuatro roles, definidos como tipo enumerado en la base de datos ([001_base_schema.sql](../../src/database/migrations/sql/001_base_schema.sql)) y como constantes en [roles.ts](../../src/shared/auth/roles.ts).
+El sistema reconoce cuatro roles, definidos como tipo enumerado en la base de datos ([001_base_schema.sql](../../apps/api/src/database/migrations/sql/001_base_schema.sql)) y como constantes en [roles.ts](../../apps/api/src/shared/auth/roles.ts).
 
 | Actor | Rol en el sistema | Cómo obtiene la cuenta | Qué puede hacer hoy |
 |---|---|---|---|
@@ -14,9 +14,9 @@ El sistema reconoce cuatro roles, definidos como tipo enumerado en la base de da
 
 Tres precisiones que conviene tener presentes:
 
-- **Los roles públicos son declarativos.** Quien se registra elige ser estudiante, egresado o docente; el sistema no lo contrasta con ningún padrón. El propio código lo advierte en [roles.ts](../../src/shared/auth/roles.ts).
-- **La API no diferencia permisos por rol.** El único control de rol en el backend es impedir que alguien se registre como administrador. Todas las rutas protegidas usan el mismo control (`requireAuth`), que solo comprueba que el token sea válido ([auth.middleware.ts](../../src/middlewares/auth.middleware.ts)).
-- **El administrador solo existe de forma distinta en el frontend.** La consola de moderación comprueba el rol leyendo `localStorage` y trabaja con datos simulados ([ModerationConsole.tsx](../../components/ui/ModerationConsole.tsx)). No hay procedimiento versionado para crear una cuenta administradora fuera del seed de demostración local.
+- **Los roles públicos son declarativos.** Quien se registra elige ser estudiante, egresado o docente; el sistema no lo contrasta con ningún padrón. El propio código lo advierte en [roles.ts](../../apps/api/src/shared/auth/roles.ts).
+- **La API no diferencia permisos por rol.** El único control de rol en el backend es impedir que alguien se registre como administrador. Todas las rutas protegidas usan el mismo control (`requireAuth`), que solo comprueba que el token sea válido ([auth.middleware.ts](../../apps/api/src/middlewares/auth.middleware.ts)).
+- **El administrador solo existe de forma distinta en el frontend.** La consola de moderación comprueba el rol leyendo `localStorage` y trabaja con datos simulados ([ModerationConsole.tsx](../../apps/web/components/ui/ModerationConsole.tsx)). No hay procedimiento versionado para crear una cuenta administradora fuera del seed de demostración local.
 
 ## Roles dentro de un flujo
 

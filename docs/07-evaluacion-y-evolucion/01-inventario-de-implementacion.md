@@ -36,17 +36,17 @@ Pruebas: U, unitarias; I, de rutas con dobles; R, contra servicios reales. Ningu
 
 | Pantalla | Archivo | Fuente de datos |
 |---|---|---|
-| Inicio de sesión | [login/page.tsx](../../app/%28auth%29/login/page.tsx) | API |
-| Registro | [register/page.tsx](../../app/%28auth%29/register/page.tsx) | API |
-| Inicio (feed) | [page.tsx](../../app/%28dashboard%29/page.tsx) | API |
-| Radar | [radar/page.tsx](../../app/%28dashboard%29/radar/page.tsx) | API |
-| Matchmaking | [matchmaking/page.tsx](../../app/%28dashboard%29/matchmaking/page.tsx) | API y datos generados |
-| Carpooling | [carpooling/page.tsx](../../app/%28dashboard%29/carpooling/page.tsx) | `localStorage` |
-| Banco de archivos | [wiki-files/page.tsx](../../app/%28dashboard%29/wiki-files/page.tsx) | `localStorage` |
-| Moderación | [moderation/page.tsx](../../app/%28dashboard%29/moderation/page.tsx) | `localStorage` |
-| Marketplace | [marketplace/page.tsx](../../app/%28dashboard%29/marketplace/page.tsx) | `localStorage` |
-| Empleo | [jobs/page.tsx](../../app/%28dashboard%29/jobs/page.tsx) | Lista fija en el código |
-| Ajustes | [settings/page.tsx](../../app/%28dashboard%29/settings/page.tsx) | `localStorage`; catálogo desde la API |
+| Inicio de sesión | [login/page.tsx](../../apps/web/app/%28auth%29/login/page.tsx) | API |
+| Registro | [register/page.tsx](../../apps/web/app/%28auth%29/register/page.tsx) | API |
+| Inicio (feed) | [page.tsx](../../apps/web/app/%28dashboard%29/page.tsx) | API |
+| Radar | [radar/page.tsx](../../apps/web/app/%28dashboard%29/radar/page.tsx) | API |
+| Matchmaking | [matchmaking/page.tsx](../../apps/web/app/%28dashboard%29/matchmaking/page.tsx) | API y datos generados |
+| Carpooling | [carpooling/page.tsx](../../apps/web/app/%28dashboard%29/carpooling/page.tsx) | `localStorage` |
+| Banco de archivos | [wiki-files/page.tsx](../../apps/web/app/%28dashboard%29/wiki-files/page.tsx) | `localStorage` |
+| Moderación | [moderation/page.tsx](../../apps/web/app/%28dashboard%29/moderation/page.tsx) | `localStorage` |
+| Marketplace | [marketplace/page.tsx](../../apps/web/app/%28dashboard%29/marketplace/page.tsx) | `localStorage` |
+| Empleo | [jobs/page.tsx](../../apps/web/app/%28dashboard%29/jobs/page.tsx) | Lista fija en el código |
+| Ajustes | [settings/page.tsx](../../apps/web/app/%28dashboard%29/settings/page.tsx) | `localStorage`; catálogo desde la API |
 
 Cinco pantallas trabajan contra la API y seis no.
 
@@ -71,9 +71,9 @@ De 16 tablas de negocio, 6 no las usa ningún módulo.
 
 | Suite | Archivos | Alcance |
 |---|---|---|
-| Unitarias | 12 en [tests/unit](../../tests/unit) | Servicios, repositorios y validadores con la base, Redis y JWT sustituidos |
-| De rutas | 7 en [tests/integration](../../tests/integration) | Rutas HTTP con las mismas sustituciones. A pesar del nombre del directorio, no integran con servicios reales |
-| Reales | 5 en [tests/real](../../tests/real) | PostgreSQL y Redis en contenedores desechables |
+| Unitarias | 12 en [tests/unit](../../apps/api/tests/unit) | Servicios, repositorios y validadores con la base, Redis y JWT sustituidos |
+| De rutas | 7 en [tests/integration](../../apps/api/tests/integration) | Rutas HTTP con las mismas sustituciones. A pesar del nombre del directorio, no integran con servicios reales |
+| Reales | 5 en [tests/real](../../apps/api/tests/real) | PostgreSQL y Redis en contenedores desechables |
 | Frontend | Ninguna | — |
 | Extremo a extremo | Ninguna | — |
 
@@ -83,13 +83,16 @@ Los resultados de ejecución, con su fecha y procedencia, están en el [informe 
 
 | Capacidad | Estado | Evidencia |
 |---|---|---|
-| Migraciones versionadas con registro y bloqueo | Implementado | [migrator.ts](../../src/database/migrations/migrator.ts) |
-| Carga de catálogos que conserva identificadores | Implementado | [load_catalogs.ts](../../src/database/migrations/load_catalogs.ts) |
-| Seed de demostración restringido a local | Implementado | [load_demo_seed.ts](../../src/database/migrations/load_demo_seed.ts) |
-| Diagnóstico de conexiones de solo lectura | Implementado | [diagnostico-conexiones.js](../../scripts/diagnostico-conexiones.js) |
+| Migraciones versionadas con registro y bloqueo | Implementado | [migrator.ts](../../apps/api/src/database/migrations/migrator.ts) |
+| Carga de catálogos que conserva identificadores | Implementado | [load_catalogs.ts](../../apps/api/src/database/migrations/load_catalogs.ts) |
+| Seed de demostración restringido a local | Implementado | [load_demo_seed.ts](../../apps/api/src/database/migrations/load_demo_seed.ts) |
+| Diagnóstico de conexiones de solo lectura | Implementado | [diagnostico-conexiones.js](../../apps/api/scripts/diagnostico-conexiones.js) |
 | Reversión de migraciones | No implementado | — |
 | Integración continua | No implementado | — |
-| Ruta de salud, métricas, alertas | No implementado | — |
+| Rutas de salud | Implementado en la etapa 3 | [health.routes.ts](../../apps/api/src/health/health.routes.ts) |
+| Validación de configuración al arrancar | Implementado en la etapa 3 | [env.ts](../../apps/api/src/config/env.ts) |
+| Comprobación de límites entre unidades | Implementado en la etapa 3 | [check-boundaries.js](../../scripts/check-boundaries.js) |
+| Métricas, alertas | No implementado | — |
 | Respaldo de la base | No implementado en el repositorio | — |
 | Archivos de despliegue versionados | No implementado | — |
 

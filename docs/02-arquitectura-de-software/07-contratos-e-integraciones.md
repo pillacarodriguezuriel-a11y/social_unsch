@@ -10,10 +10,10 @@ Convenciones observadas:
 
 | Aspecto | Convención | Evidencia |
 |---|---|---|
-| Prefijo y versión | `/api/v1` | [app.ts](../../src/app.ts) |
-| Formato | JSON | [app.ts](../../src/app.ts) |
-| Autenticación | Cabecera `Authorization: Bearer <token>` | [auth.middleware.ts](../../src/middlewares/auth.middleware.ts) |
-| Errores | `{ "error": true, "message": "...", "code": "ERR_..." }` | [error.middleware.ts](../../src/middlewares/error.middleware.ts) |
+| Prefijo y versión | `/api/v1` | [app.ts](../../apps/api/src/app.ts) |
+| Formato | JSON | [app.ts](../../apps/api/src/app.ts) |
+| Autenticación | Cabecera `Authorization: Bearer <token>` | [auth.middleware.ts](../../apps/api/src/middlewares/auth.middleware.ts) |
+| Errores | `{ "error": true, "message": "...", "code": "ERR_..." }` | [error.middleware.ts](../../apps/api/src/middlewares/error.middleware.ts) |
 | Nombres de campos | `snake_case` | Controladores |
 
 ### Rutas
@@ -46,11 +46,11 @@ Conviene corregirlas antes de congelar el contrato para la migración. Se docume
 | Inconsistencia | Detalle | Evidencia |
 |---|---|---|
 | Forma de la respuesta correcta no uniforme | Unas rutas devuelven `{ data }`, otras `{ success, message, ... }`, y el radar devuelve el objeto sin envoltura | Controladores de `feed`, `auth` y `radar` |
-| Códigos de error de otro dominio | Matchmaking devuelve `ERR_FEED_POST_NOT_FOUND` cuando no encuentra un proyecto o perfil, y `ERR_MOD_SELF_REPORT` ante un autolike | [matchmaking.service.ts](../../src/modules/matchmaking/matchmaking.service.ts) |
+| Códigos de error de otro dominio | Matchmaking devuelve `ERR_FEED_POST_NOT_FOUND` cuando no encuentra un proyecto o perfil, y `ERR_MOD_SELF_REPORT` ante un autolike | [matchmaking.service.ts](../../apps/api/src/modules/matchmaking/matchmaking.service.ts) |
 | Validación de entrada dispar | `auth` valida con esquemas Zod; `feed`, `radar` y `carpooling` validan a mano | Controladores respectivos |
-| Dos códigos para el mismo caso | Campos ausentes devuelven `ERR_VALIDATION_INVALID_FIELDS` o `ERR_VALIDATION_MISSING_FIELDS` según el módulo | [radar.controller.ts](../../src/modules/radar/radar.controller.ts), [carpooling.controller.ts](../../src/modules/carpooling/carpooling.controller.ts) |
-| Valores del radar en dos idiomas | El servicio acepta tanto `fluid` como `Fluido` para el mismo estado, y los cuenta como votos distintos | [radar.service.ts](../../src/modules/radar/radar.service.ts) |
-| Campo declarado y no emitido | El tipo del token declara `jti`, pero el inicio de sesión no lo incluye | [jwt.ts](../../src/config/jwt.ts), [auth.service.ts](../../src/modules/auth/auth.service.ts) |
+| Dos códigos para el mismo caso | Campos ausentes devuelven `ERR_VALIDATION_INVALID_FIELDS` o `ERR_VALIDATION_MISSING_FIELDS` según el módulo | [radar.controller.ts](../../apps/api/src/modules/radar/radar.controller.ts), [carpooling.controller.ts](../../apps/api/src/modules/carpooling/carpooling.controller.ts) |
+| Valores del radar en dos idiomas | El servicio acepta tanto `fluid` como `Fluido` para el mismo estado, y los cuenta como votos distintos | [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) |
+| Campo declarado y no emitido | El tipo del token declara `jti`, pero el inicio de sesión no lo incluye | [jwt.ts](../../apps/api/src/config/jwt.ts), [auth.service.ts](../../apps/api/src/modules/auth/auth.service.ts) |
 
 ### Contrato del token
 
@@ -63,15 +63,15 @@ Conviene corregirlas antes de congelar el contrato para la migración. Se docume
 | `ciclo` | Ciclo académico |
 | `has_accepted_terms` | Aceptación de términos en el momento del inicio de sesión |
 
-Algoritmo RS256, vigencia de 24 horas ([jwt.ts](../../src/config/jwt.ts)). Este contrato es el que permitirá a servicios futuros identificar al usuario sin consultar a nadie.
+Algoritmo RS256, vigencia de 24 horas ([jwt.ts](../../apps/api/src/config/jwt.ts)). Este contrato es el que permitirá a servicios futuros identificar al usuario sin consultar a nadie.
 
 ## Integraciones externas vigentes
 
 | Integración | Protocolo | Sentido | Evidencia |
 |---|---|---|---|
-| API → PostgreSQL | Protocolo de PostgreSQL mediante `pg` | Lectura y escritura | [database.ts](../../src/config/database.ts) |
-| API → Redis | Protocolo de Redis mediante `ioredis`; TLS si la URL usa `rediss://` | Lectura y escritura | [redis.ts](../../src/config/redis.ts) |
-| Aplicación web → API | HTTPS y JSON mediante Axios | Solicitud y respuesta | [api.ts](../../app/lib/api.ts) |
+| API → PostgreSQL | Protocolo de PostgreSQL mediante `pg` | Lectura y escritura | [database.ts](../../apps/api/src/config/database.ts) |
+| API → Redis | Protocolo de Redis mediante `ioredis`; TLS si la URL usa `rediss://` | Lectura y escritura | [redis.ts](../../apps/api/src/config/redis.ts) |
+| Aplicación web → API | HTTPS y JSON mediante Axios | Solicitud y respuesta | [api.ts](../../apps/web/app/lib/api.ts) |
 
 No hay integraciones con terceros (correo, mensajería, pagos, almacenamiento de archivos, sistemas de la universidad).
 

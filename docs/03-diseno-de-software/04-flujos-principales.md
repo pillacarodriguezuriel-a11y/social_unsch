@@ -4,7 +4,7 @@ Cinco flujos implementados, con sus pasos, errores y persistencia según el cód
 
 ## 1. Registro e inicio de sesión
 
-Archivos: [auth.controller.ts](../../src/modules/auth/auth.controller.ts), [auth.validators.ts](../../src/modules/auth/auth.validators.ts), [auth.service.ts](../../src/modules/auth/auth.service.ts), [auth.repository.ts](../../src/modules/auth/auth.repository.ts), [roles.ts](../../src/shared/auth/roles.ts).
+Archivos: [auth.controller.ts](../../apps/api/src/modules/auth/auth.controller.ts), [auth.validators.ts](../../apps/api/src/modules/auth/auth.validators.ts), [auth.service.ts](../../apps/api/src/modules/auth/auth.service.ts), [auth.repository.ts](../../apps/api/src/modules/auth/auth.repository.ts), [roles.ts](../../apps/api/src/shared/auth/roles.ts).
 
 ### Registro: `POST /api/v1/auth/register`
 
@@ -37,7 +37,7 @@ Persistencia: una fila en `users`. El registro no inicia sesión: no devuelve to
 
 Correo inexistente y contraseña incorrecta devuelven la misma respuesta: 401 `ERR_AUTH_INVALID_CREDENTIALS`.
 
-En el navegador, la pantalla guarda el token y el usuario en `localStorage` ([login/page.tsx](../../app/%28auth%29/login/page.tsx)). Si el usuario no ha aceptado los términos, [RouteGuard.tsx](../../components/ui/RouteGuard.tsx) muestra el aviso; al aceptar se llama a `PATCH /api/v1/users/accept-terms` y se actualiza la copia local ([TermsAgreementModal.tsx](../../components/ui/TermsAgreementModal.tsx)).
+En el navegador, la pantalla guarda el token y el usuario en `localStorage` ([login/page.tsx](../../apps/web/app/%28auth%29/login/page.tsx)). Si el usuario no ha aceptado los términos, [RouteGuard.tsx](../../apps/web/components/ui/RouteGuard.tsx) muestra el aviso; al aceptar se llama a `PATCH /api/v1/users/accept-terms` y se actualiza la copia local ([TermsAgreementModal.tsx](../../apps/web/components/ui/TermsAgreementModal.tsx)).
 
 ```mermaid
 stateDiagram-v2
@@ -54,7 +54,7 @@ El estado «sesión sin términos» solo lo hace cumplir el navegador.
 
 ## 2. Consulta y creación de publicaciones
 
-Archivos: [feed.controller.ts](../../src/modules/feed/feed.controller.ts), [feed.service.ts](../../src/modules/feed/feed.service.ts), [feed.repository.ts](../../src/modules/feed/feed.repository.ts).
+Archivos: [feed.controller.ts](../../apps/api/src/modules/feed/feed.controller.ts), [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts), [feed.repository.ts](../../apps/api/src/modules/feed/feed.repository.ts).
 
 ### Consulta: `GET /api/v1/feed`
 
@@ -80,7 +80,7 @@ Observación: el contenido se guarda ya escapado. Como React escapa de nuevo al 
 
 ## 3. Interacción con el radar
 
-Archivos: [radar.controller.ts](../../src/modules/radar/radar.controller.ts), [radar.service.ts](../../src/modules/radar/radar.service.ts), [radar.repository.ts](../../src/modules/radar/radar.repository.ts), [CampusRadar.tsx](../../components/ui/CampusRadar.tsx).
+Archivos: [radar.controller.ts](../../apps/api/src/modules/radar/radar.controller.ts), [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts), [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts), [CampusRadar.tsx](../../apps/web/components/ui/CampusRadar.tsx).
 
 ### Consulta: `GET /api/v1/radar/status`
 
@@ -131,7 +131,7 @@ Detalles de comportamiento que conviene conocer:
 
 ## 4. Solicitud y confirmación de carpooling
 
-Archivos: [carpooling.controller.ts](../../src/modules/carpooling/carpooling.controller.ts), [carpooling.service.ts](../../src/modules/carpooling/carpooling.service.ts), [carpooling.repository.ts](../../src/modules/carpooling/carpooling.repository.ts).
+Archivos: [carpooling.controller.ts](../../apps/api/src/modules/carpooling/carpooling.controller.ts), [carpooling.service.ts](../../apps/api/src/modules/carpooling/carpooling.service.ts), [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts).
 
 Este flujo existe en la API y está probado, pero **la pantalla no lo usa**.
 
@@ -184,7 +184,7 @@ Persistencia: `carpooling_requests` y `carpooling_routes`.
 
 ## 5. Carga y consumo de catálogos
 
-Archivos: [load_catalogs.ts](../../src/database/migrations/load_catalogs.ts), [catalogs.controller.ts](../../src/modules/catalogs/catalogs.controller.ts), [register/page.tsx](../../app/%28auth%29/register/page.tsx).
+Archivos: [load_catalogs.ts](../../apps/api/src/database/migrations/load_catalogs.ts), [catalogs.controller.ts](../../apps/api/src/modules/catalogs/catalogs.controller.ts), [register/page.tsx](../../apps/web/app/%28auth%29/register/page.tsx).
 
 ### Carga: `npm run db:catalogs`
 

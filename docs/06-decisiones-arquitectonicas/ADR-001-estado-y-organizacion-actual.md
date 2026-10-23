@@ -64,11 +64,11 @@ Análisis posterior; no hay constancia de que se evaluaran en su momento.
 
 | Aspecto | Archivo |
 |---|---|
-| Una sola aplicación Express con todos los enrutadores | [app.ts](../../src/app.ts) |
-| Módulos por dominio | [src/modules](../../src/modules) |
-| Pool único de PostgreSQL | [database.ts](../../src/config/database.ts) |
-| Redis solo en el radar | [radar.repository.ts](../../src/modules/radar/radar.repository.ts) |
-| JWT RS256 | [jwt.ts](../../src/config/jwt.ts) |
+| Una sola aplicación Express con todos los enrutadores | [app.ts](../../apps/api/src/app.ts) |
+| Módulos por dominio | [src/modules](../../apps/api/src/modules) |
+| Pool único de PostgreSQL | [database.ts](../../apps/api/src/config/database.ts) |
+| Redis solo en el radar | [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts) |
+| JWT RS256 | [jwt.ts](../../apps/api/src/config/jwt.ts) |
 | Un solo paquete | [package.json](../../package.json) |
 
 ## Condiciones para reconsiderarla

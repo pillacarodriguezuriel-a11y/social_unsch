@@ -6,17 +6,19 @@
 
 | Señal | Existe | Detalle | Evidencia |
 |---|---|---|---|
-| Registro de arranque | Sí | Una línea con el puerto y el modo | [server.ts](../../src/server.ts) |
-| Registro de conexión a Redis | Sí | Conexión, errores y aviso al agotar reintentos | [redis.ts](../../src/config/redis.ts) |
-| Registro de errores no controlados | Sí | `console.error` con el error completo | [error.middleware.ts](../../src/middlewares/error.middleware.ts) |
-| Registro de errores del pool | Sí | Errores inesperados de conexiones inactivas | [database.ts](../../src/config/database.ts) |
-| Registro de solicitudes | **No** | No hay registro de método, ruta, estado ni duración | [app.ts](../../src/app.ts) |
+| Registro de arranque | Sí | Una línea con el puerto y el modo | [server.ts](../../apps/api/src/server.ts) |
+| Registro de conexión a Redis | Sí | Conexión, errores y aviso al agotar reintentos | [redis.ts](../../apps/api/src/config/redis.ts) |
+| Registro de errores no controlados | Sí | `console.error` con el error completo | [error.middleware.ts](../../apps/api/src/middlewares/error.middleware.ts) |
+| Registro de errores del pool | Sí | Errores inesperados de conexiones inactivas | [database.ts](../../apps/api/src/config/database.ts) |
+| Registro de solicitudes | **No** | No hay registro de método, ruta, estado ni duración | [app.ts](../../apps/api/src/app.ts) |
 | Identificador de solicitud | **No** | No se puede seguir una solicitud entre líneas de registro | — |
-| Ruta de salud | **No** | `GET /` responde 404 | [app.ts](../../src/app.ts) |
+| Rutas de salud | Sí, desde la etapa 3 | `GET /health/live` (proceso) y `GET /health/ready` (PostgreSQL crítico, radar no crítico; 503 solo si cae PostgreSQL) | [health.routes.ts](../../apps/api/src/health/health.routes.ts) |
+| Validación de configuración al arrancar | Sí, desde la etapa 3 | Mensajes con nombres de variables, sin valores | [env.ts](../../apps/api/src/config/env.ts) |
+| Cierre ordenado | Sí, desde la etapa 3 | `SIGTERM`/`SIGINT` cierran el servidor, Redis y PostgreSQL (límite de 10 s) | [server.ts](../../apps/api/src/server.ts), [bootstrap.ts](../../apps/api/src/bootstrap.ts) |
 | Métricas | **No** | — | — |
 | Trazas | **No** | — | — |
 | Alertas | **No** | — | — |
-| Auditoría de acciones de usuario | **No** | Solo existe una tabla de auditoría de moderación, sin uso | [004_moderation_and_carpooling.sql](../../src/database/migrations/sql/004_moderation_and_carpooling.sql) |
+| Auditoría de acciones de usuario | **No** | Solo existe una tabla de auditoría de moderación, sin uso | [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) |
 
 Los registros existentes son texto libre en la salida estándar. Dónde se conservan y durante cuánto tiempo depende de la plataforma de alojamiento; está pendiente de verificación.
 
@@ -35,7 +37,7 @@ Sin acceso a los paneles, estas solicitudes de solo lectura permiten diagnostica
 | CORS | Solicitud `OPTIONS` con la cabecera `Origin` del frontend | 204 con el origen permitido | Sin cabecera de permiso: revisar `ALLOWED_ORIGINS` |
 | Redis | `GET <API>/api/v1/radar/status` con un token válido | 200 con los siete puntos | 500: Redis inaccesible |
 
-Con acceso a las cadenas de conexión, el script [diagnostico-conexiones.js](../../scripts/diagnostico-conexiones.js) ejecuta `SELECT 1` y `PING` sin modificar datos ni mostrar credenciales.
+Con acceso a las cadenas de conexión, el script [diagnostico-conexiones.js](../../apps/api/scripts/diagnostico-conexiones.js) ejecuta `SELECT 1` y `PING` sin modificar datos ni mostrar credenciales.
 
 La primera solicitud tras un periodo sin uso puede tardar decenas de segundos; no debe interpretarse como caída.
 
@@ -65,6 +67,8 @@ No hay en el repositorio ningún procedimiento ni automatización de respaldo de
 > **Estado: Propuesto.** Nada de esta sección está implementado.
 
 ### Mínimo antes de extraer el primer servicio (etapa 3)
+
+Tras la etapa 3: rutas de vida y disponibilidad, respuesta 503 en la disponibilidad y validación de configuración están **implementadas**. Registro de solicitudes e identificador de solicitud siguen **pendientes**.
 
 | Elemento | Descripción |
 |---|---|

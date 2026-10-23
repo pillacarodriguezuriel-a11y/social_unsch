@@ -20,13 +20,13 @@ Lo que el sistema hace hoy de extremo a extremo, con persistencia compartida ent
 
 | Capacidad | Estado | Evidencia |
 |---|---|---|
-| Registro e inicio de sesión con correo institucional | Implementado | [auth.routes.ts](../../src/modules/auth/auth.routes.ts) |
-| Aceptación de términos y condiciones | Parcial | [users.routes.ts](../../src/modules/users/users.routes.ts), [RouteGuard.tsx](../../components/ui/RouteGuard.tsx) |
-| Radar del campus (comedor, rectorado, biblioteca, alertas) | Implementado | [radar.service.ts](../../src/modules/radar/radar.service.ts) |
-| Feed de publicaciones | Implementado | [feed.service.ts](../../src/modules/feed/feed.service.ts) |
-| Descubrimiento de perfiles e interacción (matchmaking) | Parcial | [matchmaking.repository.ts](../../src/modules/matchmaking/matchmaking.repository.ts) |
-| Catálogo de facultades, escuelas y pabellones | Implementado | [catalogs.controller.ts](../../src/modules/catalogs/catalogs.controller.ts) |
-| Carpooling: listar, solicitar y confirmar asiento | Parcial: la API existe, la pantalla no la usa | [carpooling.routes.ts](../../src/modules/carpooling/carpooling.routes.ts), [CarpoolingDashboard.tsx](../../components/ui/CarpoolingDashboard.tsx) |
+| Registro e inicio de sesión con correo institucional | Implementado | [auth.routes.ts](../../apps/api/src/modules/auth/auth.routes.ts) |
+| Aceptación de términos y condiciones | Parcial | [users.routes.ts](../../apps/api/src/modules/users/users.routes.ts), [RouteGuard.tsx](../../apps/web/components/ui/RouteGuard.tsx) |
+| Radar del campus (comedor, rectorado, biblioteca, alertas) | Implementado | [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) |
+| Feed de publicaciones | Implementado | [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
+| Descubrimiento de perfiles e interacción (matchmaking) | Parcial | [matchmaking.repository.ts](../../apps/api/src/modules/matchmaking/matchmaking.repository.ts) |
+| Catálogo de facultades, escuelas y pabellones | Implementado | [catalogs.controller.ts](../../apps/api/src/modules/catalogs/catalogs.controller.ts) |
+| Carpooling: listar, solicitar y confirmar asiento | Parcial: la API existe, la pantalla no la usa | [carpooling.routes.ts](../../apps/api/src/modules/carpooling/carpooling.routes.ts), [CarpoolingDashboard.tsx](../../apps/web/components/ui/CarpoolingDashboard.tsx) |
 
 Pantallas que existen pero no comparten datos entre usuarios (**Simulado**): wiki-banco de archivos, moderación, marketplace, bolsa de empleo y ajustes de perfil. El detalle está en el [inventario de implementación](../07-evaluacion-y-evolucion/01-inventario-de-implementacion.md).
 
@@ -44,7 +44,7 @@ No forman parte del sistema ni del plan documentado:
 | Exclusión | Motivo |
 |---|---|
 | Integración con sistemas académicos oficiales de la UNSCH (matrícula, notas) | No hay código ni acuerdo documentado |
-| Verificación de propiedad del correo (enlace o código) | El registro solo valida el formato del dominio; ver [roles.ts](../../src/shared/auth/roles.ts) |
+| Verificación de propiedad del correo (enlace o código) | El registro solo valida el formato del dominio; ver [roles.ts](../../apps/api/src/shared/auth/roles.ts) |
 | Pagos en línea | El campo `price_soles` de carpooling es informativo; no hay pasarela |
 | Mensajería o chat | Se genera un identificador de canal al producirse un match, pero no existe ningún servicio de chat |
 | Aplicación móvil nativa | Solo hay aplicación web |

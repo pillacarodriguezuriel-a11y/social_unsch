@@ -4,33 +4,49 @@ Problemas conocidos del código y de la operación, con su evidencia. Este docum
 
 La prioridad es una valoración del autor de esta documentación: **Alta**, afecta a datos, seguridad o disponibilidad; **Media**, dificulta la evolución; **Baja**, mantenimiento.
 
+## Estado tras la etapa 3
+
+La etapa 3 ([informe](../migracion/ETAPA_03_PREPARACION_SEPARACION.md)) modificó estas entradas. Las tablas siguientes conservan la descripción original.
+
+| ID | Estado tras la etapa 3 |
+|---|---|
+| DT-27 | Parcial: los valores del radar salen ahora del contrato (`packages/contracts`); los catálogos siguen duplicados en las constantes del frontend y del backend |
+| DT-28 | Sin cambio de comportamiento: documentado en el contrato; la unificación queda para la etapa 4 |
+| DT-31 | Resuelta: `cookie-parser` retirado |
+| DT-35 | Parcial: pruebas de la lógica de `app/lib` del frontend; sin pruebas de componentes |
+| DT-36 | Resuelta: sin catálogo válido no se ofrece ni se envía ninguna escuela |
+| DT-39 | Parcial: `/health/live` y `/health/ready` implementadas; sin registro de solicitudes |
+| DT-40 | Resuelta: la API valida su configuración al arrancar |
+| DT-45 | Resuelta: workspaces separados y `engines` declarados |
+| Nueva | El modo proxy del radar no verifica el token; delega en el servicio de destino. Solo afecta si se activa `RADAR_MODE=proxy` |
+
 ## Deuda técnica
 
 ### Seguridad y acceso
 
 | ID | Problema | Evidencia | Prioridad | Etapa sugerida |
 |---|---|---|---|---|
-| DT-01 | El correo no se verifica: cualquiera puede registrarse con una dirección del dominio que no controla | [roles.ts](../../src/shared/auth/roles.ts) lo declara pendiente | Alta | 5 |
-| DT-02 | El token se guarda en `localStorage`, accesible para cualquier script de la página | [api.ts](../../app/lib/api.ts) | Alta | 5 |
-| DT-03 | Sin revocación de tokens ni cierre de sesión en servidor; un token robado vale 24 horas | [jwt.ts](../../src/config/jwt.ts) | Media | 5 |
-| DT-04 | Sin límite de frecuencia en inicio de sesión, registro ni reportes del radar | [app.ts](../../src/app.ts) | Alta | 3 |
-| DT-05 | Sin autorización por rol en la API; el rol administrador no tiene efecto en el servidor | [auth.middleware.ts](../../src/middlewares/auth.middleware.ts) | Media | 5 |
-| DT-06 | La aceptación de términos solo se exige en el navegador | [RouteGuard.tsx](../../components/ui/RouteGuard.tsx) | Media | 3 |
-| DT-07 | Las solicitudes sin cabecera `Origin` pasan el control CORS. Es el comportamiento habitual, pero conviene saber que CORS no protege la API de clientes que no son navegadores | [app.ts](../../src/app.ts) | Baja | — |
+| DT-01 | El correo no se verifica: cualquiera puede registrarse con una dirección del dominio que no controla | [roles.ts](../../apps/api/src/shared/auth/roles.ts) lo declara pendiente | Alta | 5 |
+| DT-02 | El token se guarda en `localStorage`, accesible para cualquier script de la página | [api.ts](../../apps/web/app/lib/api.ts) | Alta | 5 |
+| DT-03 | Sin revocación de tokens ni cierre de sesión en servidor; un token robado vale 24 horas | [jwt.ts](../../apps/api/src/config/jwt.ts) | Media | 5 |
+| DT-04 | Sin límite de frecuencia en inicio de sesión, registro ni reportes del radar | [app.ts](../../apps/api/src/app.ts) | Alta | 3 |
+| DT-05 | Sin autorización por rol en la API; el rol administrador no tiene efecto en el servidor | [auth.middleware.ts](../../apps/api/src/middlewares/auth.middleware.ts) | Media | 5 |
+| DT-06 | La aceptación de términos solo se exige en el navegador | [RouteGuard.tsx](../../apps/web/components/ui/RouteGuard.tsx) | Media | 3 |
+| DT-07 | Las solicitudes sin cabecera `Origin` pasan el control CORS. Es el comportamiento habitual, pero conviene saber que CORS no protege la API de clientes que no son navegadores | [app.ts](../../apps/api/src/app.ts) | Baja | — |
 | DT-08 | No hay procedimiento versionado para crear una cuenta administradora | Búsqueda en el repositorio | Media | 5 |
 
 ### Datos y consistencia
 
 | ID | Problema | Evidencia | Prioridad | Etapa sugerida |
 |---|---|---|---|---|
-| DT-09 | El índice único de solicitudes de carpooling puede no crearse y la migración se registra igualmente como aplicada | [005_canonical_extensions.sql](../../src/database/migrations/sql/005_canonical_extensions.sql); la validación de [migrator.ts](../../src/database/migrations/migrator.ts) no lo comprueba | Alta | 3 |
-| DT-10 | Ejecutores y SQL heredados siguen en el repositorio y pueden invocarse a mano: seed con cuenta administradora, borrado de catálogos, aceptación masiva de términos | `run_seed.ts`, `seed.sql`, `add_canonical_data.sql`, `fix_accept_terms.ts` en [src/database/migrations](../../src/database/migrations) | Alta | 3 |
-| DT-11 | La suma de verificación de las migraciones se guarda, pero no se compara: modificar un archivo ya aplicado pasa inadvertido | [migrator.ts](../../src/database/migrations/migrator.ts) | Media | 3 |
-| DT-12 | Las migraciones no tienen pasos de reversión | [sql/](../../src/database/migrations/sql) | Media | 3 |
-| DT-13 | Registro simultáneo con el mismo correo: uno de los dos recibe un error 500 | [auth.service.ts](../../src/modules/auth/auth.service.ts) | Baja | 3 |
-| DT-14 | Posible coincidencia perdida si dos intereses mutuos llegan a la vez. Inferencia por análisis | [matchmaking.repository.ts](../../src/modules/matchmaking/matchmaking.repository.ts) | Baja | 5 |
-| DT-15 | Dos columnas para el ciclo académico, con rangos distintos y un valor por defecto que inventa el ciclo 1 | [001_base_schema.sql](../../src/database/migrations/sql/001_base_schema.sql), [004_moderation_and_carpooling.sql](../../src/database/migrations/sql/004_moderation_and_carpooling.sql) | Media | 5 |
-| DT-16 | Créditos iniciales contradictorios: 5 por defecto en el esquema, 0 en el registro | [001_base_schema.sql](../../src/database/migrations/sql/001_base_schema.sql), [auth.repository.ts](../../src/modules/auth/auth.repository.ts) | Baja | 7 |
+| DT-09 | El índice único de solicitudes de carpooling puede no crearse y la migración se registra igualmente como aplicada | [005_canonical_extensions.sql](../../apps/api/src/database/migrations/sql/005_canonical_extensions.sql); la validación de [migrator.ts](../../apps/api/src/database/migrations/migrator.ts) no lo comprueba | Alta | 3 |
+| DT-10 | Ejecutores y SQL heredados siguen en el repositorio y pueden invocarse a mano: seed con cuenta administradora, borrado de catálogos, aceptación masiva de términos | `run_seed.ts`, `seed.sql`, `add_canonical_data.sql`, `fix_accept_terms.ts` en [src/database/migrations](../../apps/api/src/database/migrations) | Alta | 3 |
+| DT-11 | La suma de verificación de las migraciones se guarda, pero no se compara: modificar un archivo ya aplicado pasa inadvertido | [migrator.ts](../../apps/api/src/database/migrations/migrator.ts) | Media | 3 |
+| DT-12 | Las migraciones no tienen pasos de reversión | [sql/](../../apps/api/src/database/migrations/sql) | Media | 3 |
+| DT-13 | Registro simultáneo con el mismo correo: uno de los dos recibe un error 500 | [auth.service.ts](../../apps/api/src/modules/auth/auth.service.ts) | Baja | 3 |
+| DT-14 | Posible coincidencia perdida si dos intereses mutuos llegan a la vez. Inferencia por análisis | [matchmaking.repository.ts](../../apps/api/src/modules/matchmaking/matchmaking.repository.ts) | Baja | 5 |
+| DT-15 | Dos columnas para el ciclo académico, con rangos distintos y un valor por defecto que inventa el ciclo 1 | [001_base_schema.sql](../../apps/api/src/database/migrations/sql/001_base_schema.sql), [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) | Media | 5 |
+| DT-16 | Créditos iniciales contradictorios: 5 por defecto en el esquema, 0 en el registro | [001_base_schema.sql](../../apps/api/src/database/migrations/sql/001_base_schema.sql), [auth.repository.ts](../../apps/api/src/modules/auth/auth.repository.ts) | Baja | 7 |
 | DT-17 | Seis tablas sin código que las use | [Inventario](01-inventario-de-implementacion.md) | Baja | 5 y 7 |
 | DT-18 | Sin respaldo de PostgreSQL definido en el repositorio | — | Alta | 3 |
 
@@ -38,18 +54,18 @@ La prioridad es una valoración del autor de esta documentación: **Alta**, afec
 
 | ID | Problema | Evidencia | Prioridad | Etapa sugerida |
 |---|---|---|---|---|
-| DT-19 | Dependencias creadas con `new`, sin interfaces | [radar.service.ts](../../src/modules/radar/radar.service.ts) y demás servicios | Media | Al extraer cada servicio |
+| DT-19 | Dependencias creadas con `new`, sin interfaces | [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) y demás servicios | Media | Al extraer cada servicio |
 | DT-20 | La tabla `users` se consulta desde cinco módulos | [Componentes y dependencias](../02-arquitectura-de-software/03-componentes-y-dependencias.md) | Media | 5 |
-| DT-21 | Código de prueba en producción: parámetro `injectedFailure` y cliente alternativo si `pool.connect` no existe | [carpooling.repository.ts](../../src/modules/carpooling/carpooling.repository.ts), [carpooling.service.ts](../../src/modules/carpooling/carpooling.service.ts) | Media | 6 |
-| DT-22 | Métodos de repositorio sin uso en el flujo actual | `createRequest`, `deleteRequest`, `getPassengerMeta` en [carpooling.repository.ts](../../src/modules/carpooling/carpooling.repository.ts) | Baja | 6 |
-| DT-23 | Códigos de error de otros dominios en matchmaking | [matchmaking.service.ts](../../src/modules/matchmaking/matchmaking.service.ts) | Baja | 3 |
-| DT-24 | Errores del repositorio identificados comparando textos | [carpooling.service.ts](../../src/modules/carpooling/carpooling.service.ts) | Baja | 6 |
+| DT-21 | Código de prueba en producción: parámetro `injectedFailure` y cliente alternativo si `pool.connect` no existe | [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts), [carpooling.service.ts](../../apps/api/src/modules/carpooling/carpooling.service.ts) | Media | 6 |
+| DT-22 | Métodos de repositorio sin uso en el flujo actual | `createRequest`, `deleteRequest`, `getPassengerMeta` en [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts) | Baja | 6 |
+| DT-23 | Códigos de error de otros dominios en matchmaking | [matchmaking.service.ts](../../apps/api/src/modules/matchmaking/matchmaking.service.ts) | Baja | 3 |
+| DT-24 | Errores del repositorio identificados comparando textos | [carpooling.service.ts](../../apps/api/src/modules/carpooling/carpooling.service.ts) | Baja | 6 |
 | DT-25 | Validación de entrada dispar: esquemas en unos módulos, condiciones manuales en otros | Controladores | Baja | 3 |
-| DT-26 | Dos funciones distintas de escape de HTML; el contenido se guarda ya escapado | [feed.service.ts](../../src/modules/feed/feed.service.ts), [carpooling.controller.ts](../../src/modules/carpooling/carpooling.controller.ts) | Baja | 5 |
-| DT-27 | Catálogos y valores permitidos repetidos en tres lugares | [app/lib/unsch.constants.ts](../../app/lib/unsch.constants.ts), [src/shared/constants/unsch.constants.ts](../../src/shared/constants/unsch.constants.ts), [radar.service.ts](../../src/modules/radar/radar.service.ts) | Media | 3 |
-| DT-28 | Estados del radar aceptados en dos idiomas y contados por separado | [radar.service.ts](../../src/modules/radar/radar.service.ts) | Media | 4 |
-| DT-29 | Nombres de consulta preparada generados con los valores del filtro en el feed, lo que crea una consulta preparada distinta por cada combinación | [feed.repository.ts](../../src/modules/feed/feed.repository.ts) | Baja | 5 |
-| DT-30 | El tipo del token declara `jti`, que nunca se emite; `school_id` y `escuela_id` duplican el mismo valor | [jwt.ts](../../src/config/jwt.ts), [auth.service.ts](../../src/modules/auth/auth.service.ts) | Baja | 3 |
+| DT-26 | Dos funciones distintas de escape de HTML; el contenido se guarda ya escapado | [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts), [carpooling.controller.ts](../../apps/api/src/modules/carpooling/carpooling.controller.ts) | Baja | 5 |
+| DT-27 | Catálogos y valores permitidos repetidos en tres lugares | [app/lib/unsch.constants.ts](../../apps/web/app/lib/unsch.constants.ts), [src/shared/constants/unsch.constants.ts](../../apps/api/src/shared/constants/unsch.constants.ts), [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) | Media | 3 |
+| DT-28 | Estados del radar aceptados en dos idiomas y contados por separado | [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) | Media | 4 |
+| DT-29 | Nombres de consulta preparada generados con los valores del filtro en el feed, lo que crea una consulta preparada distinta por cada combinación | [feed.repository.ts](../../apps/api/src/modules/feed/feed.repository.ts) | Baja | 5 |
+| DT-30 | El tipo del token declara `jti`, que nunca se emite; `school_id` y `escuela_id` duplican el mismo valor | [jwt.ts](../../apps/api/src/config/jwt.ts), [auth.service.ts](../../apps/api/src/modules/auth/auth.service.ts) | Baja | 3 |
 | DT-31 | Dependencia `cookie-parser` declarada y sin uso | [package.json](../../package.json) | Baja | 3 |
 | DT-32 | `ts-node` se usa en los comandos de base de datos sin ser dependencia directa | [package.json](../../package.json) | Baja | 3 |
 
@@ -58,22 +74,22 @@ La prioridad es una valoración del autor de esta documentación: **Alta**, afec
 | ID | Problema | Evidencia | Prioridad | Etapa sugerida |
 |---|---|---|---|---|
 | DT-33 | Seis pantallas simuladas presentan como reales datos que no se comparten | [Inventario](01-inventario-de-implementacion.md) | Alta para la percepción del usuario | 5 a 7 |
-| DT-34 | Carpooling tiene API probada y pantalla que no la usa | [CarpoolingDashboard.tsx](../../components/ui/CarpoolingDashboard.tsx) | Media | 6 |
+| DT-34 | Carpooling tiene API probada y pantalla que no la usa | [CarpoolingDashboard.tsx](../../apps/web/components/ui/CarpoolingDashboard.tsx) | Media | 6 |
 | DT-35 | Sin pruebas de frontend | — | Media | 3 |
-| DT-36 | La lista de respaldo de escuelas puede enviar identificadores distintos de los de la base si la API falla | [register/page.tsx](../../app/%28auth%29/register/page.tsx) | Baja | 5 |
-| DT-37 | Componentes que mezclan presentación, estado y acceso a datos | [components/ui](../../components/ui) | Baja | — |
+| DT-36 | La lista de respaldo de escuelas puede enviar identificadores distintos de los de la base si la API falla | [register/page.tsx](../../apps/web/app/%28auth%29/register/page.tsx) | Baja | 5 |
+| DT-37 | Componentes que mezclan presentación, estado y acceso a datos | [components/ui](../../apps/web/components/ui) | Baja | — |
 
 ### Operación
 
 | ID | Problema | Evidencia | Prioridad | Etapa sugerida |
 |---|---|---|---|---|
 | DT-38 | Sin integración continua | Sin `.github/workflows` | Alta | 3 |
-| DT-39 | Sin ruta de salud ni registro de solicitudes | [app.ts](../../src/app.ts) | Alta | 3 |
-| DT-40 | La API arranca aunque falte configuración obligatoria | [database.ts](../../src/config/database.ts), [jwt.ts](../../src/config/jwt.ts) | Media | 3 |
+| DT-39 | Sin ruta de salud ni registro de solicitudes | [app.ts](../../apps/api/src/app.ts) | Alta | 3 |
+| DT-40 | La API arranca aunque falte configuración obligatoria | [database.ts](../../apps/api/src/config/database.ts), [jwt.ts](../../apps/api/src/config/jwt.ts) | Media | 3 |
 | DT-41 | Configuración de despliegue fuera del repositorio | [ADR-006](../06-decisiones-arquitectonicas/ADR-006-plataformas-de-despliegue.md) | Media | 3 |
 | DT-42 | Sin entorno de preproducción | [Configuración y entornos](../05-despliegue-y-operacion/02-configuracion-y-entornos.md) | Media | 8 |
 | DT-43 | Código y esquema se despliegan sin coordinación | [Proceso de entrega](../05-despliegue-y-operacion/03-proceso-de-entrega.md) | Alta | 3 |
-| DT-44 | El cliente Redis deja de reintentar tras 5 fallos | [redis.ts](../../src/config/redis.ts) | Media | 4 |
+| DT-44 | El cliente Redis deja de reintentar tras 5 fallos | [redis.ts](../../apps/api/src/config/redis.ts) | Media | 4 |
 | DT-45 | Un solo paquete para frontend y backend; sin versión de Node declarada | [package.json](../../package.json) | Media | 3 |
 | DT-46 | `.gitignore` excluye informes de sprint y de incidencias, que existen solo en una máquina | [.gitignore](../../.gitignore) | Baja | — |
 
@@ -84,12 +100,12 @@ Donde un documento anterior y el código no coinciden, vale el código.
 | Documento | Afirmación | Lo que muestra el código |
 |---|---|---|
 | [README](../../README.md) | `npm run dev` ejecuta frontend y backend | Solo el backend; ambos se levantan con `npm run dev:all` ([package.json](../../package.json)). **Corregido en el README junto con esta documentación** |
-| README | «18 suites» de pruebas | Hay 19 archivos de prueba entre [tests/unit](../../tests/unit) y [tests/integration](../../tests/integration). **Corregido en el README junto con esta documentación** |
-| README | Biblioteca «sótano a tercer piso» | Pisos 1 a 4 ([radar.service.ts](../../src/modules/radar/radar.service.ts)) |
+| README | «18 suites» de pruebas | Hay 19 archivos de prueba entre [tests/unit](../../apps/api/tests/unit) y [tests/integration](../../apps/api/tests/integration). **Corregido en el README junto con esta documentación** |
+| README | Biblioteca «sótano a tercer piso» | Pisos 1 a 4 ([radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts)) |
 | README | Banco de archivos, moderación automática y publicación de rutas descritos como características | Sin API; ver [Inventario](01-inventario-de-implementacion.md) |
 | README | Canales de chat tras una coincidencia | Solo se genera un identificador |
 | README | «Arquitectura moderna y robusta» | Es un monolito modular con la deuda listada arriba |
-| [ETAPA_02](../migracion/ETAPA_02_ESTABILIZACION.md) | El índice único se llama `idx_carpooling_requests_active_unique` | Se llama `uq_active_carpooling_request` ([005_canonical_extensions.sql](../../src/database/migrations/sql/005_canonical_extensions.sql)) |
+| [ETAPA_02](../migracion/ETAPA_02_ESTABILIZACION.md) | El índice único se llama `idx_carpooling_requests_active_unique` | Se llama `uq_active_carpooling_request` ([005_canonical_extensions.sql](../../apps/api/src/database/migrations/sql/005_canonical_extensions.sql)) |
 | ETAPA_02 | La pantalla de ajustes envía el identificador real «en la actualización de perfil» | No existe ruta de actualización de perfil; la pantalla guarda en `localStorage` |
 | ETAPA_02 | Carpooling opera «con bloqueo pesimista» | Cierto para la confirmación; la solicitud no bloquea filas y se apoya en el índice único |
 | ETAPA_02 | Etapa «plenamente estabilizada y verificada» | Verificada con pruebas locales; la aplicación en la base remota solo consta de forma parcial |
@@ -98,7 +114,7 @@ Donde un documento anterior y el código no coinciden, vale el código.
 | ETAPA_02 | Enlaza archivos con rutas locales de la forma `file:///d:/social_unsch/...` | Esos enlaces solo funcionan en la máquina donde se escribió el informe; en GitHub no resuelven |
 | Contexto de esta tarea | Etapas 1 y 2 integradas en `e704b8a` | Correcto; `main` avanzó después a `8e56bfa`, que solo modifica el README |
 
-Los informes de `migracion/` no se han modificado: son registros de su momento.
+Los informes de `migracion/` son registros de su momento: no se ha cambiado su contenido. En la etapa 3 solo se actualizaron sus enlaces a archivos que cambiaron de ubicación.
 
 ## Riesgos de la migración
 

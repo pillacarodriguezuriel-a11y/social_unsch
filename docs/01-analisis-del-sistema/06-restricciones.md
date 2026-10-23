@@ -6,15 +6,15 @@ Una restricción es una condición que el diseño debe aceptar; no se elige. Se 
 
 | ID | Restricción | Evidencia | Consecuencia |
 |---|---|---|---|
-| RT-01 | Frontend y backend comparten un único `package.json` y un único lockfile | [package.json](../../package.json) | Cualquier cambio de dependencias afecta a ambos despliegues |
-| RT-02 | El backend se compila con TypeScript en modo `Node16` hacia `dist/` y arranca con `node dist/server.js` | [tsconfig.backend.json](../../tsconfig.backend.json), [package.json](../../package.json) | La plataforma de la API debe ejecutar un proceso Node de larga duración |
-| RT-03 | Las migraciones leen archivos `.sql` en tiempo de ejecución mediante `ts-node` | [migrator.ts](../../src/database/migrations/migrator.ts) | No se ejecutan desde `dist/`; requieren el código fuente y las dependencias de desarrollo |
-| RT-04 | El bloqueo de migraciones usa un bloqueo consultivo de sesión de PostgreSQL | [migrator.ts](../../src/database/migrations/migrator.ts) | Las migraciones necesitan una conexión que mantenga la sesión; un *pooler* en modo transacción no sirve |
+| RT-01 | Desde la etapa 3, frontend y backend son workspaces separados con dependencias propias, pero comparten un único lockfile | [package.json](../../package.json), [apps/api/package.json](../../apps/api/package.json), [apps/web/package.json](../../apps/web/package.json) | Un cambio de dependencias se instala con un solo `npm ci`; Vercel debe compilar desde `apps/web` ([ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md)) |
+| RT-02 | El backend se compila con TypeScript en modo `Node16` hacia `dist/` y arranca con `node dist/server.js` | [tsconfig.backend.json](../../apps/api/tsconfig.json), [package.json](../../package.json) | La plataforma de la API debe ejecutar un proceso Node de larga duración |
+| RT-03 | Las migraciones leen archivos `.sql` en tiempo de ejecución mediante `ts-node` | [migrator.ts](../../apps/api/src/database/migrations/migrator.ts) | No se ejecutan desde `dist/`; requieren el código fuente y las dependencias de desarrollo |
+| RT-04 | El bloqueo de migraciones usa un bloqueo consultivo de sesión de PostgreSQL | [migrator.ts](../../apps/api/src/database/migrations/migrator.ts) | Las migraciones necesitan una conexión que mantenga la sesión; un *pooler* en modo transacción no sirve |
 | RT-05 | `bcrypt` es un módulo nativo | [package.json](../../package.json) | La versión de Node del entorno de compilación debe ser compatible |
-| RT-06 | La URL de la API se fija al compilar el frontend | [api.ts](../../app/lib/api.ts) | Cambiar la entrada de la API exige recompilar el frontend |
-| RT-07 | El dominio de correo está fijado en código y en la base de datos | [auth.validators.ts](../../src/modules/auth/auth.validators.ts), [001_base_schema.sql](../../src/database/migrations/sql/001_base_schema.sql) | El sistema no es reutilizable para otra institución sin migración |
-| RT-08 | La API no mantiene estado de sesión en memoria | [auth.middleware.ts](../../src/middlewares/auth.middleware.ts) | Puede replicarse o dividirse sin compartir sesión |
-| RT-09 | Los identificadores de usuario son UUID; los de catálogo, enteros secuenciales | [001_base_schema.sql](../../src/database/migrations/sql/001_base_schema.sql) | Los identificadores de catálogo existentes deben conservarse en cualquier migración |
+| RT-06 | La URL de la API se fija al compilar el frontend | [api.ts](../../apps/web/app/lib/api.ts) | Cambiar la entrada de la API exige recompilar el frontend |
+| RT-07 | El dominio de correo está fijado en código y en la base de datos | [auth.validators.ts](../../apps/api/src/modules/auth/auth.validators.ts), [001_base_schema.sql](../../apps/api/src/database/migrations/sql/001_base_schema.sql) | El sistema no es reutilizable para otra institución sin migración |
+| RT-08 | La API no mantiene estado de sesión en memoria | [auth.middleware.ts](../../apps/api/src/middlewares/auth.middleware.ts) | Puede replicarse o dividirse sin compartir sesión |
+| RT-09 | Los identificadores de usuario son UUID; los de catálogo, enteros secuenciales | [001_base_schema.sql](../../apps/api/src/database/migrations/sql/001_base_schema.sql) | Los identificadores de catálogo existentes deben conservarse en cualquier migración |
 | RT-10 | No hay archivos de despliegue versionados (`vercel.json`, `render.yaml`, `Dockerfile`) | Raíz del repositorio | La configuración de despliegue vive en los paneles de cada plataforma |
 
 ## Restricciones de plataforma (pendientes de verificación)

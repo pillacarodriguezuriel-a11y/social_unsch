@@ -1,6 +1,6 @@
 # C2 · Contenedores de transición
 
-> **Estado: Propuesto.** Este diagrama no describe código existente. Representa el sistema después de la etapa 4 del [plan de migración](../07-evaluacion-y-evolucion/03-plan-de-migracion.md): radar extraído y el resto todavía en el monolito.
+> **Estado: Propuesto.** Representa el sistema después de la etapa 4 del [plan de migración](../07-evaluacion-y-evolucion/03-plan-de-migracion.md): radar extraído y el resto todavía en el monolito. El servicio de radar no existe. Lo que sí existe desde la etapa 3 es el mecanismo de entrada: la API ya puede reenviar `/api/v1/radar` con `RADAR_MODE=proxy` ([ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md#6-enrutamiento-reversible)).
 
 **Pregunta:** ¿cómo conviven lo existente y lo nuevo durante la migración?
 
@@ -12,8 +12,8 @@ flowchart TB
 
     subgraph SISTEMA["SOCIAL-UNSCH en transición"]
         WEB["Aplicación web<br/>existente"]
-        GW{{"Entrada de API<br/>enruta por prefijo"}}
-        MONO["API monolítica<br/>existente<br/>auth, users, catalogs, feed,<br/>matchmaking, carpooling"]
+        MONO["API monolítica<br/>existente · entrada de /api/v1<br/>auth, users, catalogs, feed,<br/>matchmaking, carpooling"]
+        PX["Montaje de radar en modo proxy<br/>implementado en la etapa 3, desactivado"]
         RSV["Servicio de radar<br/>extraído del módulo radar"]
     end
 
@@ -21,16 +21,15 @@ flowchart TB
     RD[("Redis<br/>existente")]
 
     USR --> WEB
-    WEB -- "todas las solicitudes" --> GW
-    GW -- "/api/v1/radar" --> RSV
-    GW -- "resto de /api/v1" --> MONO
-    GW -. "regla de retorno:<br/>/api/v1/radar al monolito" .-> MONO
+    WEB -- "todas las solicitudes" --> MONO
+    MONO -- "/api/v1/radar con RADAR_MODE=proxy" --> PX
+    PX -- "un intento, límite de tiempo" --> RSV
+    MONO -. "RADAR_MODE=local:<br/>módulo radar conservado" .-> RD
     MONO --> PG
     RSV --> RD
-    MONO -. "módulo radar conservado<br/>hasta validar" .-> RD
 
     classDef propuesto stroke-dasharray: 5 5
-    class GW,RSV propuesto
+    class RSV propuesto
 ```
 
 **Leyenda:** trazo continuo, contenedor o relación existente; trazo discontinuo, propuesto.
@@ -39,8 +38,8 @@ flowchart TB
 
 | Contenedor | Estado | Cambio respecto a hoy |
 |---|---|---|
-| Aplicación web | Existente | Su URL de API apunta a la entrada, no al monolito |
-| Entrada de API | Propuesto | Nuevo. Puede ser un servicio dedicado, reescrituras en la plataforma del frontend o el propio monolito reenviando; ver [Arquitectura de transición](../02-arquitectura-de-software/04-arquitectura-de-transicion.md) |
+| Aplicación web | Existente | Sin cambios: sigue llamando a la API en `/api/v1` |
+| Entrada de API | Implementado en la etapa 3 (desactivado) | La propia API: monta el radar como unidad reemplazable y lo reenvía en modo proxy. Se descartó por ahora una puerta de enlace aparte; ver [Arquitectura de transición](../02-arquitectura-de-software/04-arquitectura-de-transicion.md) |
 | API monolítica | Existente | Conserva todos sus módulos. El de radar deja de recibir tráfico, pero no se elimina |
 | Servicio de radar | Propuesto | Nuevo proceso con el código del módulo actual. Verifica los tokens por sí mismo con la clave pública |
 | PostgreSQL | Existente | Sin cambios |
@@ -50,16 +49,16 @@ flowchart TB
 
 | Situación | Acción | Efecto |
 |---|---|---|
-| El servicio de radar falla o se comporta distinto | Cambiar la regla de la entrada para que `/api/v1/radar` vuelva al monolito | El monolito atiende de nuevo, con el mismo Redis y las mismas claves |
-| La entrada falla | Apuntar el frontend directamente al monolito | Requiere recompilar el frontend, porque la URL se fija al compilar |
+| El servicio de radar falla o se comporta distinto | `RADAR_MODE=local` en la API | El monolito atiende de nuevo, con el mismo Redis y las mismas claves, sin redesplegar código |
+| La API (entrada) falla | Igual que hoy: la API es un único punto de entrada | Sin cambio respecto a la situación actual |
 
 La reversión es posible porque el monolito y el servicio nuevo comparten el mismo formato de claves en Redis y el mismo contrato HTTP. Si alguno de los dos cambia durante la convivencia, la reversión deja de ser segura.
 
 ## Condiciones para llegar a este estado
 
-- Repositorio dividido en paquetes y contratos formalizados (etapa 3).
-- Verificación de token disponible como código compartido.
-- Ruta de salud en el monolito y en el servicio nuevo.
+- Repositorio dividido en paquetes y contrato de Radar formalizado (hecho en la etapa 3).
+- Verificación de token disponible como código compartido (pendiente).
+- Ruta de salud en el monolito (hecho en la etapa 3) y en el servicio nuevo.
 - Pruebas reales del radar ejecutándose contra el servicio nuevo sin cambios en sus aserciones.
 
 ## Qué no cambia

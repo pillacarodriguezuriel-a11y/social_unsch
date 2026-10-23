@@ -8,7 +8,7 @@ La plataforma está diseñada con una arquitectura moderna y robusta para mejora
 
 ## 📌 Estado actual y documentación
 
-> Línea base documentada: commit `8e56bfa` de `main` (2026-10-12).
+> Línea base documentada: commit `8e56bfa` de `main` (2026-10-12), actualizada con la [etapa 3](docs/migracion/ETAPA_03_PREPARACION_SEPARACION.md) (2026-10-23).
 
 SOCIAL-UNSCH es hoy un **monolito modular**: una aplicación web Next.js y **una única API Express**, con PostgreSQL para los datos persistentes y Redis para el radar del campus. La separación en servicios por dominio es una **propuesta de evolución**; todavía no está implementada.
 
@@ -25,7 +25,19 @@ La descripción de módulos que sigue presenta la visión del producto. Qué par
 
 - **[Documentación arquitectónica](docs/README.md)**: análisis, arquitectura actual, de transición y objetivo, diseño, modelo C4, despliegue, decisiones y plan de migración.
 - [Inventario de implementación](docs/07-evaluacion-y-evolucion/01-inventario-de-implementacion.md): estado de cada funcionalidad.
-- [Informes de las etapas 1 y 2](docs/migracion/ETAPA_02_ESTABILIZACION.md).
+- Informes de migración: [etapa 1](docs/migracion/ETAPA_01_LINEA_BASE.md), [etapa 2](docs/migracion/ETAPA_02_ESTABILIZACION.md) y [etapa 3](docs/migracion/ETAPA_03_PREPARACION_SEPARACION.md).
+
+### Estructura del repositorio
+
+Monorepo con npm workspaces. Sigue habiendo **una sola API desplegable**: el monorepo organiza el código, no lo convierte en microservicios.
+
+| Ruta | Contenido |
+|---|---|
+| `apps/web` | Aplicación web Next.js (`@social-unsch/web`) |
+| `apps/api` | API Express (`@social-unsch/api`), migraciones y pruebas |
+| `packages/contracts` | Contratos de intercambio de Radar y formato de error (Zod) |
+| `scripts` | Arranque conjunto y comprobación de límites |
+| `docs` | Documentación arquitectónica e informes de migración |
 
 ---
 
@@ -65,17 +77,19 @@ La descripción de módulos que sigue presenta la visión del producto. Qué par
 ## 💻 Configuración del Proyecto
 
 ### Requisitos Previos
-*   **Node.js** (v18+)
+*   **Node.js** 20.14+, 22.11+ o 24 (ver `engines`) y **npm** 10.8+
 *   **PostgreSQL**
 *   **Redis Server**
 
 ### Pasos para iniciar localmente
 
-1.  **Instalar dependencias** y crear el archivo de entorno a partir de la plantilla:
+1.  **Instalar dependencias** (un solo lockfile para todo el monorepo) y crear los archivos de entorno a partir de las plantillas:
     ```bash
     npm ci
-    cp .env.example .env
+    cp apps/api/.env.example apps/api/.env
+    cp apps/web/.env.example apps/web/.env.local
     ```
+    Un `.env` existente en la raíz sigue funcionando para la API, por compatibilidad.
     Las variables se explican en [Configuración y entornos](docs/05-despliegue-y-operacion/02-configuracion-y-entornos.md).
 
 2.  **Iniciar servicios de desarrollo**:
@@ -103,15 +117,24 @@ La descripción de módulos que sigue presenta la visión del producto. Qué par
         ```
 
 4.  **Pruebas Automatizadas**:
-    *   **Suite con dobles de prueba y cobertura (19 suites, umbral de cobertura del 90 %)**:
+    *   **Suite con dobles de prueba, contrato de Radar y frontend (umbral de cobertura del 90 % en la API)**:
         ```bash
         npm test
         npm run test:coverage
+        ```
+    *   **Verificación completa** (límites, tipos, cobertura, pruebas del frontend y compilaciones):
+        ```bash
+        npm run verify
         ```
     *   **Suite de Integración Real (PostgreSQL 15 y Redis 7 Aislados)**:
         ```bash
         npm run test:real
         ```
+
+5.  **Compilación y salud**:
+    *   `npm run build` (API), `npm run build:frontend` (web) o `npm run build:all`.
+    *   `GET /health/live` y `GET /health/ready` en la API.
+    *   Los ajustes de Vercel y Render para esta estructura están en la [etapa 3 §9](docs/migracion/ETAPA_03_PREPARACION_SEPARACION.md#9-impacto-sobre-vercel-y-render).
 
 ---
 

@@ -50,6 +50,8 @@ Trazo continuo: relación verificada. Trazo discontinuo: relación prevista o si
 
 Consecuencia operativa: **todo cambio que llega a `main` publica el frontend**, y toda rama subida genera un despliegue de vista previa. No hay archivo `vercel.json` en el repositorio; la configuración vive en el panel.
 
+> **Etapa 3:** el frontend pasa a `apps/web`. Antes de fusionar esa etapa, Vercel debe compilar con Root Directory `apps/web` e incluir archivos fuera de ese directorio. Render puede seguir en la raíz con `npm ci --include=dev && npm run build` y `npm start`, y conviene usar `/health/live` como comprobación de salud. Detalle en [ETAPA_03 §9](../migracion/ETAPA_03_PREPARACION_SEPARACION.md#9-impacto-sobre-vercel-y-render).
+
 ### Render: API
 
 | Aspecto | Valor | Estado |
@@ -81,7 +83,7 @@ Cambio respecto al informe de la etapa 1: el 2026-10-10 el inicio de sesión dev
 | Proveedor: Upstash | Indicado en los informes previos, que mostraban el recurso como eliminado | Pendiente de verificación |
 | Disponibilidad para la API | El radar exige sesión; no se probó con una cuenta real para no crear datos en producción | **Pendiente de verificación** |
 
-Mientras no se compruebe, **no puede afirmarse que el radar funcione en producción**. Si la variable `REDIS_URL` falta o apunta a un recurso eliminado, las rutas del radar fallan y el resto de la API sigue funcionando ([redis.ts](../../src/config/redis.ts)).
+Mientras no se compruebe, **no puede afirmarse que el radar funcione en producción**. Si la variable `REDIS_URL` falta o apunta a un recurso eliminado, las rutas del radar fallan y el resto de la API sigue funcionando ([redis.ts](../../apps/api/src/config/redis.ts)).
 
 ### GitHub
 
@@ -120,8 +122,8 @@ Lo único reproducible desde el repositorio es el entorno de desarrollo: [docker
 
 | Plataforma | Qué confirmar |
 |---|---|
-| Vercel | Comando de compilación, directorio raíz, valor de `NEXT_PUBLIC_API_URL`, comportamiento de las vistas previas |
-| Render | Rama, despliegue automático, comandos de compilación y arranque, versión de Node, tipo de instancia, variables definidas |
+| Vercel | Comando de compilación, directorio raíz (debe ser `apps/web` desde la etapa 3), valor de `NEXT_PUBLIC_API_URL`, comportamiento de las vistas previas |
+| Render | Rama, despliegue automático, comandos de compilación y arranque (compatibles con workspaces desde la etapa 3), versión de Node, tipo de instancia, variables definidas, ruta de comprobación de salud |
 | Supabase | Que es el proveedor en uso, estado del proyecto, modo de conexión disponible para migraciones, copias de seguridad |
 | Upstash | Existencia y estado del recurso, y que `REDIS_URL` en Render apunta a él |
 

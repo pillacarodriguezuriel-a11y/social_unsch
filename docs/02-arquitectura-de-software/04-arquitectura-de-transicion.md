@@ -20,6 +20,8 @@ La estrategia es Strangler Fig, explicada en [Estilos y enfoques](02-estilos-y-e
 
 ## Paso previo: ordenar el repositorio (etapa 3)
 
+> **Estado: implementado en la etapa 3** (rama pendiente de fusión). Detalle y resultados en [ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md).
+
 Antes de extraer nada hay que poder construir cada parte por separado.
 
 | Hoy | Transición |
@@ -27,7 +29,7 @@ Antes de extraer nada hay que poder construir cada parte por separado.
 | Un `package.json` para todo | Paquetes separados para la aplicación web, la API y los contratos |
 | Tipos de la API repetidos a mano en el frontend | Un paquete de contratos del que dependen ambos |
 | Configuración de despliegue en los paneles | Archivos de despliegue versionados |
-| Sin ruta de salud | Ruta de salud en cada unidad desplegable |
+| Sin ruta de salud | `/health/live` y `/health/ready` en la API (implementado) |
 
 Esta reorganización no cambia el comportamiento ni el estilo: el resultado sigue siendo un monolito modular, ahora dentro de un monorepo.
 
@@ -59,13 +61,13 @@ Opciones para realizar la entrada, de menor a mayor costo de operación:
 | B. El monolito como entrada | El monolito reenvía las rutas extraídas | Sin componentes nuevos | El monolito sigue siendo punto único de fallo y añade un salto |
 | C. Puerta de enlace dedicada | Un servicio ligero solo para enrutar | Separación clara, reversibilidad sencilla | Un despliegue más que operar |
 
-La elección queda abierta y es parte de la etapa 3. Con un solo operador ([restricciones](../01-analisis-del-sistema/06-restricciones.md)), A o B son las que menos carga añaden. Cualquiera de ellas cambia hoy una restricción: la URL de la API está fijada al compilar el frontend ([api.ts](../../app/lib/api.ts)), así que conviene que el frontend apunte a la entrada y no a un servicio concreto.
+**Elección de la etapa 3: opción B, preparada y desactivada.** La API monta el radar en `/api/v1/radar` como unidad reemplazable y ya incluye un modo proxy (`RADAR_MODE=proxy`) que reenviaría esas rutas a un servicio de radar con un solo intento, límite de tiempo y destino fijado en la configuración del servidor. Por defecto el radar sigue siendo local. Así el frontend no cambia de URL y revertir es cambiar una variable. Detalle en [ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md#6-enrutamiento-reversible).
 
 ## Identidad durante la transición
 
 Los servicios nuevos necesitan saber quién hace la solicitud. El diseño actual lo permite sin cambios de fondo:
 
-- El token se firma con clave privada y se verifica con clave pública ([jwt.ts](../../src/config/jwt.ts)).
+- El token se firma con clave privada y se verifica con clave pública ([jwt.ts](../../apps/api/src/config/jwt.ts)).
 - Un servicio nuevo solo necesita la clave pública para validar tokens; no llama al monolito.
 - La clave privada permanece únicamente donde se emiten tokens.
 

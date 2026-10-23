@@ -2,6 +2,22 @@
 
 Estado del código consolidado en la rama `chore/etapa-1-linea-base` (ver [ETAPA_01_LINEA_BASE.md](ETAPA_01_LINEA_BASE.md)). Todo lo que sigue se obtuvo inspeccionando el código fuente y las configuraciones del repositorio.
 
+## 0. Actualización de la etapa 3 (2026-10-23)
+
+Las secciones 1, 4, 5 y 6 describen el estado de la etapa 1. Desde la etapa 3 ([informe](ETAPA_03_PREPARACION_SEPARACION.md)):
+
+| Aspecto | Estado |
+|---|---|
+| Estructura | npm workspaces: `apps/web` (Next.js), `apps/api` (Express), `packages/contracts` (contratos Zod de Radar); un único `package-lock.json` |
+| Versiones declaradas | `engines`: Node `^20.14.0 \|\| ^22.11.0 \|\| ^24.0.0`, npm `>=10.8.0`; `npm ci` verificado con npm 10.8.2, 11.6.2 y 11.9.0 |
+| Dependencias | Cada aplicación declara las suyas; `cookie-parser` retirado; `ts-node` declarado en la API |
+| TypeScript | `apps/api/tsconfig.json` (salida `dist/`), `apps/api/tsconfig.jest.json`, `apps/web/tsconfig.json`, `apps/web/tsconfig.jest.json`, `packages/contracts/tsconfig.json` |
+| Pruebas | `apps/api`: unitarias, de rutas, de contrato y reales; `apps/web`: lógica de `app/lib`; `scripts/check-boundaries.test.js` |
+| Plantillas de entorno | `apps/api/.env.example` y `apps/web/.env.example` |
+| Variables nuevas | `RADAR_MODE`, `RADAR_PROXY_TARGET`, `RADAR_PROXY_TIMEOUT_MS` (API) |
+| Salud | `GET /health/live`, `GET /health/ready` |
+| Scripts | Ver [ETAPA_03 §8](ETAPA_03_PREPARACION_SEPARACION.md#8-comandos) |
+
 ## 1. Estructura
 
 Un único paquete npm (`social-unsch-backend`) contiene frontend y backend; no hay workspaces configurados.

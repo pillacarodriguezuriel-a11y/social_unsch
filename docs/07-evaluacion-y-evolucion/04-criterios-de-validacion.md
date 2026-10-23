@@ -52,12 +52,12 @@ No existe hoy una medición previa de latencia ni de errores. Obtenerla es un re
 
 | Dominio | Qué vigilar en particular | Prueba de referencia |
 |---|---|---|
-| Radar | Consenso con 3 usuarios, voto duplicado, vigencia de 15 minutos, mismas claves de Redis que el monolito | [radar.real.test.ts](../../tests/real/radar.real.test.ts) |
-| Identidad | Registro e inicio de sesión sin interrupción; rechazo del rol administrador; los tokens emitidos antes siguen siendo válidos | [auth.real.test.ts](../../tests/real/auth.real.test.ts) |
-| Comunidad | Publicaciones con datos de autor correctos sin `JOIN`; máquina de estados del matchmaking; privacidad del contacto | [feed_matchmaking.real.test.ts](../../tests/real/feed_matchmaking.real.test.ts) |
-| Movilidad | Sin sobreventa; una sola solicitud activa; solo el conductor confirma; contacto revelado solo al confirmar | [carpooling.real.test.ts](../../tests/real/carpooling.real.test.ts) |
+| Radar | Consenso con 3 usuarios, voto duplicado, vigencia de 15 minutos, mismas claves de Redis que el monolito | [radar.real.test.ts](../../apps/api/tests/real/radar.real.test.ts) |
+| Identidad | Registro e inicio de sesión sin interrupción; rechazo del rol administrador; los tokens emitidos antes siguen siendo válidos | [auth.real.test.ts](../../apps/api/tests/real/auth.real.test.ts) |
+| Comunidad | Publicaciones con datos de autor correctos sin `JOIN`; máquina de estados del matchmaking; privacidad del contacto | [feed_matchmaking.real.test.ts](../../apps/api/tests/real/feed_matchmaking.real.test.ts) |
+| Movilidad | Sin sobreventa; una sola solicitud activa; solo el conductor confirma; contacto revelado solo al confirmar | [carpooling.real.test.ts](../../apps/api/tests/real/carpooling.real.test.ts) |
 | Recursos | El saldo nunca es incoherente; sin cobro doble por reintento; descarga propia y repetida sin costo | Por escribir: hoy no hay pruebas |
-| Datos y esquema | Identificadores de catálogo intactos; migraciones registradas; índice único presente | [migrations.real.test.ts](../../tests/real/migrations.real.test.ts) |
+| Datos y esquema | Identificadores de catálogo intactos; migraciones registradas; índice único presente | [migrations.real.test.ts](../../apps/api/tests/real/migrations.real.test.ts) |
 
 ## Validación de cambios de datos
 
