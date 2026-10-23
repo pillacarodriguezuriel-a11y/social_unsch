@@ -2,9 +2,24 @@
 
 Estado del código consolidado en la rama `chore/etapa-1-linea-base` (ver [ETAPA_01_LINEA_BASE.md](ETAPA_01_LINEA_BASE.md)). Todo lo que sigue se obtuvo inspeccionando el código fuente y las configuraciones del repositorio.
 
-## 0. Actualización de la etapa 3 (2026-10-23)
+## 0. Actualización de la etapa 4 (2026-10-23)
 
-Las secciones 1, 4, 5 y 6 describen el estado de la etapa 1. Desde la etapa 3 ([informe](ETAPA_03_PREPARACION_SEPARACION.md)):
+Desde la etapa 4 ([informe](ETAPA_04_EXTRACCION_RADAR.md)):
+
+| Aspecto | Estado |
+|---|---|
+| Estructura | 4 npm workspaces: `apps/web` (Next.js), `apps/api` (Express principal), `apps/radar` (servicio independiente Express) y `packages/contracts` (contratos Zod de Radar y errores); lockfile único |
+| Radar | Extraído a `apps/radar` con su propio `package.json`, `tsconfig.json`, `dist/` y `server.ts`. Consumido por el frontend a través del proxy inverso en `apps/api` |
+| Autenticación Radar | Frontera criptográfica asimétrica: `apps/radar` solo requiere `JWT_PUBLIC_KEY` (RS256). Deriva la identidad del token verificado sin confiar en cabeceras externas |
+| Resiliencia Redis | Conexiones administradas independientemente; `enableOfflineQueue: false`, `maxRetriesPerRequest: 1`, `retryStrategy` con backoff exponencial topado en 3000ms |
+| Observabilidad | Logs estructurados JSON con `timestamp`, `service`, `requestId` (`x-request-id`), `method`, `path`, `statusCode`, `durationMs` y `errorCode` |
+| CI | Flujo GitHub Actions en `.github/workflows/ci.yml` ejecutando `npm ci`, límites, tipado, cobertura (>=90%) y pruebas reales en contenedores desechables |
+| Latencia | Procedimiento de benchmark reproducible en `scripts/benchmark-radar.js` |
+| Plantillas de entorno | `apps/api/.env.example`, `apps/web/.env.example` y `apps/radar/.env.example` |
+
+## 0.1. Actualización de la etapa 3 (2026-10-23)
+
+Desde la etapa 3 ([informe](ETAPA_03_PREPARACION_SEPARACION.md)):
 
 | Aspecto | Estado |
 |---|---|

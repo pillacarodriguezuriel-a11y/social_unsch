@@ -111,23 +111,29 @@ Propuesta original:
 
 ## Etapa 4 · Extracción de Radar
 
-**Estado: propuesta.** Fundamento en [ADR-004](../06-decisiones-arquitectonicas/ADR-004-extraccion-inicial-de-radar.md).
+**Estado: implementada en código y validada en local/CI.** Fundamento en [ADR-004](../06-decisiones-arquitectonicas/ADR-004-extraccion-inicial-de-radar.md) y [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Documento de etapa: [ETAPA_04_EXTRACCION_RADAR](../migracion/ETAPA_04_EXTRACCION_RADAR.md).
 
-**Objetivo:** primer servicio independiente, con el dominio menos acoplado.
+**Objetivo:** primer servicio independiente (`apps/radar`), con el dominio menos acoplado, compatibilidad de contratos estricta y activación reversible.
 
-| Trabajo | Resultado esperado |
+| Trabajo propuesto | Resultado obtenido |
 |---|---|
-| Crear el servicio de radar con estructura hexagonal | Núcleo sin dependencias de Express ni de `ioredis` |
-| Unificar los valores de estado en un solo idioma | Fin del consenso dividido |
-| Desplegar el servicio y enrutar `/api/v1/radar` hacia él | El monolito deja de recibir ese tráfico |
-| Mantener el módulo en el monolito | Reversión inmediata |
+| Crear el servicio de radar independiente | Hecho: `apps/radar` con configuración validada (Zod), Redis resiliente, Express decoupled y graceful shutdown |
+| Conservar compatibilidad de contratos e idioma | Hecho: contratos formalizados en `packages/contracts`, estados bilingües preservados (ES/EN) para evitar divergencia de consenso |
+| Autenticación asimétrica verificada | Hecho: RS256 con clave pública en Radar; rechazo de suplantación de cabeceras (`x-user-id`); tokens opacos al exterior |
+| Proxy con observabilidad y correlación | Hecho: `RADAR_MODE=proxy` en la API con propagación de `x-request-id`, timeouts configurables y sin reintentos automáticos |
+| Resiliencia de Redis | Hecho: `enableOfflineQueue: false`, `maxRetriesPerRequest: 1`, reconexión exponencial acotada a 3s sin bloqueos indefinidos |
+| Límites arquitectónicos | Hecho: verificado con `npm run verify` (`radar-sin-api`, `radar-sin-web`, `radar-sin-pg`, `api-sin-radar-interno`) |
+| Integración continua | Hecho: GitHub Actions (`.github/workflows/ci.yml`) con `verify` y pruebas de integración con PostgreSQL 16 y Redis 7 desechables |
+| Pruebas y mediciones reproducibles | Hecho: 59 pruebas en Radar (cobertura >90%), 521 pruebas totales en el monorepo; benchmark reproducible de latencia documentado |
+| Conservar reversibilidad inmediata | Hecho: `RADAR_MODE=local` por defecto en la API; conmutación en caliente sin migración de datos ni cambios en frontend |
 
 | Criterio | Detalle |
 |---|---|
-| Entrada | Etapa 3 completa; Redis de producción estable |
-| Salida | Las pruebas reales del radar pasan contra el servicio nuevo; el contrato no cambia; latencia medida y aceptada, incluido el arranque en frío; un periodo de observación sin incidentes |
-| Reversión | Cambiar la regla de la entrada para devolver `/api/v1/radar` al monolito. Sin migración de datos: ambos usan las mismas claves de Redis |
-| Punto de decisión | Evaluar el costo real de operar dos servicios antes de continuar |
+| Entrada | Etapa 3 completa; Redis verificado; contratos compartidos en `packages/contracts` |
+| Salida alcanzada | Servicio independiente compilable y ejecutable; 100% pruebas de contrato, paridad y E2E verdes; CI configurado; documentación y procedimientos de despliegue listos |
+| Activación productiva | Pendiente de autorización formal y despliegue del servicio en Render (Web Service Node.js) |
+| Reversión | Variable de entorno `RADAR_MODE=local` en la API para devolver el tráfico al módulo local en segundos |
+| Punto de decisión | Observar métricas reales en Render antes de autorizar el desmantelamiento del módulo local en la API |
 
 ## Etapa 5 · Identidad y Comunidad
 

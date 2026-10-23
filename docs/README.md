@@ -8,7 +8,7 @@
 | Escuela | Escuela Profesional de Ingeniería de Sistemas |
 | Curso | Arquitectura de Software |
 | Línea base documentada | Commit `8e56bfa` de `main` (2026-10-12) |
-| Actualización | Etapa 3, rama `refactor/etapa-3-preparacion-separacion` (2026-10-23): estructura, composición, salud, contratos y despliegue |
+| Actualización | Etapa 3 (commit `96783ef`, workspaces y proxy) y Etapa 4 (rama `feat/etapa-4-radar-service`, extracción de Radar) |
 
 Esta documentación explica qué hace SOCIAL-UNSCH, cómo está construido hoy, qué decisiones arquitectónicas contiene y cómo se propone que evolucione. Está escrita para dos lectores: quien evalúa el proyecto en el curso y quien se incorpora a desarrollarlo.
 
@@ -24,15 +24,15 @@ Cada afirmación sobre una funcionalidad lleva uno de estos estados. No son inte
 | **Propuesto** | Forma parte del diseño futuro; no hay código |
 | **Pendiente de verificación** | No pudo comprobarse con el acceso disponible |
 
-La documentación separa tres momentos: la **arquitectura actual** (lo que hay en `8e56bfa`), la **arquitectura de transición** (cómo convivirán lo viejo y lo nuevo durante la migración) y la **arquitectura objetivo** (adónde se quiere llegar). Solo la primera describe código existente.
+La documentación separa tres momentos: la **arquitectura actual** (lo que hay en `8e56bfa`), la **arquitectura de transición** (cómo conviven los componentes durante la extracción progresiva) y la **arquitectura objetivo** (adónde se quiere llegar).
 
 ## Resumen en cinco líneas
 
-- El sistema actual es un **monolito modular**: una aplicación web Next.js y **una única API Express** desplegable, con siete módulos internos, organizados desde la etapa 3 en un monorepo con npm workspaces (`apps/web`, `apps/api`, `packages/contracts`).
-- Los datos persistentes están en PostgreSQL; el radar del campus usa Redis con expiración de 15 minutos.
-- Autenticación propia con JWT firmado con RS256.
+- El sistema evoluciona hacia una arquitectura de transición: una aplicación web Next.js (`apps/web`), **una API principal Express (`apps/api`)** y el **servicio independiente de Radar (`apps/radar`)**, coordinados en un monorepo con npm workspaces.
+- Los datos persistentes están en PostgreSQL; el radar del campus usa Redis con expiración de 15 minutos y agregación por consenso de 3 votos.
+- Autenticación propia con JWT firmado con RS256: la clave privada permanece en la API; Radar valida con clave pública.
 - Cinco áreas del frontend consumen la API; seis pantallas siguen simuladas en el navegador.
-- La evolución propuesta es una migración gradual hacia servicios por dominio. **No está ejecutada**: las etapas 1 a 3 (línea base, estabilización y preparación de la separación) tienen evidencia; Radar sigue dentro de la API.
+- La etapa 4 extrae Campus Radar a un servicio independiente, manteniendo compatibilidad de contratos en `packages/contracts`, pruebas de paridad y activación reversible vía proxy.
 
 ## Índice
 
@@ -88,7 +88,7 @@ La documentación separa tres momentos: la **arquitectura actual** (lo que hay e
 
 ### 6. Decisiones arquitectónicas
 
-[Índice de ADR](06-decisiones-arquitectonicas/README.md): siete registros: tres retrospectivos, tres propuestos y uno de la etapa 3 ([ADR-007](06-decisiones-arquitectonicas/ADR-007-workspaces-y-montaje-de-radar.md)).
+[Índice de ADR](06-decisiones-arquitectonicas/README.md): ocho registros: tres retrospectivos, tres propuestos, uno de la etapa 3 ([ADR-007](06-decisiones-arquitectonicas/ADR-007-workspaces-y-montaje-de-radar.md)) y uno de la etapa 4 ([ADR-008](06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md)).
 
 ### 7. Evaluación y evolución
 
@@ -107,7 +107,8 @@ La documentación separa tres momentos: la **arquitectura actual** (lo que hay e
 | [Etapa 1: línea base](migracion/ETAPA_01_LINEA_BASE.md) | Informe histórico de la etapa 1 |
 | [Etapa 2: estabilización](migracion/ETAPA_02_ESTABILIZACION.md) | Informe histórico de la etapa 2 |
 | [Etapa 3: preparación de la separación](migracion/ETAPA_03_PREPARACION_SEPARACION.md) | Workspaces, contratos de Radar, enrutamiento reversible, salud y ajustes de despliegue |
-| [Inventario de configuración](migracion/INVENTARIO_CONFIGURACION.md) | Inventario técnico; actualizado en la etapa 3 |
+| [Etapa 4: extracción de Radar](migracion/ETAPA_04_EXTRACCION_RADAR.md) | Servicio independiente Radar, frontera de autenticación, observabilidad, pruebas E2E y activación reversible |
+| [Inventario de configuración](migracion/INVENTARIO_CONFIGURACION.md) | Inventario técnico; actualizado en las etapas 3 y 4 |
 | [Resultados de verificación](migracion/RESULTADOS_VERIFICACION.md) | Comprobaciones de la etapa 1 |
 
 Los informes de `migracion/` son registros de su momento. Donde difieren del código actual, prevalece el código; las diferencias detectadas están en [Riesgos y deuda técnica](07-evaluacion-y-evolucion/02-riesgos-y-deuda-tecnica.md#diferencias-entre-documentación-previa-y-código).
