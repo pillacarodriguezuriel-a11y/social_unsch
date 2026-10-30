@@ -8,14 +8,14 @@ La plataforma está diseñada con una arquitectura moderna y robusta para mejora
 
 ## 📌 Estado actual y documentación
 
-> Línea base documentada: commit `8e56bfa` de `main` (2026-10-12), actualizada con la [etapa 3](docs/migracion/ETAPA_03_PREPARACION_SEPARACION.md) y la [etapa 4](docs/migracion/ETAPA_04_EXTRACCION_RADAR.md) (2026-10-23).
+> Estado verificado el 2026-10-30: ver [Estado actual y evidencias](docs/07-evaluacion-y-evolucion/07-estado-actual-y-evidencias.md).
 
-SOCIAL-UNSCH avanza hacia su arquitectura de transición: una aplicación web Next.js (`apps/web`), **una API principal Express (`apps/api`)** y el **primer microservicio independiente: Campus Radar (`apps/radar`)**, consumido mediante proxy reversible en la API. Los datos relacionales residen en PostgreSQL y el estado temporal en Redis.
+SOCIAL-UNSCH se encuentra evolucionando desde un monolito modular hacia una arquitectura con servicios extraídos progresivamente por dominio. En producción opera una aplicación web Next.js (`apps/web`) y **una API Express (`apps/api`)** que atiende también Campus Radar. El servicio independiente `apps/radar` existe como código en el PR n.º 5, sin fusionar ni desplegar. Los datos relacionales residen en PostgreSQL y el estado temporal en Redis.
 
 | Área | Estado |
 |---|---|
 | Registro, inicio de sesión, catálogos | Implementado |
-| Campus Radar | Implementado (extraído a `apps/radar` con proxy reversible) |
+| Campus Radar | Implementado en la API. Servicio `apps/radar` y proxy reversible: código en PR, sin desplegar |
 | Feed de publicaciones | Implementado (los filtros existen en la API; la pantalla aún no los usa) |
 | Matchmaking | Parcial: descubrir e interactuar funcionan; no hay API para crear perfiles ni proyectos |
 | Carpooling | Parcial: la API existe y está probada; la pantalla usa datos del navegador |

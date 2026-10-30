@@ -6,10 +6,10 @@ Varios términos de arquitectura se usan a menudo como si fueran lo mismo. Este 
 
 | Pregunta | Categoría | Respuesta hoy | Respuesta propuesta |
 |---|---|---|---|
-| ¿En cuántas unidades se despliega la lógica de servidor? | Estilo arquitectónico | Una: monolito modular | Varios servicios por dominio |
-| ¿Cómo se ordena el código dentro de una unidad? | Enfoque de organización interna | Capas | Hexagonal en cada servicio |
-| ¿Qué soluciones recurrentes aparecen en el código? | Patrones de diseño | Repositorio, middleware, error tipado, script atómico | Se añaden puertos y adaptadores |
-| ¿Cómo se guarda el código en Git? | Organización del repositorio | Un repositorio, un paquete | Monorepo con varios paquetes |
+| ¿En cuántas unidades se despliega la lógica de servidor? | Estilo arquitectónico | Una en operación: monolito modular. Radar con código propio en PR | Varios servicios por dominio |
+| ¿Cómo se ordena el código dentro de una unidad? | Enfoque de organización interna | Capas; Radar con un puerto e inyección | Hexagonal en cada servicio |
+| ¿Qué soluciones recurrentes aparecen en el código? | Patrones de diseño | Repositorio, middleware, error tipado, script atómico, composición explícita | Puertos y adaptadores generalizados |
+| ¿Cómo se guarda el código en Git? | Organización del repositorio | Monorepo con npm workspaces | Sin cambios |
 | ¿Dónde se ejecuta? | Plataforma de despliegue | Vercel, Render y servicios de datos gestionados | Las mismas, con más servicios |
 
 Cada fila puede cambiar sin que cambien las demás. Un monolito puede ser hexagonal; un conjunto de microservicios puede vivir en un monorepo; cambiar de plataforma no cambia el estilo.
@@ -49,19 +49,21 @@ La excepción es `catalogs`, cuyo controlador consulta la base directamente ([ca
 
 ## Por qué no es arquitectura hexagonal
 
+> **Estado: IMPLEMENTACIÓN PARCIAL / DIRECCIÓN ARQUITECTÓNICA PROPUESTA.** Desde la etapa 3, Radar tiene un puerto (`RadarStore`) e inyección por constructor; el resto del análisis describe los demás módulos. Detalle en [C4, nivel de código](../04-modelo-c4/04-codigo-y-secuencias.md#e-nivel-de-código-y-arquitectura-hexagonal).
+
 La **arquitectura hexagonal** (o de puertos y adaptadores) coloca las reglas de negocio en el centro y hace que todo lo externo dependa de ellas. El centro define **puertos**, que son interfaces que expresan lo que necesita; los **adaptadores** las implementan para una tecnología concreta. La **Arquitectura Limpia** sigue la misma regla de dependencias con más capas nombradas.
 
 Tener controladores, servicios y repositorios no basta para llamarla hexagonal. Se comprobaron tres condiciones:
 
 | Condición | Qué se encontró | Evidencia |
 |---|---|---|
-| ¿El negocio define interfaces para sus dependencias? | No. No hay ninguna interfaz de repositorio ni clase abstracta en los módulos | Búsqueda de `implements` y `abstract class` en [src/modules](../../apps/api/src/modules): sin resultados |
+| ¿El negocio define interfaces para sus dependencias? | Solo en Radar: `RadarStore`, declarada junto a su adaptador. En los demás módulos, no | [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts) |
 | ¿Las dependencias apuntan hacia el negocio? | No. El servicio importa la clase concreta del repositorio, y este importa el pool | `import { FeedRepository } from './feed.repository'` en [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
-| ¿Hay un punto de composición que conecte las piezas? | No. Cada clase crea su dependencia con `new` en un campo privado | `private feedRepository = new FeedRepository()` en [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
+| ¿Hay un punto de composición que conecte las piezas? | Solo para Radar y las conexiones: [composition.ts](../../apps/api/src/composition.ts). Los demás crean su dependencia con `new` en un campo privado | `private feedRepository = new FeedRepository()` en [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
 
 Además, algunas reglas de negocio están fuera de los servicios: en SQL dentro de los repositorios (la máquina de estados del matchmaking, en [matchmaking.repository.ts](../../apps/api/src/modules/matchmaking/matchmaking.repository.ts)), en un script de Redis (el consenso del radar) y en disparadores de la base de datos (créditos y moderación).
 
-Conclusión: el sistema es **en capas**, con dependencias directas hacia la infraestructura. La arquitectura hexagonal es un enfoque **propuesto** para los servicios futuros, no una descripción del código actual.
+Conclusión: el sistema es **en capas**, con dependencias directas hacia la infraestructura salvo en Radar. La arquitectura hexagonal es una dirección **propuesta**, no una descripción del código actual.
 
 Una señal práctica de la diferencia: las pruebas sustituyen la base de datos interceptando el módulo de configuración con `jest.mock`, no entregando un repositorio alternativo ([tests/unit](../../apps/api/tests/unit)).
 
@@ -77,13 +79,13 @@ Un **servicio por dominio** es una unidad desplegable que es dueña de una parte
 | Movilidad | `carpooling` |
 | Recursos | Banco de archivos y créditos (hoy sin módulo) |
 
-Detalle en [Arquitectura objetivo](05-arquitectura-objetivo.md). **Estado: Propuesto.**
+Detalle en [Arquitectura objetivo](05-arquitectura-objetivo.md). **Estado: PROPUESTO**, con Radar IMPLEMENTADO PARCIALMENTE en el PR n.º 5.
 
 ## Estrategia de transición: Strangler Fig
 
 **Strangler Fig** (higuera estranguladora) es una estrategia para reemplazar un sistema por partes: se coloca una entrada delante del sistema existente, se construye cada pieza nueva al lado y se redirige hacia ella una ruta cada vez, hasta que la pieza antigua deja de recibir tráfico y puede retirarse.
 
-Es una estrategia de migración, no un estilo: describe el camino, no el destino. Aplicada aquí, la entrada decidiría si `/api/v1/radar` lo atiende el monolito o el servicio nuevo, y volver atrás consistiría en cambiar esa regla. Detalle en [Arquitectura de transición](04-arquitectura-de-transicion.md). **Estado: Propuesto.**
+Es una estrategia de migración, no un estilo: describe el camino, no el destino. Aquí, la API decide con `RADAR_MODE` si `/api/v1/radar` se atiende en proceso o en el servicio nuevo. Detalle en [Estrategia de migración](../migracion/README.md). **Estado: IMPLEMENTADO PARCIALMENTE;** el redireccionamiento real no se ha activado.
 
 ## Eventos asíncronos
 
@@ -105,9 +107,10 @@ Desde la etapa 3 el repositorio es un **monorepo con npm workspaces**: `apps/web
 |---|---|---|
 | Monolito modular | Estilo | Implementado |
 | Capas | Enfoque interno | Implementado en seis de siete módulos |
-| Arquitectura hexagonal o limpia | Enfoque interno | Propuesto |
-| Servicios por dominio | Estilo | Propuesto |
-| Strangler Fig | Estrategia de migración | Propuesto |
+| Puertos e inyección | Enfoque interno | Implementado parcialmente: solo Radar |
+| Arquitectura hexagonal o limpia | Enfoque interno | Dirección propuesta |
+| Servicios por dominio | Estilo | Propuesto; Radar con código en PR, sin desplegar |
+| Strangler Fig | Estrategia de migración | Implementado parcialmente: entrada y pieza nueva, sin redirección activa |
 | Eventos asíncronos | Mecanismo de integración | Propuesto, selectivo |
 | Monorepo con varios paquetes | Organización del repositorio | Implementado en la etapa 3 (npm workspaces) |
 

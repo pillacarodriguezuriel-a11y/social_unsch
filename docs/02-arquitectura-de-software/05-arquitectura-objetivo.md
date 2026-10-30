@@ -1,6 +1,20 @@
 # Arquitectura objetivo
 
-> **Estado: Propuesto.** Describe el destino de la migración. Ningún servicio de los aquí descritos existe; el sistema actual es una única API ([Arquitectura actual](01-arquitectura-actual.md)).
+> **Estado: PROPUESTO.** Describe el destino de la migración, no el sistema actual. Solo Radar tiene código de servicio, en un PR sin desplegar. Ningún otro servicio existe, ni se ha aprobado este destino.
+
+## Qué es real y qué no
+
+| Elemento | Clasificación |
+|---|---|
+| Monorepo, contratos de Radar, límites comprobados, entrada `/api/v1` | Implementado |
+| Servicio Radar | Siguiente etapa: código en PR, falta validar, desplegar y activar |
+| Identidad y Comunidad separadas | Futuro |
+| Movilidad como servicio | Futuro |
+| Recursos y créditos como servicio | Futuro; primero hay que construirlo |
+| Puerta de enlace dedicada | Hipótesis: hoy la API cumple esa función |
+| Canal de eventos | Hipótesis: mecanismo sin elegir, solo si aporta valor |
+| Bases separadas por dominio | Hipótesis: el primer paso es propiedad lógica |
+| Radar, Identidad, Comunidad, Movilidad y Recursos como cinco servicios | Hipótesis: agrupar Identidad y Comunidad es una variante válida |
 
 ## Idea general
 

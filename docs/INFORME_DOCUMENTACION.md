@@ -9,6 +9,22 @@ Cómo se elaboró esta documentación, qué se comprobó realmente y qué limita
 | Rama de trabajo | `docs/arquitectura-social-unsch` |
 | Alcance del cambio | Solo archivos Markdown: `docs/` y `README.md` |
 
+## Revisión del 2026-10-30
+
+Se revisó toda la documentación contra el código de `f480728`, con estas reglas: solo archivos Markdown, ningún cambio de código, sin `commit` ni `push`, y sin leer archivos `.env`. Las secciones siguientes describen la edición original del 2026-10-12.
+
+| Comprobación | Resultado |
+|---|---|
+| Pruebas con dobles de API, Radar y web, y límites | Correctas; ver [Estado actual y evidencias](07-evaluacion-y-evolucion/07-estado-actual-y-evidencias.md) |
+| Pruebas reales | No ejecutadas: Docker no estaba activo. En CI, fallidas |
+| Estado de CI y del PR | API pública de GitHub. El log del job fallido exige autenticación |
+| Producción | Solicitudes GET de solo lectura a rutas públicas; sin cuentas ni escrituras |
+| Paneles de plataformas | Sin acceso |
+| Enlaces | Enlaces y anclas resueltos por script |
+| Diagramas | Revisión estática por script de estructura y caracteres conflictivos. **No se renderizaron con el parser oficial de Mermaid**: conviene revisarlos en la vista previa de GitHub |
+
+La estructura numerada existente se conservó en lugar de crear otra paralela. La equivalencia está en el [portal](README.md#mapa-de-la-documentación).
+
 ## Método
 
 1. **Inspección del repositorio.** Se actualizó la referencia remota y se trabajó sobre una copia limpia de `main`, separada del directorio de trabajo del propietario, cuyos archivos locales sin seguimiento no se tocaron ni se incluyeron.

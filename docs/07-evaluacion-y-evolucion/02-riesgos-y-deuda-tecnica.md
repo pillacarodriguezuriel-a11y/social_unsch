@@ -20,6 +20,32 @@ La etapa 3 ([informe](../migracion/ETAPA_03_PREPARACION_SEPARACION.md)) modific�
 | DT-45 | Resuelta: workspaces separados y `engines` declarados |
 | Nueva | El modo proxy del radar no verifica el token; delega en el servicio de destino. Solo afecta si se activa `RADAR_MODE=proxy` |
 
+## Estado tras la etapa 4
+
+Revisión del 2026-10-30 sobre `f480728`. Son cambios en el PR n.º 5, sin fusionar.
+
+| ID | Estado |
+|---|---|
+| DT-19 | Parcial: Radar usa inyección y el puerto `RadarStore`; los demás módulos siguen igual |
+| DT-28 | Sin cambio: se conserva el bilingüismo; unificarlo sigue pendiente |
+| DT-38 | Parcial: existe el flujo; `test-real` falla |
+| DT-39 | Parcial: registro JSON y correlación, sin métricas ni alertas |
+| DT-44 | Resuelta en el PR: reconexión con tope de 3 s |
+
+### Hallazgos de la revisión del 2026-10-30
+
+| ID | Problema | Evidencia | Prioridad | Etapa sugerida |
+|---|---|---|---|---|
+| DT-47 | El registro guarda el correo en minúsculas, pero `findByEmail` busca el texto recibido y el validador admite mayúsculas. Inicio de sesión con otra grafía: 401. Registro duplicado con otra grafía: error 500 por la restricción única. Por lectura de código | [auth.repository.ts](../../apps/api/src/modules/auth/auth.repository.ts), [auth.validators.ts](../../apps/api/src/modules/auth/auth.validators.ts) | Media | 5 |
+| DT-48 | `last_updated` difiere: segundos Unix en la API, ISO 8601 en Radar. Sin efecto hoy porque no se lee | [API](../../apps/api/src/modules/radar/radar.repository.ts), [Radar](../../apps/radar/src/modules/radar/radar.repository.ts) | Baja | 4 |
+| DT-49 | Radar monta sus rutas también en la raíz, fuera del contrato | [app.ts](../../apps/radar/src/app.ts) | Baja | 4 |
+| DT-50 | El aforo acepta decimales aunque el mensaje exige un entero; un `status` no textual produce 500; los conjuntos de valores poco comunes no se limpian al publicar | [radar.service.ts](../../apps/radar/src/modules/radar/radar.service.ts) | Baja | 4 |
+| DT-51 | Radar en producción arranca sin `ALLOWED_ORIGINS` y con orígenes por defecto que incluyen `localhost`; con lista vacía aplica `cors()` abierto | [env.ts](../../apps/radar/src/config/env.ts), [app.ts](../../apps/radar/src/app.ts) | Media | 4 |
+| DT-52 | Los esquemas Zod no se usan en ejecución; `zod` está declarado en `apps/radar` sin importarse | [package.json](../../apps/radar/package.json) | Baja | 4 |
+| DT-53 | El límite de 2 s de `/health/ready` es menor que el del proxy; un Radar lento o suspendido figura como `down` aunque luego responda | [health.routes.ts](../../apps/api/src/health/health.routes.ts) | Baja | 4 |
+| DT-54 | Un JSON malformado en la API no es `AppError` y responde 500 en lugar de 400. Por lectura de código | [error.middleware.ts](../../apps/api/src/middlewares/error.middleware.ts) | Baja | 5 |
+| DT-55 | CI usa PostgreSQL 16; `docker-compose.yml` y el arnés real, 15. Versión de producción sin confirmar | [ci.yml](../../.github/workflows/ci.yml), [docker-compose.yml](../../docker-compose.yml) | Baja | 4 |
+
 ## Deuda técnica
 
 ### Seguridad y acceso
@@ -114,6 +140,16 @@ Donde un documento anterior y el código no coinciden, vale el código.
 | ETAPA_02 | Enlaza archivos con rutas locales de la forma `file:///d:/social_unsch/...` | Esos enlaces solo funcionan en la máquina donde se escribió el informe; en GitHub no resuelven |
 | Contexto de esta tarea | Etapas 1 y 2 integradas en `e704b8a` | Correcto; `main` avanzó después a `8e56bfa`, que solo modifica el README |
 
+| [ETAPA_04](../migracion/ETAPA_04_EXTRACCION_RADAR.md) | Estado «validado en local y CI» | `verify` pasó; `test-real` falló. **Corregido con una nota** |
+| ETAPA_04 y [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md) | Se revierte eliminando o vaciando `RADAR_PROXY_TARGET` | Con `RADAR_MODE=proxy`, la API rechaza esa configuración y no arranca ([env.ts](../../apps/api/src/config/env.ts)). **Corregido con una nota** |
+| ETAPA_04 y ADR-008 | Reversión instantánea, «en caliente» | Exige reiniciar: la configuración se lee al arrancar |
+| ETAPA_04 | Mediciones reproducibles de latencia | [benchmark-radar.js](../../scripts/benchmark-radar.js) simula los servidores; no mide el sistema |
+| ETAPA_04 | `scripts/curl-format.txt` | El archivo no existe |
+| ETAPA_04 | «Script Lua idéntico» | El script sí; los argumentos difieren (DT-48) |
+| ETAPA_04 | `ALLOWED_ORIGINS` obligatoria en producción para Radar | Solo genera un aviso (DT-51) |
+| [Plan de migración](03-plan-de-migracion.md) | Configuración de Radar validada con Zod | Validación manual; ningún archivo de `apps/radar/src` importa `zod`. **Corregido** |
+| [README](../../README.md) | «Primer microservicio independiente» | No fusionado ni desplegado. **Corregido** |
+
 Los informes de `migracion/` son registros de su momento: no se ha cambiado su contenido. En la etapa 3 solo se actualizaron sus enlaces a archivos que cambiaron de ubicación.
 
 ## Riesgos de la migración
@@ -137,11 +173,12 @@ Probabilidad e impacto son estimaciones cualitativas, no mediciones.
 
 Con independencia de la migración, estos puntos protegen lo que ya funciona:
 
+0. Corregir `test-real` en CI, antes de fusionar la etapa 4 ([P-01](08-pendientes.md#críticos)).
 1. DT-18 y RM-03: respaldo de la base.
 2. DT-10: retirar los ejecutores heredados.
 3. DT-09: asegurar que el índice único existe en cada base.
 4. DT-38 y DT-39: integración continua y ruta de salud.
 5. DT-04: límite de frecuencia en las rutas públicas.
-6. Verificar Redis en producción.
+6. Probar un voto real en producción, con una cuenta de prueba autorizada.
 
 [← Índice](../README.md)

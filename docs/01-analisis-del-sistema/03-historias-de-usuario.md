@@ -41,7 +41,7 @@ Como usuario que se registra, quiero seleccionar mi escuela de una lista para no
 
 - La lista muestra las escuelas agrupadas por facultad.
 - El identificador enviado es el que tiene la escuela en la base de datos.
-- Si el catálogo no puede cargarse, se usa una lista local de respaldo.
+- Si el catálogo no puede cargarse, la selección se deshabilita y puede reintentarse; no se usa ninguna lista local.
 
 **Estado:** Implementado.
 

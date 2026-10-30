@@ -8,6 +8,14 @@
 | Línea base | Commit `96783ef` de `main` (fusión del PR n.º 4) |
 | Aprobación | Sin aprobación de despliegue en producción; autorizado para extracción local, pruebas y PR |
 
+> **Nota de corrección (2026-10-30).** La decisión se conserva; estas afirmaciones del registro no coinciden con el código o la evidencia:
+>
+> - **Reversión:** vaciar `RADAR_PROXY_TARGET` con `RADAR_MODE=proxy` no revierte: la API rechaza esa configuración y no arranca. La vía válida es `RADAR_MODE=local` y reiniciar, no un cambio inmediato en caliente.
+> - **Latencia:** las cifras de `scripts/benchmark-radar.js` no miden el sistema, porque el script simula los servidores. El incremento de 5 a 15 ms y el arranque de unos 50 s son estimaciones.
+> - **Disponibilidad:** el aislamiento de fallos está probado con dobles, no medido en producción.
+>
+> Estado vigente en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md).
+
 ## 1. Contexto y responsabilidad de Radar
 
 Campus Radar es el módulo encargado del monitoreo y reporte en tiempo real de afluencia en nodos clave del campus de la UNSCH (comedor, rectorado, pisos 1 a 4 de la biblioteca y alertas de campus).

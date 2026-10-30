@@ -26,7 +26,7 @@ No se tuvo acceso a los paneles; estas restricciones provienen de informes previ
 | RP-01 | El frontend se despliega en Vercel desde `main` | API pública de despliegues de GitHub (2026-10-12) | Verificado por observación externa |
 | RP-02 | La API se despliega en Render y se suspende por inactividad | Primera respuesta de unos 32 segundos, observada el 2026-10-10 y el 2026-10-12 | Inferencia a partir de la latencia; plan no confirmado |
 | RP-03 | PostgreSQL está en Supabase; los proyectos del plan gratuito se pausan por inactividad | [ETAPA_01_LINEA_BASE.md](../migracion/ETAPA_01_LINEA_BASE.md) | Pendiente de verificación |
-| RP-04 | Redis está en Upstash con TLS | [ETAPA_01_LINEA_BASE.md](../migracion/ETAPA_01_LINEA_BASE.md) | Pendiente de verificación |
+| RP-04 | Redis está en Upstash con TLS | [ETAPA_01_LINEA_BASE.md](../migracion/ETAPA_01_LINEA_BASE.md) | Disponibilidad verificada de forma indirecta el 2026-10-30 (`radar: up`). Proveedor y TLS: pendientes de verificación |
 | RP-05 | Los planes en uso son gratuitos | Informes previos | Pendiente de confirmar por el propietario |
 
 ## Restricciones académicas y organizativas (pendientes de confirmar)

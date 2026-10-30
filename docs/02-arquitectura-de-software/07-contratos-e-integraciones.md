@@ -4,7 +4,7 @@ Un **contrato** es el acuerdo entre quien ofrece una interfaz y quien la consume
 
 ## Contrato vigente: API REST
 
-Hoy existe un único contrato: el de la API con la aplicación web. **No está formalizado**: no hay especificación OpenAPI ni tipos compartidos; el contrato está implícito en los controladores y en el uso que hace el frontend.
+Hoy el contrato principal es el de la API con la aplicación web. **Está formalizado solo en parte:** [`packages/contracts`](../../packages/contracts/src/radar.ts) define Radar y el formato de error con Zod (IMPLEMENTADO). Las demás rutas no tienen especificación ni tipos compartidos: su contrato está implícito en los controladores. Los esquemas se usan en pruebas de contrato, no para validar en ejecución.
 
 Convenciones observadas:
 
@@ -77,9 +77,11 @@ No hay integraciones con terceros (correo, mensajería, pagos, almacenamiento de
 
 ## Contratos propuestos
 
-> **Estado: Propuesto.**
+> **Estado: PROPUESTO**, salvo lo indicado.
 
-### Formalizar el contrato existente (etapa 3)
+### Formalizar el contrato existente
+
+La etapa 3 lo hizo para Radar y el formato de error, y añadió pruebas de contrato. Lo demás sigue pendiente.
 
 | Acción | Para qué |
 |---|---|

@@ -2,7 +2,9 @@
 
 Dónde se ejecuta cada pieza del sistema y qué se pudo comprobar. Este documento separa con cuidado tres cosas: lo **verificado** por observación propia, lo **informado** por documentos previos y lo **pendiente de verificación**.
 
-No se tuvo acceso a los paneles de ninguna plataforma. Todo lo verificado se obtuvo desde fuera: API pública de GitHub y solicitudes HTTP de solo lectura hechas el **2026-10-12**.
+No se tuvo acceso a los paneles de ninguna plataforma. Todo lo verificado se obtuvo desde fuera: API pública de GitHub y solicitudes HTTP de solo lectura hechas el **2026-10-12** y repetidas el **2026-10-30**.
+
+> **Comprobación del 2026-10-30.** API: `/health/live` 200 (32,6 s en frío) y `/health/ready` con `database: up` y `radar: up`, lo que confirma que la etapa 3 está desplegada y que Redis responde. Web: `/login` 200 y último despliegue de producción en `96783ef`. Servicio Radar en `social-unsch-radar.onrender.com`: **404, no desplegado**. Donde las tablas siguientes digan otra cosa sobre Redis, prevalece esta nota.
 
 ## Mapa
 
@@ -18,8 +20,8 @@ flowchart TB
         API["API Express<br/>un servicio Node"]
     end
     subgraph DATOS["Servicios de datos gestionados"]
-        PG[("PostgreSQL<br/>previsto: Supabase")]
-        RD[("Redis<br/>previsto: Upstash")]
+        PG[("PostgreSQL<br/>proveedor informado: Supabase")]
+        RD[("Redis<br/>proveedor informado: Upstash")]
     end
     NAV(["Navegador del usuario"])
 
@@ -29,7 +31,7 @@ flowchart TB
     NAV -- "HTTPS" --> WEB
     NAV -- "HTTPS, API" --> API
     API --> PG
-    API -.-> RD
+    API --> RD
     DEV -. "migraciones manuales" .-> PG
 ```
 
@@ -42,7 +44,7 @@ Trazo continuo: relación verificada. Trazo discontinuo: relación prevista o si
 | Aspecto | Valor | Estado |
 |---|---|---|
 | Repositorio de origen | `pillacarodriguezuriel-a11y/social_unsch` | Verificado: GitHub registra despliegues creados por la integración de Vercel |
-| Rama de producción | `main` | Verificado: el despliegue de producción más reciente corresponde al commit `8e56bfa` |
+| Rama de producción | `main` | Verificado: el despliegue de producción más reciente corresponde al commit `96783ef` |
 | Despliegues de vista previa | Se crean para ramas distintas de `main` | Verificado: GitHub registra despliegues de entorno «Preview» para ramas del repositorio |
 | Dirección pública | `https://social-unsch-lemon.vercel.app` | Verificado: `/login` respondió 200 |
 | URL de API incrustada | `https://social-unsch.onrender.com/api/v1` | Verificado el 2026-10-10 inspeccionando el código publicado; no se repitió el 2026-10-12 |
@@ -50,7 +52,11 @@ Trazo continuo: relación verificada. Trazo discontinuo: relación prevista o si
 
 Consecuencia operativa: **todo cambio que llega a `main` publica el frontend**, y toda rama subida genera un despliegue de vista previa. No hay archivo `vercel.json` en el repositorio; la configuración vive en el panel.
 
-> **Etapa 3:** el frontend pasa a `apps/web`. Antes de fusionar esa etapa, Vercel debe compilar con Root Directory `apps/web` e incluir archivos fuera de ese directorio. Render puede seguir en la raíz con `npm ci --include=dev && npm run build` y `npm start`, y conviene usar `/health/live` como comprobación de salud. Detalle en [ETAPA_03 §9](../migracion/ETAPA_03_PREPARACION_SEPARACION.md#9-impacto-sobre-vercel-y-render).
+> **Etapa 3:** el frontend pasó a `apps/web`. Para compilar, Vercel debe compilar con Root Directory `apps/web` e incluir archivos fuera de ese directorio. Render puede seguir en la raíz con `npm ci --include=dev && npm run build` y `npm start`, y conviene usar `/health/live` como comprobación de salud. Detalle en [ETAPA_03 §9](../migracion/ETAPA_03_PREPARACION_SEPARACION.md#9-impacto-sobre-vercel-y-render).
+
+### Render: servicio Radar
+
+NO IMPLEMENTADO. El servicio previsto no existe con el nombre documentado. Procedimiento en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md#activación).
 
 ### Render: API
 
@@ -81,9 +87,9 @@ Cambio respecto al informe de la etapa 1: el 2026-10-10 el inicio de sesión dev
 | Aspecto | Valor | Estado |
 |---|---|---|
 | Proveedor: Upstash | Indicado en los informes previos, que mostraban el recurso como eliminado | Pendiente de verificación |
-| Disponibilidad para la API | El radar exige sesión; no se probó con una cuenta real para no crear datos en producción | **Pendiente de verificación** |
+| Disponibilidad para la API | `/health/ready` informó `radar: up` el 2026-10-30; en modo local equivale a un `PING` correcto | **Verificado de forma indirecta** |
 
-Mientras no se compruebe, **no puede afirmarse que el radar funcione en producción**. Si la variable `REDIS_URL` falta o apunta a un recurso eliminado, las rutas del radar fallan y el resto de la API sigue funcionando ([redis.ts](../../apps/api/src/config/redis.ts)).
+Falta probar un voto real con una cuenta, lo que escribiría datos en producción. Si `REDIS_URL` falla, las rutas del radar fallan y el resto de la API sigue funcionando.
 
 ### GitHub
 
@@ -91,7 +97,7 @@ Mientras no se compruebe, **no puede afirmarse que el radar funcione en producci
 |---|---|---|
 | Visibilidad | Repositorio público | Verificado |
 | Rama por defecto | `main` | Verificado |
-| Integración continua | No hay flujos de trabajo en el repositorio | Verificado |
+| Integración continua | [ci.yml](../../.github/workflows/ci.yml) en el PR n.º 5, sin fusionar: `verify` correcto y `test-real` fallido | Verificado |
 | Protección de rama | — | Pendiente de verificación |
 
 ## Resumen
@@ -101,7 +107,8 @@ Mientras no se compruebe, **no puede afirmarse que el radar funcione en producci
 | Aplicación web | Sí |
 | API | Sí |
 | PostgreSQL | Sí, de forma indirecta a través de la API |
-| Redis | No |
+| Redis | Sí, de forma indirecta a través de `/health/ready` |
+| Servicio Radar | **No: no está desplegado** |
 | Migraciones aplicadas por completo | Parcial |
 
 ## Límites de estas plataformas

@@ -1,10 +1,14 @@
 # Arquitectura actual
 
-Descripción del sistema en el commit `8e56bfa`, actualizada con la etapa 3 ([ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md), rama pendiente de fusión). Todo lo que aparece aquí tiene evidencia en el código; lo que no pudo comprobarse se indica.
+Descripción de lo que **existe hoy en `main` (`96783ef`) y en producción**, comprobado el 2026-10-30. Lo añadido por la etapa 4 en el [PR n.º 5](https://github.com/pillacarodriguezuriel-a11y/social_unsch/pull/5) se señala aparte y pertenece a la [arquitectura de transición](04-arquitectura-de-transicion.md). Lo que no pudo comprobarse se indica.
 
 ## En una frase
 
-SOCIAL-UNSCH es hoy un **monolito modular**: una aplicación web y **una sola API** que se compila y se despliega como una unidad, organizada por dentro en módulos de dominio. No es una arquitectura de microservicios.
+SOCIAL-UNSCH es hoy un **monolito modular**: una aplicación web y **una sola API** en operación, que se compila y se despliega como una unidad y se organiza por dentro en módulos de dominio.
+
+> Utilizar Vercel, Render, Supabase y Upstash no convierte automáticamente al sistema en una arquitectura de microservicios. Son plataformas donde se ejecutan dos aplicaciones y dos almacenes.
+
+El repositorio ya contiene el código de un servicio Radar independiente, pero ese servicio no está fusionado ni desplegado.
 
 ## Unidades de despliegue
 
@@ -71,11 +75,12 @@ Qué pantallas consumen la API y cuáles trabajan con datos del navegador:
 Definida en [app.ts](../../apps/api/src/app.ts), en este orden:
 
 1. `helmet()`: cabeceras de seguridad.
-2. `/health/live` y `/health/ready` (etapa 3), fuera de `/api/v1` y antes de CORS.
-3. `cors()`: lista de orígenes de `ALLOWED_ORIGINS`; las solicitudes sin cabecera `Origin` se aceptan.
-4. Análisis de JSON y formularios.
-5. Enrutadores de los siete módulos bajo `/api/v1`. El radar se monta desde la unidad `RadarModule` que recibe `createApp()`: local por defecto ([radar.module.ts](../../apps/api/src/modules/radar/radar.module.ts)) o proxy si `RADAR_MODE=proxy` ([radar.proxy.ts](../../apps/api/src/modules/radar/radar.proxy.ts)).
-6. Middleware de errores.
+2. Registro JSON y `x-request-id` (solo en el PR n.º 5).
+3. `/health/live` y `/health/ready` (etapa 3), fuera de `/api/v1` y antes de CORS.
+4. `cors()`: lista de orígenes de `ALLOWED_ORIGINS`; las solicitudes sin cabecera `Origin` se aceptan.
+5. Análisis de JSON y formularios.
+6. Enrutadores de los siete módulos bajo `/api/v1`. El radar se monta desde la unidad `RadarModule` que recibe `createApp()`: local por defecto ([radar.module.ts](../../apps/api/src/modules/radar/radar.module.ts)) o proxy si `RADAR_MODE=proxy` ([radar.proxy.ts](../../apps/api/src/modules/radar/radar.proxy.ts)).
+7. Middleware de errores.
 
 Desde la etapa 3, `createApp()` construye la aplicación sin abrir conexiones; [composition.ts](../../apps/api/src/composition.ts) crea el cliente Redis y [bootstrap.ts](../../apps/api/src/bootstrap.ts) arranca el servidor y cierra las conexiones al detenerse.
 
@@ -98,7 +103,7 @@ Son 16 rutas. Cada módulo vive en `src/modules/<nombre>/` y, salvo `catalogs`, 
 | Recurso | Cómo se accede | Configuración | Evidencia |
 |---|---|---|---|
 | PostgreSQL | Un `Pool` de `pg` compartido por todos los módulos | Máximo 20 conexiones, 2 s de espera de conexión, sin opción TLS explícita | [database.ts](../../apps/api/src/config/database.ts) |
-| Redis | Un cliente `ioredis` compartido | Hasta 5 reintentos de conexión; si no se define URL, intenta `127.0.0.1:6379` | [redis.ts](../../apps/api/src/config/redis.ts) |
+| Redis | Un cliente `ioredis` creado en [composition.ts](../../apps/api/src/composition.ts) e inyectado en el radar | En `main`, hasta 5 reintentos. El PR n.º 5 pasa a reconexión con tope de 3 s, sin cola y un reintento por comando. Si no se define URL, intenta `127.0.0.1:6379` | [redis.ts](../../apps/api/src/config/redis.ts) |
 
 No hay ORM (herramienta de mapeo objeto-relacional): los repositorios escriben SQL parametrizado. El esquema está en [src/database/migrations/sql](../../apps/api/src/database/migrations/sql) y se describe en [Datos y propiedad por dominio](06-datos-y-propiedad-por-dominio.md).
 
@@ -126,9 +131,9 @@ Para evitar suposiciones, se enumera lo que un lector podría esperar y no está
 - Puerta de enlace de API, balanceador o proxy inverso propios.
 - Colas de mensajes, eventos o tareas en segundo plano.
 - Caché de consultas (Redis se usa solo como almacén del radar).
-- Métricas o trazas (las rutas de salud existen desde la etapa 3).
+- Métricas, trazas o alertas (las rutas de salud existen desde la etapa 3).
 - Limitación de frecuencia de solicitudes.
-- Integración continua o archivos de despliegue versionados.
+- Archivos de despliegue versionados. La integración continua solo existe en el PR n.º 5 y no está en verde.
 - Contenedor Docker de la aplicación: [docker-compose.yml](../../docker-compose.yml) solo define PostgreSQL y Redis para desarrollo local.
 
 ## Puntos de acoplamiento
@@ -141,5 +146,15 @@ Resumen; el análisis completo está en [Componentes y dependencias](03-componen
 | Feed, matchmaking y carpooling leen la tabla `users` con consultas propias | Repositorios de esos módulos |
 | Frontend y backend comparten lockfile, no paquete (etapa 3) | [package.json](../../package.json) |
 | Catálogos duplicados en constantes del frontend y del backend | [app/lib/unsch.constants.ts](../../apps/web/app/lib/unsch.constants.ts), [src/shared/constants/unsch.constants.ts](../../apps/api/src/shared/constants/unsch.constants.ts) |
+
+## Limitaciones
+
+| Limitación | Consecuencia | Dónde se trata |
+|---|---|---|
+| La API se suspende por inactividad | Primera respuesta de 32,6 s el 2026-10-30 | [Métricas](../07-evaluacion-y-evolucion/06-metricas.md) |
+| Un fallo de la API detiene todo salvo las páginas estáticas | Punto único de fallo | [Riesgos](../07-evaluacion-y-evolucion/02-riesgos-y-deuda-tecnica.md) |
+| Seis pantallas sin datos compartidos | Funcionalidad aparente | [Inventario](../07-evaluacion-y-evolucion/01-inventario-de-implementacion.md) |
+
+Ver también: [Arquitectura de transición](04-arquitectura-de-transicion.md) · [Arquitectura objetivo](05-arquitectura-objetivo.md) · [C2 actual](../04-modelo-c4/02-contenedores-actuales.md)
 
 [← Índice](../README.md)

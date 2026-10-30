@@ -1,5 +1,7 @@
 # Organización interna
 
+> **Actualización 2026-10-30.** Este documento conserva su análisis original. Desde entonces: Radar recibe sus dependencias por constructor y tiene el puerto `RadarStore`; existe composición explícita en `composition.ts`. Ver [C4, nivel de código](../04-modelo-c4/04-codigo-y-secuencias.md).
+
 Cómo está ordenado el código del backend por dentro. Descrito en el commit `8e56bfa` y actualizado con la etapa 3 ([ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md)), que movió el backend a `apps/api` y separó composición y arranque.
 
 ## Estructura de directorios

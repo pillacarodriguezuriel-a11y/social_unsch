@@ -1,7 +1,13 @@
 # C1 · Contexto del sistema
 
-**Pregunta:** ¿quién usa SOCIAL-UNSCH y con qué otros sistemas se relaciona?
-**Describe:** el estado actual.
+**Pregunta:** ¿qué es SOCIAL-UNSCH, quién lo utiliza y con qué sistemas externos interactúa?
+**Describe:** la realidad actual, comprobada desde fuera el 2026-10-30.
+
+## Propósito
+
+SOCIAL-UNSCH es una plataforma web para la comunidad de la Universidad Nacional de San Cristóbal de Huamanga. Reúne, con acceso limitado a correos `@unsch.edu.pe`, información del campus en tiempo casi real, publicaciones, búsqueda de compañeros de proyecto y movilidad compartida.
+
+**Límite del sistema:** incluye la aplicación web, la API, el servicio Radar cuando se active y sus herramientas de migración. Los almacenes y las plataformas son gestionados por terceros. El sistema no se integra con ningún sistema académico de la universidad.
 
 ## Diagrama
 
@@ -13,8 +19,8 @@ flowchart TB
 
     SYS["SOCIAL-UNSCH<br/>plataforma web de la comunidad universitaria"]
 
-    PGS[("Servicio gestionado de PostgreSQL<br/>previsto: Supabase")]
-    RDS[("Servicio gestionado de Redis<br/>previsto: Upstash")]
+    PGS[("Servicio gestionado de PostgreSQL<br/>proveedor informado: Supabase")]
+    RDS[("Servicio gestionado de Redis<br/>proveedor informado: Upstash")]
     HOST["Plataformas de alojamiento<br/>Vercel y Render"]
     GH["GitHub<br/>repositorio de código"]
 
@@ -28,25 +34,33 @@ flowchart TB
     SYS -- "guarda el estado efímero del radar" --> RDS
 ```
 
-## Personas
+## Elementos
 
-| Persona | Qué hace con el sistema |
-|---|---|
-| Miembro de la comunidad | Se registra con su correo institucional, consulta y reporta el estado del campus, publica, busca compañeros de proyecto |
-| Administrador | Inicia sesión como cualquier usuario. La consola de moderación que ve en el frontend trabaja con datos simulados |
-| Propietario y operador | Mantiene el código, configura las plataformas y ejecuta las migraciones a mano |
+| Elemento | Tipo | Responsabilidad |
+|---|---|---|
+| Miembro de la comunidad (`student`, `alumnus`, `professor`) | Persona | Se registra con su correo institucional, consulta y reporta el estado del campus, publica y busca compañeros de proyecto |
+| Administrador (`administrator`) | Persona | Inicia sesión como cualquier usuario. La consola de moderación del frontend usa datos simulados y la API no le da permisos propios |
+| Propietario y operador | Persona | Mantiene el código, configura las plataformas y ejecuta las migraciones a mano |
+| SOCIAL-UNSCH | Sistema de software | Autentica a la comunidad y ofrece radar, feed, matchmaking, catálogos y movilidad |
+| PostgreSQL gestionado | Sistema externo | Guarda usuarios, catálogos, publicaciones, perfiles, rutas y solicitudes |
+| Redis gestionado | Sistema externo | Guarda los votos y estados del radar con vigencia de 15 minutos |
+| Vercel | Sistema externo | Compila y aloja la aplicación web |
+| Render | Sistema externo | Ejecuta la API |
+| GitHub | Sistema externo | Aloja el código, ejecuta la integración continua y origina los despliegues del frontend |
 
 El detalle de actores y roles está en [Actores](../01-analisis-del-sistema/02-actores.md).
 
-## Sistemas externos
+## Estado de verificación de los sistemas externos
 
-| Sistema | Relación | Estado de verificación |
+Comprobación externa de solo lectura del 2026-10-30, salvo donde se indique.
+
+| Sistema | Evidencia | Estado |
 |---|---|---|
-| PostgreSQL gestionado | El sistema guarda en él usuarios, publicaciones, perfiles, rutas y solicitudes | La API de producción respondió con datos de catálogo el 2026-10-12, lo que prueba que tiene una base accesible. El proveedor no pudo confirmarse desde fuera |
-| Redis gestionado | El sistema guarda en él los votos y estados del radar | Pendiente de verificación |
-| Vercel | Aloja la aplicación web | Verificado por la API pública de despliegues de GitHub y por respuesta HTTP |
-| Render | Aloja la API | Verificado por respuesta HTTP |
-| GitHub | Contiene el código; cada cambio en `main` origina un despliegue del frontend | Verificado |
+| PostgreSQL | `GET /health/ready` informó `database: up` y `GET /api/v1/catalogs/schools` devolvió datos | IMPLEMENTADO. Proveedor Supabase: PENDIENTE DE VALIDACIÓN |
+| Redis | `GET /health/ready` informó `radar: up`, que en modo local equivale a un `PING` correcto a Redis | IMPLEMENTADO, de forma indirecta. Proveedor Upstash: PENDIENTE DE VALIDACIÓN |
+| Vercel | `/login` respondió 200; GitHub registra el despliegue de producción de `96783ef` | IMPLEMENTADO |
+| Render | `GET /health/live` respondió 200 | IMPLEMENTADO |
+| GitHub | Repositorio público, PR n.º 5 abierto, flujo de CI ejecutado | IMPLEMENTADO |
 
 ## Lo que no aparece porque no existe
 
@@ -56,6 +70,8 @@ El detalle de actores y roles está en [Actores](../01-analisis-del-sistema/02-a
 - Servicio de almacenamiento de archivos.
 
 Si alguno de ellos se incorpora, este diagrama debe actualizarse.
+
+La extracción de Radar no cambia este nivel: para quien usa el sistema sigue siendo una sola plataforma, y Radar es un contenedor interno, no un sistema externo.
 
 **Siguiente nivel:** [C2 · Contenedores actuales](02-contenedores-actuales.md)
 

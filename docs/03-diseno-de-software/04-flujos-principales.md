@@ -1,5 +1,7 @@
 # Flujos principales
 
+> **Actualización 2026-10-30.** Este documento conserva su análisis original. Desde entonces: Radar recibe sus dependencias por constructor y tiene el puerto `RadarStore`; existe composición explícita en `composition.ts`. Ver [C4, nivel de código](../04-modelo-c4/04-codigo-y-secuencias.md).
+
 Cinco flujos implementados, con sus pasos, errores y persistencia según el código del commit `8e56bfa`. Los diagramas de secuencia detallados de dos de ellos están en [C4: código y secuencias](../04-modelo-c4/04-codigo-y-secuencias.md).
 
 ## 1. Registro e inicio de sesión

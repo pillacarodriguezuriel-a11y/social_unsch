@@ -1,5 +1,7 @@
 # Principios SOLID
 
+> **Actualización 2026-10-30.** Este documento conserva su análisis original. Desde entonces: Radar recibe sus dependencias por constructor y tiene el puerto `RadarStore`; existe composición explícita en `composition.ts`. Ver [C4, nivel de código](../04-modelo-c4/04-codigo-y-secuencias.md).
+
 SOLID agrupa cinco principios de diseño orientado a objetos. Para cada uno se indica dónde se cumple en el código, dónde solo en parte y qué se recomienda. Las recomendaciones no están implementadas.
 
 ## Resumen

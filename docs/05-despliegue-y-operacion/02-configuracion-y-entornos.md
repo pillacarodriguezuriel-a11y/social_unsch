@@ -98,4 +98,20 @@ La ausencia de preproducción significa que un cambio de esquema o de backend se
 - La clave privada JWT existe en un único lugar: donde se emiten tokens.
 - En la arquitectura propuesta, los servicios que solo verifican tokens reciben únicamente la clave pública.
 
+## Servicio Radar
+
+Variables de `apps/radar` ([plantilla](../../apps/radar/.env.example), [env.ts](../../apps/radar/src/config/env.ts)). **Estado:** código en PR, sin desplegar.
+
+| Variable | Propósito | Obligatoria | Sensibilidad |
+|---|---|---|---|
+| `JWT_PUBLIC_KEY` | Verificar tokens | Sí; el proceso no arranca sin ella | Pública |
+| `REDIS_URL` | Conexión a Redis, `rediss://` activa TLS | Recomendada; en producción sin ella solo avisa e intenta conectar a local | **Secreta** |
+| `ALLOWED_ORIGINS` | Orígenes CORS | Recomendada; en producción sin ella solo avisa y usa valores por defecto con `localhost` | Pública |
+| `PORT`, `APP_PORT` | Puerto; 4001 por defecto | No | Pública |
+| `NODE_ENV`, `SERVICE_NAME` | Entorno y nombre en los registros | No | Pública |
+
+Radar nunca debe recibir `JWT_PRIVATE_KEY` ni `DATABASE_URL`.
+
+Al usar `RADAR_MODE=proxy` en la API, `RADAR_PROXY_TARGET` es obligatoria: si falta, la API no arranca. En ese modo la API no abre Redis, pero conviene conservar `REDIS_URL` para poder revertir.
+
 [← Índice](../README.md)

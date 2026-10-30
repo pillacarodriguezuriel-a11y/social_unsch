@@ -2,7 +2,7 @@
 
 Qué debe comprobarse antes, durante y después de extraer un servicio, y cómo decidir si la migración debe continuar.
 
-> **Estado: Propuesto.** Son criterios para aplicar en el futuro. Ninguna extracción se ha realizado, y los umbrales numéricos son objetivos pendientes de validación.
+> **Estado: PROPUESTO.** Son criterios por aplicar. Radar es el primer caso: tiene código, pero ninguna extracción está activa en producción, y los umbrales numéricos son objetivos pendientes de validación. Su situación frente a estos criterios está en [Estrategia de migración](../migracion/README.md#principio-no-distribuir-por-distribuir).
 
 ## Principio
 

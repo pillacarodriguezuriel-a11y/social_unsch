@@ -8,6 +8,16 @@
 | Decisión arquitectónica | [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md) |
 | Estado | **Implementado y validado en local y CI.** Pendiente de revisión, fusión y autorización para despliegue productivo |
 
+> **Nota de corrección (2026-10-30).** Este informe es un registro de su momento. Revisado contra el código y la CI, deben leerse así:
+>
+> - **Estado:** en CI, `verify` pasó y `test-real` falló (ejecución `39985651148`). La etapa no está validada por completo.
+> - **§9, mediciones:** `scripts/benchmark-radar.js` simula los servidores con un almacén en memoria; no ejecuta `apps/api`, `apps/radar` ni Redis. Las cifras no miden el sistema. `scripts/curl-format.txt` no existe.
+> - **§5 y §13, Lua:** el script es igual, pero `last_updated` difiere entre implementaciones.
+> - **§7, `ALLOWED_ORIGINS`:** en Radar no es obligatoria; solo genera un aviso.
+> - **§13, reversión:** eliminar `RADAR_PROXY_TARGET` con `RADAR_MODE=proxy` impide arrancar la API. Hay que definir `RADAR_MODE=local` y reiniciar.
+>
+> Estado vigente en [Extracción de Radar](EXTRACCION_RADAR.md).
+
 Esta etapa extrae Radar del proceso principal de la API y lo ejecuta como una aplicación independiente (`apps/radar`), manteniendo la compatibilidad total de contratos, el consumo desde el frontend mediante la API principal y un mecanismo de activación y reversión instantánea.
 
 ---

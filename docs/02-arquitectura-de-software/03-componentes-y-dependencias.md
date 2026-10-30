@@ -1,6 +1,6 @@
 # Componentes y dependencias
 
-Qué piezas componen el backend, de qué depende cada una y dónde están los acoplamientos que condicionan la migración. Todo corresponde al commit `8e56bfa`.
+Qué piezas componen el backend, de qué depende cada una y dónde están los acoplamientos que condicionan la migración. Revisado el 2026-10-30 sobre `f480728`. Desde la etapa 3, `radar` recibe Redis por inyección desde [composition.ts](../../apps/api/src/composition.ts) y no importa `config/redis`; el servicio `apps/radar` se describe en [C3](../04-modelo-c4/03-componentes-del-backend.md#diagrama-del-servicio-radar).
 
 ## Componentes del backend
 
@@ -41,7 +41,7 @@ flowchart TB
     AUTH --> JWT
     AUTH --> ROLES
     AUTH & USERS & FEED & MATCH & CARP & CAT --> DB
-    RADAR --> RDS
+    RDS -. "inyectado por composition.ts" .-> RADAR
     AUTH & USERS & RADAR & FEED & MATCH & CARP --> ERRC
 ```
 
@@ -90,9 +90,10 @@ Ordenados por cuánto dificultan separar el sistema en servicios.
 | 3 | Claves foráneas entre dominios: publicaciones, perfiles, rutas y archivos referencian `users`; usuarios y publicaciones referencian catálogos | Separar las bases obliga a eliminar esas restricciones y asumir la validación en el código | [001_base_schema.sql](../../apps/api/src/database/migrations/sql/001_base_schema.sql), [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) |
 | 4 | Disparadores que cruzan dominios: la descarga de un archivo modifica el saldo en `users`; un reporte de moderación oculta filas de `feed_posts` | La lógica está en la base, fuera del alcance de cualquier servicio | [003_credits_and_wiki.sql](../../apps/api/src/database/migrations/sql/003_credits_and_wiki.sql), [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) |
 | 5 | Un solo pool y una sola variable `DATABASE_URL` | Todos los módulos tienen acceso a todas las tablas | [database.ts](../../apps/api/src/config/database.ts) |
-| 6 | Un solo `package.json` para frontend y backend | No se puede construir ni versionar una parte sin la otra | [package.json](../../package.json) |
-| 7 | Los servicios crean sus repositorios con `new` | No se puede sustituir el almacén sin tocar el servicio | Por ejemplo, [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) |
-| 8 | Catálogos y valores permitidos duplicados en tres lugares: constantes del frontend, constantes del backend y listas dentro de `radar.service.ts` | Un cambio de catálogo exige tocar varios archivos; pueden divergir | [app/lib/unsch.constants.ts](../../apps/web/app/lib/unsch.constants.ts), [src/shared/constants/unsch.constants.ts](../../apps/api/src/shared/constants/unsch.constants.ts), [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) |
+| 6 | Un solo lockfile para todos los workspaces | Los paquetes se construyen por separado, pero sus dependencias siguen coordinadas | [package.json](../../package.json) |
+| 7 | Los servicios crean sus repositorios con `new`, salvo `radar` | No se puede sustituir el almacén sin tocar el servicio | Por ejemplo, [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
+| 8 | Catálogos duplicados entre frontend y backend. Los valores de Radar ya salen de `packages/contracts` | Un cambio de catálogo exige tocar varios archivos | [app/lib/unsch.constants.ts](../../apps/web/app/lib/unsch.constants.ts), [src/shared/constants/unsch.constants.ts](../../apps/api/src/shared/constants/unsch.constants.ts) |
+| 9 | Lógica de Radar duplicada en `apps/api` y `apps/radar` durante la convivencia | Pueden divergir y comprometer la reversión | [Extracción de Radar](../migracion/EXTRACCION_RADAR.md) |
 
 Sobre el punto 8: las constantes del backend en `src/shared/constants` solo las usa la carga de catálogos ([load_catalogs.ts](../../apps/api/src/database/migrations/load_catalogs.ts)); ningún módulo las importa.
 
@@ -100,7 +101,7 @@ Sobre el punto 8: las constantes del backend en `src/shared/constants` solo las 
 
 | Módulo | Dependencias de datos ajenos | Dificultad estimada de extracción |
 |---|---|---|
-| `radar` | Ninguna; solo necesita el identificador del usuario, que viaja en el token | Baja |
+| `radar` | Ninguna; solo necesita el identificador del usuario, que viaja en el token | Baja; confirmada por la extracción en código, sin validar en producción |
 | `catalogs` | Solo lectura de tres tablas de referencia | Baja |
 | `feed` | Nombre y rol del autor | Media |
 | `matchmaking` | Nombre, rol y correo; transacciones propias | Media |

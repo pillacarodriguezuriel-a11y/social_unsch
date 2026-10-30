@@ -1,6 +1,6 @@
 # Requisitos funcionales
 
-Cada requisito indica su estado en el commit `8e56bfa` y el archivo que lo sustenta. Una pantalla o una tabla no cuentan por sí solas como requisito implementado: se exige un flujo completo con persistencia compartida.
+Cada requisito indica su estado, revisado el 2026-10-30 sobre `f480728`, y el archivo que lo sustenta. La etapa 4 no cambió ningún requisito funcional: mueve Radar, no añade funciones. Una pantalla o una tabla no cuentan por sí solas como requisito implementado: se exige un flujo completo con persistencia compartida.
 
 Todas las rutas llevan el prefijo `/api/v1`, registrado en [app.ts](../../apps/api/src/app.ts).
 

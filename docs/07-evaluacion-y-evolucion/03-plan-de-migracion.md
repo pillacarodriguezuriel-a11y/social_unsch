@@ -2,7 +2,7 @@
 
 Propuesta de evolución desde el monolito modular actual hacia servicios por dominio, en ocho etapas.
 
-> **Qué es propuesta y qué no.** Las etapas 1 a 3 tienen evidencia de ejecución (la 3, en una rama pendiente de fusión). Las etapas 4 a 8 son **propuestas**: no hay código, fechas ni aprobación. Este documento no fija plazos.
+> **Qué es propuesta y qué no.** Las etapas 1 a 3 están ejecutadas y la 3 está en producción. La etapa 4 tiene código en el PR n.º 5, sin fusionar ni desplegar. Las etapas 5 a 8 son **propuestas**: no hay código, fechas ni aprobación. Este documento no fija plazos. Estado verificado el 2026-10-30.
 
 ## Vista general
 
@@ -18,17 +18,19 @@ flowchart LR
     E7 --> E8
 
     classDef propuesto stroke-dasharray: 5 5
-    class E4,E5,E6,E7,E8 propuesto
+    classDef parcial stroke:#e65100,stroke-width:3px
+    class E4 parcial
+    class E5,E6,E7,E8 propuesto
 ```
 
-Trazo continuo: etapa con evidencia de ejecución. Trazo discontinuo: propuesta.
+Trazo continuo: etapa ejecutada. Trazo naranja: implementada parcialmente. Trazo discontinuo: propuesta.
 
 | Etapa | Estado | Cambia el estilo arquitectónico |
 |---|---|---|
 | 1 | Ejecutada; recuperación de Redis sin verificar | No |
 | 2 | Ejecutada en el código; aplicación remota parcialmente verificada | No |
-| 3 | Implementada en rama, pendiente de fusión | No: sigue siendo un monolito, ahora en un monorepo |
-| 4 | Propuesta | Sí: primer servicio fuera del monolito |
+| 3 | Implementada, en `main` y en producción | No: sigue siendo un monolito, ahora en un monorepo |
+| 4 | Implementada parcialmente: PR abierto, `test-real` fallido, sin desplegar | Sí, cuando se active: hasta entonces, no |
 | 5 a 7 | Propuestas | Sí |
 | 8 | Propuesta | No: consolida |
 
@@ -73,7 +75,7 @@ Las etapas 6 y 7 no dependen entre sí y pueden intercambiarse.
 
 ## Etapa 3 · Repositorio, límites, contratos y entrada reversible
 
-**Estado: implementada en la rama `refactor/etapa-3-preparacion-separacion`, pendiente de fusión.** Informe: [ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md).
+**Estado: implementada.** Fusionada en `main` con el PR n.º 4 (`96783ef`) y desplegada: `/health/ready` responde en producción. Informe: [ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md).
 
 Qué se hizo y qué no, respecto a la propuesta original:
 
@@ -82,9 +84,9 @@ Qué se hizo y qué no, respecto a la propuesta original:
 | Dividir el repositorio en paquetes | Hecho: `apps/web`, `apps/api`, `packages/contracts` |
 | Formalizar el contrato | Hecho para Radar y el formato de error (Zod); las demás rutas siguen sin contrato formal |
 | Entrada de API | Hecho dentro de la API: montaje reemplazable y modo proxy desactivado |
-| Observabilidad mínima | Salud y validación de configuración hechas; registro de solicitudes pendiente |
-| Integración continua | Pendiente: `npm run verify` existe, sin flujo configurado |
-| Código compartido de autenticación | Pendiente: no hizo falta mientras Radar siga en la API |
+| Observabilidad mínima | Salud y validación de configuración hechas; registro de solicitudes añadido en la etapa 4 |
+| Integración continua | Añadida en la etapa 4; `test-real` falla |
+| Código compartido de autenticación | Descartado de hecho: Radar tiene su propia guarda |
 | Saneamiento | Catálogos corregidos; ejecutores heredados y respaldo, pendientes |
 | Configuración de despliegue versionada | Pendiente: los ajustes están documentados, no versionados |
 
@@ -111,28 +113,30 @@ Propuesta original:
 
 ## Etapa 4 · Extracción de Radar
 
-**Estado: implementada en código y validada en local/CI.** Fundamento en [ADR-004](../06-decisiones-arquitectonicas/ADR-004-extraccion-inicial-de-radar.md) y [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Documento de etapa: [ETAPA_04_EXTRACCION_RADAR](../migracion/ETAPA_04_EXTRACCION_RADAR.md).
+**Estado: implementada parcialmente.** Código en el PR n.º 5; `verify` correcto y `test-real` fallido; sin fusionar ni desplegar. Estado vigente en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md). Fundamento en [ADR-004](../06-decisiones-arquitectonicas/ADR-004-extraccion-inicial-de-radar.md) y [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Documento de etapa: [ETAPA_04_EXTRACCION_RADAR](../migracion/ETAPA_04_EXTRACCION_RADAR.md).
 
 **Objetivo:** primer servicio independiente (`apps/radar`), con el dominio menos acoplado, compatibilidad de contratos estricta y activación reversible.
 
 | Trabajo propuesto | Resultado obtenido |
 |---|---|
-| Crear el servicio de radar independiente | Hecho: `apps/radar` con configuración validada (Zod), Redis resiliente, Express decoupled y graceful shutdown |
+| Crear el servicio de radar independiente | Hecho en código: `apps/radar` con configuración validada por código propio, Redis resiliente y cierre ordenado. Sin desplegar |
 | Conservar compatibilidad de contratos e idioma | Hecho: contratos formalizados en `packages/contracts`, estados bilingües preservados (ES/EN) para evitar divergencia de consenso |
-| Autenticación asimétrica verificada | Hecho: RS256 con clave pública en Radar; rechazo de suplantación de cabeceras (`x-user-id`); tokens opacos al exterior |
+| Autenticación asimétrica verificada | Hecho: RS256 con clave pública en Radar; las cabeceras de identidad se ignoran |
 | Proxy con observabilidad y correlación | Hecho: `RADAR_MODE=proxy` en la API con propagación de `x-request-id`, timeouts configurables y sin reintentos automáticos |
 | Resiliencia de Redis | Hecho: `enableOfflineQueue: false`, `maxRetriesPerRequest: 1`, reconexión exponencial acotada a 3s sin bloqueos indefinidos |
 | Límites arquitectónicos | Hecho: verificado con `npm run verify` (`radar-sin-api`, `radar-sin-web`, `radar-sin-pg`, `api-sin-radar-interno`) |
-| Integración continua | Hecho: GitHub Actions (`.github/workflows/ci.yml`) con `verify` y pruebas de integración con PostgreSQL 16 y Redis 7 desechables |
-| Pruebas y mediciones reproducibles | Hecho: 59 pruebas en Radar (cobertura >90%), 521 pruebas totales en el monorepo; benchmark reproducible de latencia documentado |
-| Conservar reversibilidad inmediata | Hecho: `RADAR_MODE=local` por defecto en la API; conmutación en caliente sin migración de datos ni cambios en frontend |
+| Integración continua | Parcial: `verify` correcto; `test-real` fallido en la única ejecución |
+| Pruebas y mediciones | Parcial: 59 pruebas en Radar y 521 en el monorepo, con dobles. Sin pruebas de `apps/radar` contra Redis real. El benchmark simula los servidores y no mide el sistema |
+| Conservar reversibilidad | Hecho en código: `RADAR_MODE=local` y reinicio de la API, sin migrar datos ni tocar el frontend. Sin ensayar en producción |
 
 | Criterio | Detalle |
 |---|---|
 | Entrada | Etapa 3 completa; Redis verificado; contratos compartidos en `packages/contracts` |
-| Salida alcanzada | Servicio independiente compilable y ejecutable; 100% pruebas de contrato, paridad y E2E verdes; CI configurado; documentación y procedimientos de despliegue listos |
+| Salida | Pendiente: CI completa en verde, despliegue, medición real, ensayo de reversión y 2 semanas de observación |
 | Activación productiva | Pendiente de autorización formal y despliegue del servicio en Render (Web Service Node.js) |
-| Reversión | Variable de entorno `RADAR_MODE=local` en la API para devolver el tráfico al módulo local en segundos |
+| Reversión | `RADAR_MODE=local` en la API y reinicio. No vaciar `RADAR_PROXY_TARGET`: la API no arrancaría |
+| Riesgos | Ver [Riesgos](../migracion/EXTRACCION_RADAR.md#riesgos) |
+| Pendientes | Ver [Pendientes](08-pendientes.md) |
 | Punto de decisión | Observar métricas reales en Render antes de autorizar el desmantelamiento del módulo local en la API |
 
 ## Etapa 5 · Identidad y Comunidad

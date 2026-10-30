@@ -7,6 +7,8 @@ Convenciones:
 - **Pruebas.** U: unitarias en [tests/unit](../../apps/api/tests/unit). I: de rutas con dobles en [tests/integration](../../apps/api/tests/integration). R: contra PostgreSQL y Redis reales en [tests/real](../../apps/api/tests/real). «Ninguna» significa que no hay prueba automatizada.
 - **Etapa.** Indica dónde cambia la ubicación o el estado del requisito según la propuesta. «—» indica que no se prevé cambio.
 
+La vista por niveles C4 está en [Trazabilidad C4](../04-modelo-c4/07-trazabilidad-c4.md). Las referencias a Radar corresponden a `apps/api`; el servicio `apps/radar` tiene además su propia suite.
+
 ## Identidad y acceso
 
 | Historia | Requisito | Módulo | Endpoint o componente | Prueba existente | Etapa de evolución |

@@ -2,7 +2,7 @@
 
 Un atributo de calidad describe cómo debe comportarse el sistema, no qué hace. Aquí se listan los que más pesan en SOCIAL-UNSCH, qué mecanismo existe hoy para cada uno y qué falta. Los escenarios medibles están en [Escenarios de calidad](08-escenarios-de-calidad.md).
 
-Ningún atributo tiene hoy una medición registrada en el repositorio: no hay pruebas de carga, monitoreo ni registro de disponibilidad. Lo que se indica como «existe» es un mecanismo en el código, no un resultado medido.
+Ningún atributo de ejecución tiene hoy una medición sostenida: no hay pruebas de carga, monitoreo ni registro de disponibilidad. Lo que se indica como «existe» es un mecanismo en el código, no un resultado medido. Lo medido hasta ahora está en [Métricas](../07-evaluacion-y-evolucion/06-metricas.md).
 
 ## Prioridad
 
@@ -52,17 +52,18 @@ Los límites exactos de estas garantías se analizan en [Errores y consistencia]
 |---|---|---|
 | Módulos por dominio sin importaciones entre sí | Implementado | Ningún archivo de `src/modules/*` importa de otro módulo |
 | Capas controlador, servicio y repositorio | Implementado en seis de siete módulos | `catalogs` consulta la base desde el controlador |
-| Dependencias invertidas mediante interfaces | No existe | Los servicios instancian sus repositorios; ver [Estilos y enfoques](../02-arquitectura-de-software/02-estilos-y-enfoques.md) |
-| Independencia de datos entre módulos | No existe | Feed, matchmaking y carpooling consultan la tabla `users` directamente |
+| Dependencias invertidas mediante interfaces | Parcial | Solo Radar: puerto `RadarStore` e inyección por constructor. Los demás servicios instancian sus repositorios; ver [Estilos y enfoques](../02-arquitectura-de-software/02-estilos-y-enfoques.md) |
+| Independencia de datos entre módulos | Parcial | Radar no usa PostgreSQL; feed, matchmaking y carpooling consultan la tabla `users` directamente |
 
 ### Disponibilidad y operabilidad
 
 | Mecanismo | Estado | Evidencia |
 |---|---|---|
 | El servidor sigue activo si Redis no está disponible | Implementado | Estrategia de reintentos en [redis.ts](../../apps/api/src/config/redis.ts) |
-| Cierre ordenado ante `SIGTERM` | Parcial | [server.ts](../../apps/api/src/server.ts) cierra el servidor HTTP, no las conexiones a PostgreSQL y Redis |
+| Cierre ordenado ante `SIGTERM` | Implementado | [server.ts](../../apps/api/src/server.ts) y [bootstrap.ts](../../apps/api/src/bootstrap.ts) cierran el servidor, PostgreSQL y Redis |
 | Rutas de salud | Implementado en la etapa 3 | `GET /health/live` y `GET /health/ready` ([health.routes.ts](../../apps/api/src/health/health.routes.ts)) |
-| Registro estructurado, métricas, alertas | No existe | Solo `console.log` y `console.error` |
+| Registro JSON por solicitud con `x-request-id` | Implementado en el PR n.º 5 | [logging.middleware.ts](../../apps/api/src/middlewares/logging.middleware.ts) |
+| Métricas y alertas | No existe | — |
 
 ### Capacidad de prueba
 
@@ -71,7 +72,8 @@ Los límites exactos de estas garantías se analizan en [Errores y consistencia]
 | Pruebas unitarias y de rutas con dobles | Implementado | [tests/unit](../../apps/api/tests/unit), [tests/integration](../../apps/api/tests/integration) |
 | Pruebas contra PostgreSQL y Redis reales en contenedores | Implementado | [tests/real](../../apps/api/tests/real), [jest.real.config.ts](../../apps/api/jest.real.config.ts) |
 | Umbral de cobertura del 90 % | Implementado | [jest.config.ts](../../apps/api/jest.config.ts) |
-| Pruebas del frontend y de extremo a extremo | No existe | Sin configuración |
-| Integración continua | No existe | Sin directorio `.github/workflows` |
+| Pruebas del frontend | Parcial | Lógica de `app/lib` y tipos del contrato ([apps/web/tests](../../apps/web/tests/catalogs.test.ts)); sin componentes |
+| Proxy contra Radar por HTTP | Implementado con Redis simulado | [proxy.e2e.test.ts](../../apps/radar/tests/integration/proxy.e2e.test.ts) |
+| Integración continua | Parcial | [ci.yml](../../.github/workflows/ci.yml) en el PR n.º 5: `verify` correcto, `test-real` fallido |
 
 [← Índice](../README.md)

@@ -59,7 +59,7 @@ Ninguno de los dos disparadores se ejecuta hoy en uso normal, porque ninguna rut
 
 ## Datos en Redis
 
-Solo el radar usa Redis ([radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts)).
+Solo el radar usa Redis ([radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts)). El servicio `apps/radar` usa las mismas claves ([detalle](../migracion/EXTRACCION_RADAR.md#redis)). Redis opera en producción según `/health/ready` del 2026-10-30; proveedor y persistencia, pendientes de validación.
 
 | Patrón de clave | Tipo | Contenido | Vigencia |
 |---|---|---|---|
