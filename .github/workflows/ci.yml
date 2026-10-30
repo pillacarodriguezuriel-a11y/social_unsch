@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify:
+    name: Verificación Estática, Tipos, Cobertura y Compilación
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.14.0'
+          cache: 'npm'
+
+      - name: Instalación limpia de dependencias
+        run: npm ci
+
+      - name: Ejecutar verificación integral (Límites, Tipos, Cobertura >= 90%, Tests y Builds)
+        run: npm run verify
+
+  test-real:
+    name: Pruebas Reales con Servicios Desechables (PostgreSQL y Redis)
+    runs-on: ubuntu-latest
+    needs: verify
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: social_unsch
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.14.0'
+          cache: 'npm'
+
+      - name: Instalación limpia de dependencias
+        run: npm ci
+
+      - name: Compilar contratos de intercambio
+        run: npm run build:contracts
+
+      - name: Ejecutar pruebas reales contra contenedores desechables
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:55432/social_unsch
+          REDIS_URL: redis://localhost:56379
+          NODE_ENV: test
+        run: npm run test:real

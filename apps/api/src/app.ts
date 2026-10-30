@@ -10,6 +10,7 @@ import catalogsRoutes from './modules/catalogs/catalogs.routes';
 import { RadarModule } from './modules/radar/radar.module';
 import { createHealthRouter, DependencyCheck } from './health/health.routes';
 import { errorMiddleware } from './middlewares/error.middleware';
+import { createApiLoggingMiddleware } from './middlewares/logging.middleware';
 import { resolveAllowedOrigins } from './config/env';
 
 /** Prefijo bajo el que se monta el radar, sea local o proxy. El frontend no cambia. */
@@ -34,6 +35,9 @@ export function createApp(deps: AppDependencies): Application {
 
   // Middleware de seguridad Helmet
   app.use(helmet());
+
+  // Observabilidad estructurada y propagación de x-request-id
+  app.use(createApiLoggingMiddleware('social-unsch-api'));
 
   // Salud: fuera de /api/v1 y antes de CORS (la consulta la plataforma, no el navegador)
   app.use('/health', createHealthRouter(deps.readinessChecks));

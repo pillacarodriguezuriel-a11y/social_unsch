@@ -12,8 +12,11 @@ export function errorMiddleware(
   res: Response,
   next: NextFunction
 ): void {
+  if (!res.locals) res.locals = {};
+
   // Manejo de errores de negocio y seguridad controlados (AppError)
   if (err instanceof AppError) {
+    res.locals.errorCode = err.errorCode;
     res.status(err.statusCode).json({
       error: true,
       message: err.message,
@@ -30,6 +33,7 @@ export function errorMiddleware(
       ? `${firstIssue.path.join('.')}: ${firstIssue.message}` 
       : 'Error de validación en los datos provistos.';
       
+    res.locals.errorCode = 'ERR_VALIDATION_INVALID_FIELDS';
     res.status(400).json({
       error: true,
       message: message,
@@ -41,6 +45,7 @@ export function errorMiddleware(
   // Registramos detalladamente los errores inesperados para diagnóstico
   console.error('Error no controlado en el servidor:', err);
 
+  res.locals.errorCode = 'ERR_SERVER_INTERNAL_ERROR';
   // Respuesta por defecto ante errores internos no controlados
   res.status(500).json({
     error: true,
