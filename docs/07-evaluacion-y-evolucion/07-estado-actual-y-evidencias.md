@@ -6,11 +6,11 @@ Fotografía verificable del 2026-10-30. No incluye credenciales: no se leyó nin
 
 | Dato | Valor |
 |---|---|
-| Rama de trabajo | `feat/etapa-4-radar-service` |
-| Último commit | `f480728`, 2026-10-23, igual a `origin` |
-| `main` y `origin/main` | `96783ef` (fusión del PR n.º 4) |
-| Diferencia con `main` | 5 commits, todos de la etapa 4 |
-| Pull request | N.º 5, abierto, sin fusionar |
+| Rama de referencia | `main` |
+| Commit del código | `b763885`, fusión del PR n.º 5 (2026-10-30, 13:07 UTC) |
+| Commit anterior de `main` | `96783ef` (fusión del PR n.º 4) |
+| Fusión | Se hizo con `test-real` en rojo |
+| Pull requests abiertos | Ninguno de la etapa 4 |
 | Workspaces | `packages/contracts`, `apps/api`, `apps/web`, `apps/radar` |
 
 Archivos sin seguimiento presentes al revisar, ajenos a este trabajo: `Social_UNSCH_Propuesta_Tecnica_y_Arquitectura.docx`, `TEST_REPORT.md`, `documento_qa/`, `reporte_despliegue_y_pendientes.md` y `skill/Social_unsch_informe/`. Los dos informes en Markdown se leyeron como contexto; describen estados antiguos, anteriores al monorepo.
@@ -46,14 +46,14 @@ Son 16 rutas bajo `/api/v1`, más `/health/live` y `/health/ready`. Definición:
 | API | 448 de 448 | Local, 2026-10-30 |
 | Radar | 59 de 59 | Local, 2026-10-30 |
 | Web | 14 de 14 | Local, 2026-10-30 |
-| Tipos, cobertura y compilación (`npm run verify`) | Correcto | CI, job `verify`, 2026-10-23 |
-| Pruebas reales (`test:real`) | **Fallido** en CI. No ejecutadas en local: Docker no estaba activo | CI, job `test-real`, 2026-10-23 |
+| Tipos, cobertura y compilación (`npm run verify`) | Correcto | CI, job `verify`, 2026-10-23 y 2026-10-30 |
+| Pruebas reales (`test:real`) | **Fallido** en CI, también en `main`. No ejecutadas en local: Docker no estaba activo | CI, job `test-real`, 2026-10-23 y 2026-10-30 |
 
-Cobertura en [Métricas](06-metricas.md). Ejecución: [39985651148](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/39985651148).
+Cobertura en [Métricas](06-metricas.md). Ejecuciones: [39985651148](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/39985651148) en el PR y [41060703064](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/41060703064) en `main`.
 
 ## Producción y salud
 
-Solicitudes GET de solo lectura, 2026-10-30, 12:51 UTC.
+Solicitudes GET de solo lectura, 2026-10-30, 12:51 y 13:10 UTC. La tabla muestra la primera; la segunda, tras la fusión, repitió los resultados de salud y de Radar.
 
 | Comprobación | Resultado | Qué demuestra |
 |---|---|---|
@@ -62,8 +62,9 @@ Solicitudes GET de solo lectura, 2026-10-30, 12:51 UTC.
 | `/api/v1/catalogs/schools` | 200 con datos | Catálogos cargados |
 | `/api/v1/radar/status` sin token | 401 `ERR_AUTH_TOKEN_MISSING` | Guarda activa |
 | Radar `social-unsch-radar.onrender.com/health/live` | 404 | El servicio no existe con ese nombre |
+| Cabecera `x-request-id` en la API, 13:10 UTC | Presente | La API desplegada incluye código de la etapa 4 |
 | Vercel `/login` | 200 | Frontend operativo |
-| Último despliegue de producción en GitHub | `96783ef` | La web corresponde a `main` |
+| Último despliegue de producción en GitHub | `b763885` | La web corresponde a `main` |
 
 No se usó ninguna cuenta ni se escribió en producción. El commit exacto de la API en Render no se pudo determinar.
 

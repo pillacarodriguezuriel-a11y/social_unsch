@@ -23,7 +23,7 @@ Detenerse también es un resultado válido. La [alternativa de alcance reducido]
 
 ```mermaid
 flowchart LR
-    A["1. Entrada estable<br/>IMPLEMENTADO"] --> B["2. Pieza nueva al lado<br/>IMPLEMENTADO en PR"]
+    A["1. Entrada estable<br/>IMPLEMENTADO"] --> B["2. Pieza nueva al lado<br/>IMPLEMENTADO en `main`"]
     B --> C["3. Redirigir tráfico<br/>PENDIENTE"]
     C --> D["4. Observar<br/>PENDIENTE"]
     D --> E["5. Retirar lo antiguo<br/>PENDIENTE"]
@@ -33,8 +33,8 @@ flowchart LR
 | Paso | Realización en Radar | Estado |
 |---|---|---|
 | Entrada estable | La API monta Radar en `/api/v1/radar` como unidad reemplazable | IMPLEMENTADO en `main` |
-| Pieza nueva al lado | `apps/radar` | IMPLEMENTADO en el PR n.º 5 |
-| Redirigir | `RADAR_MODE=proxy` | PENDIENTE: exige fusión, despliegue y autorización |
+| Pieza nueva al lado | `apps/radar` | IMPLEMENTADO en `main`, sin desplegar |
+| Redirigir | `RADAR_MODE=proxy` | PENDIENTE: exige CI en verde, despliegue y autorización |
 | Observar | Periodo mínimo de 2 semanas | PENDIENTE |
 | Retirar | Borrar `apps/api/src/modules/radar` salvo el proxy | PENDIENTE |
 
@@ -45,7 +45,7 @@ flowchart LR
 | 1. Línea base e infraestructura | IMPLEMENTADO | [ETAPA_01](ETAPA_01_LINEA_BASE.md) |
 | 2. Estabilización | IMPLEMENTADO; aplicación remota parcialmente verificada | [ETAPA_02](ETAPA_02_ESTABILIZACION.md) |
 | 3. Monorepo, contratos y límites | IMPLEMENTADO: en `main` y en producción | [ETAPA_03](ETAPA_03_PREPARACION_SEPARACION.md) |
-| 4. Extracción de Radar | IMPLEMENTADO PARCIALMENTE: código en PR, CI en rojo, sin desplegar | [ETAPA_04](ETAPA_04_EXTRACCION_RADAR.md), [estado vigente](EXTRACCION_RADAR.md) |
+| 4. Extracción de Radar | IMPLEMENTADO PARCIALMENTE: en `main`, CI en rojo, servicio sin desplegar | [ETAPA_04](ETAPA_04_EXTRACCION_RADAR.md), [estado vigente](EXTRACCION_RADAR.md) |
 | 5. Identidad y comunidad | PROPUESTO | [Plan](../07-evaluacion-y-evolucion/03-plan-de-migracion.md#etapa-5--identidad-y-comunidad) |
 | 6. Movilidad | PROPUESTO | [Plan](../07-evaluacion-y-evolucion/03-plan-de-migracion.md#etapa-6--movilidad) |
 | 7. Recursos, créditos y eventos selectivos | PROPUESTO | [Plan](../07-evaluacion-y-evolucion/03-plan-de-migracion.md#etapa-7--recursos-créditos-e-integración-asíncrona) |

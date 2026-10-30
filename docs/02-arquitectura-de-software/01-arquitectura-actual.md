@@ -1,6 +1,6 @@
 # Arquitectura actual
 
-Descripción de lo que **existe hoy en `main` (`96783ef`) y en producción**, comprobado el 2026-10-30. Lo añadido por la etapa 4 en el [PR n.º 5](https://github.com/pillacarodriguezuriel-a11y/social_unsch/pull/5) se señala aparte y pertenece a la [arquitectura de transición](04-arquitectura-de-transicion.md). Lo que no pudo comprobarse se indica.
+Descripción de lo que **opera hoy en producción**, comprobado el 2026-10-30 sobre `main` (`b763885`). La API desplegada ya incluye el código de la etapa 4, pero sigue atendiendo Radar en proceso. El servicio `apps/radar` está en el repositorio sin desplegar y pertenece a la [arquitectura de transición](04-arquitectura-de-transicion.md). Lo que no pudo comprobarse se indica.
 
 ## En una frase
 
@@ -8,7 +8,7 @@ SOCIAL-UNSCH es hoy un **monolito modular**: una aplicación web y **una sola AP
 
 > Utilizar Vercel, Render, Supabase y Upstash no convierte automáticamente al sistema en una arquitectura de microservicios. Son plataformas donde se ejecutan dos aplicaciones y dos almacenes.
 
-El repositorio ya contiene el código de un servicio Radar independiente, pero ese servicio no está fusionado ni desplegado.
+El repositorio ya contiene el código de un servicio Radar independiente, pero ese servicio no está desplegado.
 
 ## Unidades de despliegue
 
@@ -75,7 +75,7 @@ Qué pantallas consumen la API y cuáles trabajan con datos del navegador:
 Definida en [app.ts](../../apps/api/src/app.ts), en este orden:
 
 1. `helmet()`: cabeceras de seguridad.
-2. Registro JSON y `x-request-id` (solo en el PR n.º 5).
+2. Registro JSON y `x-request-id`.
 3. `/health/live` y `/health/ready` (etapa 3), fuera de `/api/v1` y antes de CORS.
 4. `cors()`: lista de orígenes de `ALLOWED_ORIGINS`; las solicitudes sin cabecera `Origin` se aceptan.
 5. Análisis de JSON y formularios.
@@ -103,7 +103,7 @@ Son 16 rutas. Cada módulo vive en `src/modules/<nombre>/` y, salvo `catalogs`, 
 | Recurso | Cómo se accede | Configuración | Evidencia |
 |---|---|---|---|
 | PostgreSQL | Un `Pool` de `pg` compartido por todos los módulos | Máximo 20 conexiones, 2 s de espera de conexión, sin opción TLS explícita | [database.ts](../../apps/api/src/config/database.ts) |
-| Redis | Un cliente `ioredis` creado en [composition.ts](../../apps/api/src/composition.ts) e inyectado en el radar | En `main`, hasta 5 reintentos. El PR n.º 5 pasa a reconexión con tope de 3 s, sin cola y un reintento por comando. Si no se define URL, intenta `127.0.0.1:6379` | [redis.ts](../../apps/api/src/config/redis.ts) |
+| Redis | Un cliente `ioredis` creado en [composition.ts](../../apps/api/src/composition.ts) e inyectado en el radar | Reconexión con tope de 3 s, sin cola y un reintento por comando. Si no se define URL, intenta `127.0.0.1:6379` | [redis.ts](../../apps/api/src/config/redis.ts) |
 
 No hay ORM (herramienta de mapeo objeto-relacional): los repositorios escriben SQL parametrizado. El esquema está en [src/database/migrations/sql](../../apps/api/src/database/migrations/sql) y se describe en [Datos y propiedad por dominio](06-datos-y-propiedad-por-dominio.md).
 
@@ -133,7 +133,7 @@ Para evitar suposiciones, se enumera lo que un lector podría esperar y no está
 - Caché de consultas (Redis se usa solo como almacén del radar).
 - Métricas, trazas o alertas (las rutas de salud existen desde la etapa 3).
 - Limitación de frecuencia de solicitudes.
-- Archivos de despliegue versionados. La integración continua solo existe en el PR n.º 5 y no está en verde.
+- Archivos de despliegue versionados. La integración continua existe, pero no está en verde.
 - Contenedor Docker de la aplicación: [docker-compose.yml](../../docker-compose.yml) solo define PostgreSQL y Redis para desarrollo local.
 
 ## Puntos de acoplamiento

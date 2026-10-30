@@ -21,7 +21,7 @@ Separa lo que se propone medir de lo que se ha medido. Una meta no es un resulta
 
 ## Resultados medidos
 
-Medidos el 2026-10-30 sobre `f480728`, salvo donde se indique.
+Medidos el 2026-10-30 sobre `b763885`, salvo donde se indique.
 
 ### Cobertura
 
@@ -37,8 +37,8 @@ Son pruebas con dobles, ejecutadas en el equipo de desarrollo.
 
 | Job | Resultado | Ejecución |
 |---|---|---|
-| `verify` | Correcto | `39985651148`, 2026-10-23 |
-| `test-real` | **Fallido** | `39985651148`, 2026-10-23 |
+| `verify` | Correcto | `39985651148` y `41060703064` en `main` |
+| `test-real` | **Fallido** | `39985651148` y `41060703064` en `main` |
 
 ### Producción
 

@@ -1,7 +1,7 @@
 # C3 · Componentes del backend
 
 **Pregunta:** ¿cómo se dividen internamente el contenedor «API» y el contenedor «Servicio Radar»?
-**Describe:** el código de la rama `feat/etapa-4-radar-service` (`f480728`). Salvo el modo proxy activo y `apps/radar`, coincide con lo que corre en producción.
+**Describe:** el código de la `main` (`b763885`). La API de producción ya incluye este código, con Radar en modo local; `apps/radar` no está desplegado.
 
 Los componentes son agrupaciones de código dentro de un mismo proceso. Ninguno se despliega por separado.
 
@@ -110,7 +110,7 @@ flowchart LR
 
 ## Diagrama del servicio Radar
 
-**Estado: IMPLEMENTADO PARCIALMENTE.** Código en PR, sin desplegar.
+**Estado: IMPLEMENTADO PARCIALMENTE.** Código en `main`, sin desplegar.
 
 ```mermaid
 flowchart TB

@@ -24,7 +24,7 @@ Ningún registro tiene aprobación documentada. La fecha indicada es la de redac
 | [ADR-005](ADR-005-propiedad-gradual-de-datos.md) | Propiedad gradual de los datos por dominio | Propuesto | En discusión |
 | [ADR-006](ADR-006-plataformas-de-despliegue.md) | Plataformas gestionadas para el despliegue | Retrospectivo | Vigente; configuración pendiente de verificación |
 | [ADR-007](ADR-007-workspaces-y-montaje-de-radar.md) | Separación en npm workspaces y montaje reemplazable de Radar | Decisión de la etapa 3 | Implementada en `main` (PR n.º 4) |
-| [ADR-008](ADR-008-extraccion-radar-servicio-independiente.md) | Extracción de Radar como servicio independiente y enrutamiento reversible | Decisión de la etapa 4 | Implementada parcialmente: PR n.º 5 abierto, `test-real` fallido, sin desplegar. Tiene [nota de corrección](ADR-008-extraccion-radar-servicio-independiente.md) |
+| [ADR-008](ADR-008-extraccion-radar-servicio-independiente.md) | Extracción de Radar como servicio independiente y enrutamiento reversible | Decisión de la etapa 4 | Implementada parcialmente: en `main`, `test-real` fallido, servicio sin desplegar. Tiene [nota de corrección](ADR-008-extraccion-radar-servicio-independiente.md) |
 
 ## Síntesis por decisión
 

@@ -1,6 +1,6 @@
 # C2 · Contenedores de transición
 
-> **Estado: IMPLEMENTADO PARCIALMENTE.** El código existe en el [PR n.º 5](https://github.com/pillacarodriguezuriel-a11y/social_unsch/pull/5), sin fusionar. El servicio Radar **no está desplegado** y la API de producción sigue atendiendo Radar en proceso. En CI, `verify` pasó y `test-real` falló. Detalle en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md).
+> **Estado: IMPLEMENTADO PARCIALMENTE.** El código está en `main` desde el [PR n.º 5](https://github.com/pillacarodriguezuriel-a11y/social_unsch/pull/5). La API desplegada incluye el proxy, sin activar. El servicio Radar **no está desplegado** y la API sigue atendiendo Radar en proceso. En CI, `verify` pasa y `test-real` falla. Detalle en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md).
 
 **Pregunta:** ¿cómo conviven el núcleo y Radar durante la migración?
 
@@ -36,7 +36,7 @@ flowchart TB
     class PX,RSV codigo
 ```
 
-**Leyenda:** trazo continuo, en operación. Trazo grueso verde, con código pero sin desplegar ni activar.
+**Leyenda:** trazo continuo, en operación. Trazo grueso verde, con código en `main` pero sin desplegar o sin activar.
 
 ## Contenedores
 
@@ -46,7 +46,7 @@ flowchart TB
 | API principal | Express | Emite tokens, atiende los demás módulos y monta Radar en `/api/v1/radar` | IMPLEMENTADO |
 | Proxy de Radar | [radar.proxy.ts](../../apps/api/src/modules/radar/radar.proxy.ts) | Reenvía a `RADAR_PROXY_TARGET`. Sin reintentos ni respaldo local automático. Responde 502 o 504 | IMPLEMENTADO; sin activar |
 | Radar local | [radar.module.ts](../../apps/api/src/modules/radar/radar.module.ts) | Respaldo de reversión y modo vigente en producción | IMPLEMENTADO |
-| Servicio Radar | [apps/radar](../../apps/radar/package.json) | Proceso independiente con su propia configuración, salud y registros | IMPLEMENTADO PARCIALMENTE: código en PR, sin desplegar |
+| Servicio Radar | [apps/radar](../../apps/radar/package.json) | Proceso independiente con su propia configuración, salud y registros | IMPLEMENTADO PARCIALMENTE: código en `main`, sin desplegar |
 | PostgreSQL | — | Sin cambios; Radar no lo usa | IMPLEMENTADO |
 | Redis | — | Cada proceso usa su propia conexión; las claves `radar:*` son las mismas | IMPLEMENTADO |
 

@@ -4,7 +4,7 @@ Dónde se ejecuta cada pieza del sistema y qué se pudo comprobar. Este document
 
 No se tuvo acceso a los paneles de ninguna plataforma. Todo lo verificado se obtuvo desde fuera: API pública de GitHub y solicitudes HTTP de solo lectura hechas el **2026-10-12** y repetidas el **2026-10-30**.
 
-> **Comprobación del 2026-10-30.** API: `/health/live` 200 (32,6 s en frío) y `/health/ready` con `database: up` y `radar: up`, lo que confirma que la etapa 3 está desplegada y que Redis responde. Web: `/login` 200 y último despliegue de producción en `96783ef`. Servicio Radar en `social-unsch-radar.onrender.com`: **404, no desplegado**. Donde las tablas siguientes digan otra cosa sobre Redis, prevalece esta nota.
+> **Comprobación del 2026-10-30.** API: `/health/live` 200 (32,6 s en frío) y `/health/ready` con `database: up` y `radar: up`, lo que confirma que Redis responde. La respuesta incluye `x-request-id`, añadida por la etapa 4: la API desplegada ya tiene ese código, lo que indica despliegue automático desde `main`. Web: `/login` 200 y último despliegue de producción en `b763885`. Servicio Radar en `social-unsch-radar.onrender.com`: **404, no desplegado**. Donde las tablas siguientes digan otra cosa sobre Redis, prevalece esta nota.
 
 ## Mapa
 
@@ -27,7 +27,7 @@ flowchart TB
 
     DEV -- "git push" --> GH
     GH -- "despliegue automático" --> WEB
-    GH -. "despliegue: mecanismo sin verificar" .-> API
+    GH -. "despliegue automático, inferido" .-> API
     NAV -- "HTTPS" --> WEB
     NAV -- "HTTPS, API" --> API
     API --> PG
@@ -44,7 +44,7 @@ Trazo continuo: relación verificada. Trazo discontinuo: relación prevista o si
 | Aspecto | Valor | Estado |
 |---|---|---|
 | Repositorio de origen | `pillacarodriguezuriel-a11y/social_unsch` | Verificado: GitHub registra despliegues creados por la integración de Vercel |
-| Rama de producción | `main` | Verificado: el despliegue de producción más reciente corresponde al commit `96783ef` |
+| Rama de producción | `main` | Verificado: el despliegue de producción más reciente corresponde al commit `b763885` |
 | Despliegues de vista previa | Se crean para ramas distintas de `main` | Verificado: GitHub registra despliegues de entorno «Preview» para ramas del repositorio |
 | Dirección pública | `https://social-unsch-lemon.vercel.app` | Verificado: `/login` respondió 200 |
 | URL de API incrustada | `https://social-unsch.onrender.com/api/v1` | Verificado el 2026-10-10 inspeccionando el código publicado; no se repitió el 2026-10-12 |
@@ -97,7 +97,7 @@ Falta probar un voto real con una cuenta, lo que escribiría datos en producció
 |---|---|---|
 | Visibilidad | Repositorio público | Verificado |
 | Rama por defecto | `main` | Verificado |
-| Integración continua | [ci.yml](../../.github/workflows/ci.yml) en el PR n.º 5, sin fusionar: `verify` correcto y `test-real` fallido | Verificado |
+| Integración continua | [ci.yml](../../.github/workflows/ci.yml) en `main`: `verify` correcto y `test-real` fallido | Verificado |
 | Protección de rama | — | Pendiente de verificación |
 
 ## Resumen

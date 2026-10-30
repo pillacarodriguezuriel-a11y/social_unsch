@@ -1,6 +1,6 @@
 # Observabilidad y recuperación
 
-**Observabilidad** es la capacidad de saber qué le ocurre a un sistema en ejecución a partir de lo que emite: registros, métricas y trazas. Este documento describe lo que el sistema ofrece hoy, que es poco, y lo que se propone. Los registros JSON y la correlación están en el PR n.º 5: **no llegan a producción hasta su fusión**.
+**Observabilidad** es la capacidad de saber qué le ocurre a un sistema en ejecución a partir de lo que emite: registros, métricas y trazas. Este documento describe lo que el sistema ofrece hoy, que es poco, y lo que se propone. Los registros JSON y la correlación ya están en producción: la API devuelve `x-request-id`.
 
 ## Qué se puede observar hoy
 
@@ -10,8 +10,8 @@
 | Registro de conexión a Redis | Sí | Conexión, errores y aviso al agotar reintentos | [redis.ts](../../apps/api/src/config/redis.ts) |
 | Registro de errores no controlados | Sí | `console.error` con el error completo | [error.middleware.ts](../../apps/api/src/middlewares/error.middleware.ts) |
 | Registro de errores del pool | Sí | Errores inesperados de conexiones inactivas | [database.ts](../../apps/api/src/config/database.ts) |
-| Registro de solicitudes | En el PR n.º 5 | JSON con `timestamp`, `service`, `requestId`, `method`, `path`, `statusCode`, `durationMs` y `errorCode`, en API y Radar | [logging.middleware.ts](../../apps/api/src/middlewares/logging.middleware.ts) |
-| Identificador de solicitud | En el PR n.º 5 | `x-request-id` validado, generado si falta y propagado por el proxy | [logging.middleware.ts](../../apps/api/src/middlewares/logging.middleware.ts) |
+| Registro de solicitudes | Sí | JSON con `timestamp`, `service`, `requestId`, `method`, `path`, `statusCode`, `durationMs` y `errorCode`, en API y Radar | [logging.middleware.ts](../../apps/api/src/middlewares/logging.middleware.ts) |
+| Identificador de solicitud | Sí | `x-request-id` validado, generado si falta y propagado por el proxy | [logging.middleware.ts](../../apps/api/src/middlewares/logging.middleware.ts) |
 | Rutas de salud | Sí, desde la etapa 3 | `GET /health/live` (proceso) y `GET /health/ready` (PostgreSQL crítico, radar no crítico; 503 solo si cae PostgreSQL) | [health.routes.ts](../../apps/api/src/health/health.routes.ts) |
 | Validación de configuración al arrancar | Sí, desde la etapa 3 | Mensajes con nombres de variables, sin valores | [env.ts](../../apps/api/src/config/env.ts) |
 | Cierre ordenado | Sí, desde la etapa 3 | `SIGTERM`/`SIGINT` cierran el servidor, Redis y PostgreSQL (límite de 10 s) | [server.ts](../../apps/api/src/server.ts), [bootstrap.ts](../../apps/api/src/bootstrap.ts) |
@@ -20,7 +20,7 @@
 | Alertas | **No** | — | — |
 | Auditoría de acciones de usuario | **No** | Solo existe una tabla de auditoría de moderación, sin uso | [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) |
 
-En `main`, los registros son texto libre en la salida estándar. Dónde se conservan y durante cuánto tiempo depende de la plataforma de alojamiento; está pendiente de verificación.
+Los registros de solicitudes son JSON; los de arranque y conexión siguen siendo texto libre en la salida estándar. Dónde se conservan y durante cuánto tiempo depende de la plataforma de alojamiento; está pendiente de verificación.
 
 Consecuencia: sin alertas, la forma de saber si el sistema falla es consultar la salud o usarlo. Un fallo de la base de datos se manifestó como errores 500 sin ninguna señal previa, según el informe de la etapa 1.
 
@@ -49,7 +49,7 @@ La primera solicitud tras un periodo sin uso puede tardar decenas de segundos; n
 |---|---|---|---|
 | API suspendida por inactividad | La primera acción tarda mucho | Ninguna | Automática al recibir tráfico |
 | Base de datos pausada o inaccesible | No se puede iniciar sesión; errores genéricos | Errores 500 en el registro de la API | Reactivar la base en el panel del proveedor; la API se recupera sin redespliegue, según el diseño del pool |
-| Redis inaccesible | El radar no carga; lo demás funciona | `radar: down` en `/health/ready` y errores de conexión | Restaurar el recurso o corregir `REDIS_URL`. En `main` el cliente deja de reintentar tras 5 fallos y puede requerir reinicio; el PR n.º 5 reconecta sin límite |
+| Redis inaccesible | El radar no carga; lo demás funciona | `radar: down` en `/health/ready` y errores de conexión | Restaurar el recurso o corregir `REDIS_URL`. El cliente reconecta sin límite de intentos, con tope de 3 s entre ellos |
 | Servicio Radar caído, en modo proxy | Radar responde 502 o 504; lo demás funciona | `radar: down` en la API | Corregir el servicio o [revertir](../migracion/EXTRACCION_RADAR.md#estrategia-de-rollback) |
 | Esquema por detrás del código | Errores 500 en rutas concretas | Error de SQL en el registro | Aplicar las migraciones pendientes |
 | Claves JWT cambiadas | Todos los usuarios pierden la sesión | Respuestas 401 | Volver a iniciar sesión |
@@ -71,7 +71,7 @@ No hay en el repositorio ningún procedimiento ni automatización de respaldo de
 
 ### Mínimo antes de extraer el primer servicio (etapa 3)
 
-Tras la etapa 3: rutas de vida y disponibilidad, respuesta 503 en la disponibilidad y validación de configuración están **implementadas**. Registro de solicitudes e identificador de solicitud están en el PR n.º 5, sin fusionar.
+Tras la etapa 3: rutas de vida y disponibilidad, respuesta 503 en la disponibilidad y validación de configuración están **implementadas**. Registro de solicitudes e identificador de solicitud se añadieron en la etapa 4.
 
 | Elemento | Descripción |
 |---|---|
@@ -90,7 +90,7 @@ Tras la etapa 3: rutas de vida y disponibilidad, respuesta 503 en la disponibili
 | Alertas | Sobre la ruta de disponibilidad y la tasa de errores |
 | Respaldo programado | Copia periódica de PostgreSQL fuera del proveedor, con una restauración de prueba |
 | Objetivos de servicio | Definir y medir disponibilidad y latencia; hoy solo hay objetivos sin validar en [Escenarios de calidad](../01-analisis-del-sistema/08-escenarios-de-calidad.md) |
-| Reconexión a Redis | Implementada en el PR n.º 5 |
+| Reconexión a Redis | Implementada |
 | Cierre ordenado | Implementado en la etapa 3 |
 
 ### Objetivos de recuperación

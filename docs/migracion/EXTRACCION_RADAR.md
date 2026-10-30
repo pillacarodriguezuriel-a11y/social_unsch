@@ -1,6 +1,6 @@
 # Extracción de Radar
 
-Documento vivo del estado de la extracción, verificado el 2026-10-30 sobre `f480728`. El registro histórico de la implementación es [ETAPA_04](ETAPA_04_EXTRACCION_RADAR.md); la decisión, [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Si difieren, vale este documento y, por encima de él, el código.
+Documento vivo del estado de la extracción, verificado el 2026-10-30 sobre `b763885`. El registro histórico de la implementación es [ETAPA_04](ETAPA_04_EXTRACCION_RADAR.md); la decisión, [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Si difieren, vale este documento y, por encima de él, el código.
 
 ## ¿Por qué Radar?
 
@@ -18,12 +18,13 @@ Es el dominio con menor costo de separación. Sirve para validar el mecanismo an
 
 | Aspecto | Estado | Evidencia |
 |---|---|---|
-| Código de `apps/radar` | IMPLEMENTADO | 5 commits en `feat/etapa-4-radar-service` |
-| Fusión a `main` | PENDIENTE | PR n.º 5 abierto; `main` sigue en `96783ef` |
-| CI, job `verify` | Correcto | Ejecución `39985651148` |
-| CI, job `test-real` | **Fallido** | Misma ejecución; causa en [Pruebas requeridas](#pruebas-requeridas) |
+| Código de `apps/radar` | IMPLEMENTADO | En `main`, commit `b763885` |
+| Fusión a `main` | IMPLEMENTADO | PR n.º 5, 2026-10-30 |
+| Código de la etapa 4 en la API de producción | IMPLEMENTADO | La respuesta incluye `x-request-id` |
+| CI, job `verify` | Correcto | Ejecuciones `39985651148` y `41060703064` |
+| CI, job `test-real` | **Fallido** | Mismas ejecuciones; causa en [Pruebas requeridas](#pruebas-requeridas) |
 | Pruebas locales con dobles | Correctas | 59 de 59 en Radar; 448 de 448 en la API (2026-10-30) |
-| Despliegue en Render | NO IMPLEMENTADO | `social-unsch-radar.onrender.com/health/live` respondió 404 el 2026-10-30 |
+| Despliegue en Render | NO IMPLEMENTADO | `social-unsch-radar.onrender.com/health/live` respondió 404 el 2026-10-30, también tras la fusión |
 | Modo en producción | Local | `radar: up` con el servicio remoto inexistente. Valor de la variable: PENDIENTE DE VALIDACIÓN |
 
 **Conclusión:** Radar tiene código de servicio independiente, pero **aún no es un servicio en operación**.
@@ -85,9 +86,9 @@ flowchart LR
     A["Preparar CI y límites"] --> B["Crear apps/radar"]
     B --> C["Reforzar Redis y registros"]
     C --> D["Probar con dobles"]
-    D --> E["Corregir test-real"]
-    E --> F["Fusionar"]
-    F --> G["Desplegar Radar"]
+    D --> F["Fusionar"]
+    F --> E["Corregir test-real"]
+    E --> G["Desplegar Radar"]
     G --> H["Medir"]
     H --> I["Activar proxy"]
     I --> J["Observar 2 semanas"]
@@ -95,15 +96,15 @@ flowchart LR
 
     classDef hecho stroke:#2e7d32,stroke-width:3px
     classDef pend stroke-dasharray: 5 5
-    class A,B,C,D hecho
-    class E,F,G,H,I,J,K pend
+    class A,B,C,D,F hecho
+    class E,G,H,I,J,K pend
 ```
 
 Trazo verde: hecho. Trazo discontinuo: pendiente.
 
 ## Arquitectura antes
 
-Estado de `main` y de producción.
+Estado previo a la etapa 4.
 
 ```mermaid
 flowchart LR
@@ -113,7 +114,7 @@ flowchart LR
 
 ## Arquitectura durante
 
-Estado del código en el PR, tras desplegar y activar.
+Estado previsto al desplegar el servicio y activar el proxy. El código ya está en `main`.
 
 ```mermaid
 flowchart LR
@@ -141,7 +142,7 @@ flowchart LR
 
 Requiere autorización. Orden:
 
-1. Fusionar con la CI en verde.
+1. Dejar la CI en verde.
 2. Crear el servicio en Render con `NODE_ENV`, `REDIS_URL`, `JWT_PUBLIC_KEY` y `ALLOWED_ORIGINS`.
 3. Comprobar `/health/ready` del servicio.
 4. Definir en la API `RADAR_MODE=proxy` y `RADAR_PROXY_TARGET`, y reiniciarla.
@@ -173,7 +174,7 @@ No eliminar `RADAR_PROXY_TARGET` ni dejarlo vacío con `RADAR_MODE=proxy`: la AP
 | Implementaciones divergentes | Reversión con comportamiento distinto | Congelar cambios; retirar la copia local a tiempo | Abierto; ya hay una diferencia en `last_updated` |
 | Dos entradas a Radar | El servicio queda expuesto en internet además de por la API | Exige token; valorar una restricción adicional | Abierto |
 | CORS permisivo | Sin `ALLOWED_ORIGINS` en producción usa orígenes por defecto con `localhost`, solo con aviso | Definir la variable; endurecer `env.ts` | Abierto |
-| Pruebas reales sin ejecutarse en CI | Fusionar sin la red de seguridad prevista | Corregir `test-real` | **Bloqueante** |
+| Pruebas reales sin pasar en CI | La etapa 4 se fusionó sin la red de seguridad prevista | Corregir `test-real` antes de activar el proxy | **Bloqueante para activar** |
 | Sin pruebas de `apps/radar` con Redis real | El script Lua solo se prueba de verdad desde la API | Añadir suite real | Abierto |
 | Costo y operación | Un servicio más | Medir antes de seguir | Abierto |
 

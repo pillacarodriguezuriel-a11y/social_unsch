@@ -7,7 +7,7 @@
 | Elemento | Clasificación |
 |---|---|
 | Monorepo, contratos de Radar, límites comprobados, entrada `/api/v1` | Implementado |
-| Servicio Radar | Siguiente etapa: código en PR, falta validar, desplegar y activar |
+| Servicio Radar | Siguiente etapa: código en `main`, falta validar, desplegar y activar |
 | Identidad y Comunidad separadas | Futuro |
 | Movilidad como servicio | Futuro |
 | Recursos y créditos como servicio | Futuro; primero hay que construirlo |

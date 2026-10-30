@@ -1,6 +1,6 @@
 # Arquitectura de transición
 
-> **Estado: IMPLEMENTADO PARCIALMENTE.** La preparación de la etapa 3 está en `main` y en producción. El servicio Radar y el proxy probado de la etapa 4 están en el [PR n.º 5](https://github.com/pillacarodriguezuriel-a11y/social_unsch/pull/5), sin fusionar ni desplegar. En producción, Radar se atiende dentro de la API.
+> **Estado: IMPLEMENTADO PARCIALMENTE.** Las etapas 3 y 4 están en `main` y la API desplegada incluye el proxy, sin activar. El servicio Radar **no está desplegado**: en producción, Radar se atiende dentro de la API.
 
 ## Por qué hace falta una arquitectura intermedia
 

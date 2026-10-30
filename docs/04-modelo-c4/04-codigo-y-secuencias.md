@@ -1,7 +1,7 @@
 # C4 · Código y secuencias
 
 **Pregunta:** ¿qué clases, funciones e interfaces realizan los flujos arquitectónicamente importantes?
-**Describe:** el código de la rama `feat/etapa-4-radar-service` (`f480728`). Solo se dibujan flujos seleccionados, no todo el repositorio.
+**Describe:** el código de la `main` (`b763885`). Solo se dibujan flujos seleccionados, no todo el repositorio.
 
 | Flujo | Sección |
 |---|---|
@@ -106,7 +106,7 @@ El consenso es atómico porque vive en el script Lua, no en el servicio.
 
 ## A3. Radar a través del proxy
 
-**Estado: IMPLEMENTADO PARCIALMENTE.** Código en PR, sin desplegar ni activar.
+**Estado: IMPLEMENTADO PARCIALMENTE.** Código en `main`; el servicio sin desplegar y el proxy sin activar.
 
 ```mermaid
 sequenceDiagram

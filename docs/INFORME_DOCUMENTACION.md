@@ -11,7 +11,7 @@ Cómo se elaboró esta documentación, qué se comprobó realmente y qué limita
 
 ## Revisión del 2026-10-30
 
-Se revisó toda la documentación contra el código de `f480728`, con estas reglas: solo archivos Markdown, ningún cambio de código, sin `commit` ni `push`, y sin leer archivos `.env`. Las secciones siguientes describen la edición original del 2026-10-12.
+Se revisó toda la documentación contra el código de `b763885`, con estas reglas: solo archivos Markdown, ningún cambio de código, y sin leer archivos `.env`. Se actualizó tras la fusión del PR n.º 5. Las secciones siguientes describen la edición original del 2026-10-12.
 
 | Comprobación | Resultado |
 |---|---|

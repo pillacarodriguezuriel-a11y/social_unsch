@@ -7,7 +7,7 @@
 | Universidad | Universidad Nacional de San Cristóbal de Huamanga |
 | Escuela | Escuela Profesional de Ingeniería de Sistemas |
 | Curso | Arquitectura de Software |
-| Estado verificado | 2026-10-30 sobre `f480728`, rama `feat/etapa-4-radar-service` |
+| Estado verificado | 2026-10-30 sobre `b763885`, rama `main` |
 
 ## 1. Introducción
 
@@ -48,7 +48,7 @@ flowchart LR
 SOCIAL-UNSCH se encuentra evolucionando desde un monolito modular hacia una arquitectura con servicios extraídos progresivamente por dominio.
 
 - **En operación:** una aplicación web Next.js (`apps/web`) y una API Express (`apps/api`) que atiende también Radar, sobre PostgreSQL y Redis.
-- **Con código, sin desplegar:** el servicio `apps/radar` y su activación por proxy, en el [PR n.º 5](https://github.com/pillacarodriguezuriel-a11y/social_unsch/pull/5), abierto. En CI, `verify` pasó y `test-real` falló.
+- **Con código, sin desplegar:** el servicio `apps/radar`, fusionado en `main` con el [PR n.º 5](https://github.com/pillacarodriguezuriel-a11y/social_unsch/pull/5). El proxy está en la API de producción, sin activar. En CI, `verify` pasa y `test-real` falla.
 - **Propuesto:** los demás servicios por dominio.
 - **Autenticación:** JWT RS256 propio. La clave privada queda en la API; Radar verifica con la pública.
 - **Frontend:** cinco áreas consumen la API; seis pantallas siguen simuladas en el navegador.
@@ -141,8 +141,8 @@ Informes históricos: [etapa 1](migracion/ETAPA_01_LINEA_BASE.md), [etapa 2](mig
 | Monorepo con npm workspaces | Implementado, en producción |
 | Contratos por dominio | Implementado parcialmente: solo Radar y formato de error |
 | Límites comprobados por script | Implementado |
-| Integración continua | Implementado parcialmente: en PR, `test-real` fallido |
-| Radar independiente | Implementado parcialmente: código en PR, sin desplegar |
+| Integración continua | Implementado parcialmente: `test-real` fallido en `main` |
+| Radar independiente | Implementado parcialmente: código en `main`, sin desplegar |
 | Arquitectura hexagonal | Implementado parcialmente: puerto e inyección solo en Radar |
 | Propiedad de datos por dominio | Propuesto |
 | Eventos selectivos | Propuesto |

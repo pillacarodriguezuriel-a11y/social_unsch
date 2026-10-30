@@ -22,7 +22,7 @@ La etapa 3 ([informe](../migracion/ETAPA_03_PREPARACION_SEPARACION.md)) modific�
 
 ## Estado tras la etapa 4
 
-Revisión del 2026-10-30 sobre `f480728`. Son cambios en el PR n.º 5, sin fusionar.
+Revisión del 2026-10-30 sobre `b763885`. Son cambios ya fusionados en `main` con el PR n.º 5.
 
 | ID | Estado |
 |---|---|
@@ -30,7 +30,7 @@ Revisión del 2026-10-30 sobre `f480728`. Son cambios en el PR n.º 5, sin fusio
 | DT-28 | Sin cambio: se conserva el bilingüismo; unificarlo sigue pendiente |
 | DT-38 | Parcial: existe el flujo; `test-real` falla |
 | DT-39 | Parcial: registro JSON y correlación, sin métricas ni alertas |
-| DT-44 | Resuelta en el PR: reconexión con tope de 3 s |
+| DT-44 | Resuelta: reconexión con tope de 3 s |
 
 ### Hallazgos de la revisión del 2026-10-30
 
@@ -148,7 +148,7 @@ Donde un documento anterior y el código no coinciden, vale el código.
 | ETAPA_04 | «Script Lua idéntico» | El script sí; los argumentos difieren (DT-48) |
 | ETAPA_04 | `ALLOWED_ORIGINS` obligatoria en producción para Radar | Solo genera un aviso (DT-51) |
 | [Plan de migración](03-plan-de-migracion.md) | Configuración de Radar validada con Zod | Validación manual; ningún archivo de `apps/radar/src` importa `zod`. **Corregido** |
-| [README](../../README.md) | «Primer microservicio independiente» | No fusionado ni desplegado. **Corregido** |
+| [README](../../README.md) | «Primer microservicio independiente» | El servicio no está desplegado. **Corregido** |
 
 Los informes de `migracion/` son registros de su momento: no se ha cambiado su contenido. En la etapa 3 solo se actualizaron sus enlaces a archivos que cambiaron de ubicación.
 
@@ -173,7 +173,7 @@ Probabilidad e impacto son estimaciones cualitativas, no mediciones.
 
 Con independencia de la migración, estos puntos protegen lo que ya funciona:
 
-0. Corregir `test-real` en CI, antes de fusionar la etapa 4 ([P-01](08-pendientes.md#críticos)).
+0. Corregir `test-real` en CI ([P-01](08-pendientes.md#críticos)).
 1. DT-18 y RM-03: respaldo de la base.
 2. DT-10: retirar los ejecutores heredados.
 3. DT-09: asegurar que el índice único existe en cada base.

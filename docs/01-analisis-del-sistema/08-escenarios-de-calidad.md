@@ -106,7 +106,7 @@ En la columna de estado, «Verificado» significa que existe una prueba automati
 | Respuesta esperada | El cambio no modifica el código de los demás módulos ni el contrato que consume el frontend |
 | Medida | **Objetivo pendiente de validación:** cero archivos modificados en otros módulos; las pruebas existentes del radar pasan sin cambios en sus aserciones |
 | Verificación | Revisión del cambio y ejecución de [radar.real.test.ts](../../apps/api/tests/real/radar.real.test.ts) |
-| Estado | Implementado en código (PR n.º 5): `apps/radar` no modificó otros módulos ni el contrato. No validado en producción; las pruebas reales fallan en CI |
+| Estado | Implementado en código: `apps/radar` no modificó otros módulos ni el contrato. No validado en producción; las pruebas reales fallan en CI |
 
 ## EC-09 Rendimiento: consulta del radar
 

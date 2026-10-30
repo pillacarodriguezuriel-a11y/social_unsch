@@ -100,7 +100,7 @@ La ausencia de preproducción significa que un cambio de esquema o de backend se
 
 ## Servicio Radar
 
-Variables de `apps/radar` ([plantilla](../../apps/radar/.env.example), [env.ts](../../apps/radar/src/config/env.ts)). **Estado:** código en PR, sin desplegar.
+Variables de `apps/radar` ([plantilla](../../apps/radar/.env.example), [env.ts](../../apps/radar/src/config/env.ts)). **Estado:** código en `main`, sin desplegar.
 
 | Variable | Propósito | Obligatoria | Sensibilidad |
 |---|---|---|---|

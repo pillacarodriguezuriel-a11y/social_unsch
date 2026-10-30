@@ -1,7 +1,7 @@
 # C2 · Contenedores actuales
 
 **Pregunta:** ¿qué aplicaciones y almacenes de datos conforman SOCIAL-UNSCH?
-**Describe:** la realidad en `main` (`96783ef`) y en producción. El servicio Radar de la etapa 4 no está aquí porque no está fusionado ni desplegado: su diagrama es el de [transición](05-contenedores-de-transicion.md).
+**Describe:** lo que opera en producción, comprobado el 2026-10-30. El servicio Radar no está aquí porque su código está en `main` pero no se ha desplegado: su diagrama es el de [transición](05-contenedores-de-transicion.md).
 
 Recordatorio: «contenedor» en C4 no significa Docker. Ninguna de estas piezas se despliega hoy con Docker.
 

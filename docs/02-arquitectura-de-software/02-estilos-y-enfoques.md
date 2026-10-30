@@ -6,7 +6,7 @@ Varios términos de arquitectura se usan a menudo como si fueran lo mismo. Este 
 
 | Pregunta | Categoría | Respuesta hoy | Respuesta propuesta |
 |---|---|---|---|
-| ¿En cuántas unidades se despliega la lógica de servidor? | Estilo arquitectónico | Una en operación: monolito modular. Radar con código propio en PR | Varios servicios por dominio |
+| ¿En cuántas unidades se despliega la lógica de servidor? | Estilo arquitectónico | Una en operación: monolito modular. Radar con código propio sin desplegar | Varios servicios por dominio |
 | ¿Cómo se ordena el código dentro de una unidad? | Enfoque de organización interna | Capas; Radar con un puerto e inyección | Hexagonal en cada servicio |
 | ¿Qué soluciones recurrentes aparecen en el código? | Patrones de diseño | Repositorio, middleware, error tipado, script atómico, composición explícita | Puertos y adaptadores generalizados |
 | ¿Cómo se guarda el código en Git? | Organización del repositorio | Monorepo con npm workspaces | Sin cambios |
@@ -79,7 +79,7 @@ Un **servicio por dominio** es una unidad desplegable que es dueña de una parte
 | Movilidad | `carpooling` |
 | Recursos | Banco de archivos y créditos (hoy sin módulo) |
 
-Detalle en [Arquitectura objetivo](05-arquitectura-objetivo.md). **Estado: PROPUESTO**, con Radar IMPLEMENTADO PARCIALMENTE en el PR n.º 5.
+Detalle en [Arquitectura objetivo](05-arquitectura-objetivo.md). **Estado: PROPUESTO**, con Radar IMPLEMENTADO PARCIALMENTE, sin desplegar.
 
 ## Estrategia de transición: Strangler Fig
 
@@ -109,7 +109,7 @@ Desde la etapa 3 el repositorio es un **monorepo con npm workspaces**: `apps/web
 | Capas | Enfoque interno | Implementado en seis de siete módulos |
 | Puertos e inyección | Enfoque interno | Implementado parcialmente: solo Radar |
 | Arquitectura hexagonal o limpia | Enfoque interno | Dirección propuesta |
-| Servicios por dominio | Estilo | Propuesto; Radar con código en PR, sin desplegar |
+| Servicios por dominio | Estilo | Propuesto; Radar con código en `main`, sin desplegar |
 | Strangler Fig | Estrategia de migración | Implementado parcialmente: entrada y pieza nueva, sin redirección activa |
 | Eventos asíncronos | Mecanismo de integración | Propuesto, selectivo |
 | Monorepo con varios paquetes | Organización del repositorio | Implementado en la etapa 3 (npm workspaces) |

@@ -5,11 +5,11 @@ El modelo C4 describe un sistema en cuatro niveles de detalle, del más general 
 | Nivel | Nombre | Pregunta | Documento | Describe |
 |---|---|---|---|---|
 | 1 | Contexto | ¿Qué es SOCIAL-UNSCH, quién lo usa y con qué sistemas interactúa? | [01-contexto.md](01-contexto.md) | Realidad actual |
-| 2 | Contenedores actuales | ¿Qué aplicaciones y almacenes de datos lo conforman? | [02-contenedores-actuales.md](02-contenedores-actuales.md) | Realidad actual (`main` y producción) |
-| 2 | Contenedores de transición | ¿Cómo conviven el núcleo y Radar? | [05-contenedores-de-transicion.md](05-contenedores-de-transicion.md) | Código en PR n.º 5; **no desplegado** |
+| 2 | Contenedores actuales | ¿Qué aplicaciones y almacenes de datos lo conforman? | [02-contenedores-actuales.md](02-contenedores-actuales.md) | Realidad actual en producción |
+| 2 | Contenedores de transición | ¿Cómo conviven el núcleo y Radar? | [05-contenedores-de-transicion.md](05-contenedores-de-transicion.md) | Código en `main`; servicio **no desplegado** |
 | 2 | Contenedores objetivo | ¿Cuál es el destino? | [06-contenedores-objetivo.md](06-contenedores-objetivo.md) | **Propuesto** |
-| 3 | Componentes | ¿Cómo se dividen internamente el backend y Radar? | [03-componentes-del-backend.md](03-componentes-del-backend.md) | Código de la rama de la etapa 4 |
-| 4 | Código | ¿Qué clases, funciones e interfaces realizan los flujos importantes? | [04-codigo-y-secuencias.md](04-codigo-y-secuencias.md) | Código de la rama de la etapa 4 |
+| 3 | Componentes | ¿Cómo se dividen internamente el backend y Radar? | [03-componentes-del-backend.md](03-componentes-del-backend.md) | Código de `main` |
+| 4 | Código | ¿Qué clases, funciones e interfaces realizan los flujos importantes? | [04-codigo-y-secuencias.md](04-codigo-y-secuencias.md) | Código de `main` |
 | — | Trazabilidad | ¿Dónde está cada funcionalidad en cada nivel? | [07-trazabilidad-c4.md](07-trazabilidad-c4.md) | Requisito → dominio → contenedor → componente → código |
 
 ## Recorrido sugerido
@@ -49,8 +49,8 @@ Cada diagrama incluye su propia leyenda cuando mezcla estados.
 
 | Vista | Referencia |
 |---|---|
-| Código de los niveles 3 y 4 | Rama `feat/etapa-4-radar-service`, commit `f480728` |
-| Realidad en `main` y producción | Commit `96783ef`; comprobación externa del 2026-10-30 |
+| Código de los niveles 3 y 4 | `main`, commit `b763885` |
+| Realidad en producción | Comprobación externa del 2026-10-30 |
 | Evidencia completa | [Estado actual y evidencias](../07-evaluacion-y-evolucion/07-estado-actual-y-evidencias.md) |
 
 Ver también: [Arquitectura actual](../02-arquitectura-de-software/01-arquitectura-actual.md) · [Extracción de Radar](../migracion/EXTRACCION_RADAR.md)

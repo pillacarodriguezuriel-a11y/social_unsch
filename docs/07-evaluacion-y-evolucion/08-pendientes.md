@@ -6,9 +6,9 @@ Acciones abiertas, verificadas el 2026-10-30. Este documento registra hallazgos:
 
 ### P-01 · `test-real` falla en CI
 
-- **Problema:** el job de pruebas reales del PR n.º 5 terminó en error.
-- **Impacto:** las 36 pruebas de concurrencia, migraciones y Redis no protegen la fusión de la etapa 4.
-- **Evidencia:** ejecución [39985651148](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/39985651148). Causa probable, PENDIENTE DE VALIDACIÓN: conflicto de puertos entre los servicios de [ci.yml](../../.github/workflows/ci.yml) y los contenedores de [test-environment.ts](../../apps/api/tests/real/helpers/test-environment.ts).
+- **Problema:** el job de pruebas reales falla en el PR n.º 5 y en `main`.
+- **Impacto:** las 36 pruebas de concurrencia, migraciones y Redis no protegen `main`: la etapa 4 se fusionó y desplegó sin ellas.
+- **Evidencia:** ejecuciones [39985651148](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/39985651148) y [41060703064](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/41060703064). Causa probable, PENDIENTE DE VALIDACIÓN: conflicto de puertos entre los servicios de [ci.yml](../../.github/workflows/ci.yml) y los contenedores de [test-environment.ts](../../apps/api/tests/real/helpers/test-environment.ts).
 - **Etapa relacionada:** 4.
 - **Acción recomendada:** leer el log; hacer que el arnés reutilice los servicios del flujo o quitar esos servicios.
 
@@ -40,11 +40,11 @@ Acciones abiertas, verificadas el 2026-10-30. Este documento registra hallazgos:
 
 ### P-05 · Radar sin desplegar ni activar
 
-- **Problema:** `apps/radar` existe solo como código en un PR.
+- **Problema:** `apps/radar` está en `main`, pero no se ha desplegado.
 - **Impacto:** no puede afirmarse que SOCIAL-UNSCH tenga un servicio extraído en operación.
-- **Evidencia:** PR n.º 5 abierto; 404 en el dominio previsto.
+- **Evidencia:** 404 en el dominio previsto, repetido tras la fusión.
 - **Etapa relacionada:** 4.
-- **Acción recomendada:** tras P-01, seguir [Activación](../migracion/EXTRACCION_RADAR.md#activación).
+- **Acción recomendada:** corregir P-01 y seguir [Activación](../migracion/EXTRACCION_RADAR.md#activación).
 
 ### P-06 · Dos implementaciones de Radar
 

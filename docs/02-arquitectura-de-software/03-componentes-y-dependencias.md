@@ -1,6 +1,6 @@
 # Componentes y dependencias
 
-Qué piezas componen el backend, de qué depende cada una y dónde están los acoplamientos que condicionan la migración. Revisado el 2026-10-30 sobre `f480728`. Desde la etapa 3, `radar` recibe Redis por inyección desde [composition.ts](../../apps/api/src/composition.ts) y no importa `config/redis`; el servicio `apps/radar` se describe en [C3](../04-modelo-c4/03-componentes-del-backend.md#diagrama-del-servicio-radar).
+Qué piezas componen el backend, de qué depende cada una y dónde están los acoplamientos que condicionan la migración. Revisado el 2026-10-30 sobre `b763885`. Desde la etapa 3, `radar` recibe Redis por inyección desde [composition.ts](../../apps/api/src/composition.ts) y no importa `config/redis`; el servicio `apps/radar` se describe en [C3](../04-modelo-c4/03-componentes-del-backend.md#diagrama-del-servicio-radar).
 
 ## Componentes del backend
 

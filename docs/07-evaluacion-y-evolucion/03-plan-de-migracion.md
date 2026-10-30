@@ -2,7 +2,7 @@
 
 Propuesta de evolución desde el monolito modular actual hacia servicios por dominio, en ocho etapas.
 
-> **Qué es propuesta y qué no.** Las etapas 1 a 3 están ejecutadas y la 3 está en producción. La etapa 4 tiene código en el PR n.º 5, sin fusionar ni desplegar. Las etapas 5 a 8 son **propuestas**: no hay código, fechas ni aprobación. Este documento no fija plazos. Estado verificado el 2026-10-30.
+> **Qué es propuesta y qué no.** Las etapas 1 a 3 están ejecutadas y la 3 está en producción. La etapa 4 está en `main` y en la API desplegada, pero el servicio Radar no está desplegado ni el proxy activo. Las etapas 5 a 8 son **propuestas**: no hay código, fechas ni aprobación. Este documento no fija plazos. Estado verificado el 2026-10-30.
 
 ## Vista general
 
@@ -30,7 +30,7 @@ Trazo continuo: etapa ejecutada. Trazo naranja: implementada parcialmente. Trazo
 | 1 | Ejecutada; recuperación de Redis sin verificar | No |
 | 2 | Ejecutada en el código; aplicación remota parcialmente verificada | No |
 | 3 | Implementada, en `main` y en producción | No: sigue siendo un monolito, ahora en un monorepo |
-| 4 | Implementada parcialmente: PR abierto, `test-real` fallido, sin desplegar | Sí, cuando se active: hasta entonces, no |
+| 4 | Implementada parcialmente: en `main`, `test-real` fallido, servicio sin desplegar | Sí, cuando se active: hasta entonces, no |
 | 5 a 7 | Propuestas | Sí |
 | 8 | Propuesta | No: consolida |
 
@@ -113,7 +113,7 @@ Propuesta original:
 
 ## Etapa 4 · Extracción de Radar
 
-**Estado: implementada parcialmente.** Código en el PR n.º 5; `verify` correcto y `test-real` fallido; sin fusionar ni desplegar. Estado vigente en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md). Fundamento en [ADR-004](../06-decisiones-arquitectonicas/ADR-004-extraccion-inicial-de-radar.md) y [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Documento de etapa: [ETAPA_04_EXTRACCION_RADAR](../migracion/ETAPA_04_EXTRACCION_RADAR.md).
+**Estado: implementada parcialmente.** Fusionada en `main` con el PR n.º 5 (`b763885`), con `verify` correcto y `test-real` fallido; servicio Radar sin desplegar y proxy sin activar. Estado vigente en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md). Fundamento en [ADR-004](../06-decisiones-arquitectonicas/ADR-004-extraccion-inicial-de-radar.md) y [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Documento de etapa: [ETAPA_04_EXTRACCION_RADAR](../migracion/ETAPA_04_EXTRACCION_RADAR.md).
 
 **Objetivo:** primer servicio independiente (`apps/radar`), con el dominio menos acoplado, compatibilidad de contratos estricta y activación reversible.
 

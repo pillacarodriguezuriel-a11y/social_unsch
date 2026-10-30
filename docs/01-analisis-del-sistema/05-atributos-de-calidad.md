@@ -62,7 +62,7 @@ Los límites exactos de estas garantías se analizan en [Errores y consistencia]
 | El servidor sigue activo si Redis no está disponible | Implementado | Estrategia de reintentos en [redis.ts](../../apps/api/src/config/redis.ts) |
 | Cierre ordenado ante `SIGTERM` | Implementado | [server.ts](../../apps/api/src/server.ts) y [bootstrap.ts](../../apps/api/src/bootstrap.ts) cierran el servidor, PostgreSQL y Redis |
 | Rutas de salud | Implementado en la etapa 3 | `GET /health/live` y `GET /health/ready` ([health.routes.ts](../../apps/api/src/health/health.routes.ts)) |
-| Registro JSON por solicitud con `x-request-id` | Implementado en el PR n.º 5 | [logging.middleware.ts](../../apps/api/src/middlewares/logging.middleware.ts) |
+| Registro JSON por solicitud con `x-request-id` | Implementado | [logging.middleware.ts](../../apps/api/src/middlewares/logging.middleware.ts) |
 | Métricas y alertas | No existe | — |
 
 ### Capacidad de prueba
@@ -74,6 +74,6 @@ Los límites exactos de estas garantías se analizan en [Errores y consistencia]
 | Umbral de cobertura del 90 % | Implementado | [jest.config.ts](../../apps/api/jest.config.ts) |
 | Pruebas del frontend | Parcial | Lógica de `app/lib` y tipos del contrato ([apps/web/tests](../../apps/web/tests/catalogs.test.ts)); sin componentes |
 | Proxy contra Radar por HTTP | Implementado con Redis simulado | [proxy.e2e.test.ts](../../apps/radar/tests/integration/proxy.e2e.test.ts) |
-| Integración continua | Parcial | [ci.yml](../../.github/workflows/ci.yml) en el PR n.º 5: `verify` correcto, `test-real` fallido |
+| Integración continua | Parcial | [ci.yml](../../.github/workflows/ci.yml) en `main`: `verify` correcto, `test-real` fallido |
 
 [← Índice](../README.md)

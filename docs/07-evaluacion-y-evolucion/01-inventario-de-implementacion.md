@@ -1,6 +1,6 @@
 # Inventario de implementación
 
-Estado de cada funcionalidad, revisado el 2026-10-30 sobre `f480728`, capa por capa. Una funcionalidad solo se considera **Implementada** si sus cuatro columnas lo están: pantalla, API, datos y pruebas de servidor.
+Estado de cada funcionalidad, revisado el 2026-10-30 sobre `b763885`, capa por capa. Una funcionalidad solo se considera **Implementada** si sus cuatro columnas lo están: pantalla, API, datos y pruebas de servidor.
 
 ## Lectura rápida
 
@@ -11,7 +11,7 @@ Estado de cada funcionalidad, revisado el 2026-10-30 sobre `f480728`, capa por c
 | Aceptación de términos | Conectada | Sí, sin exigencia en servidor | `users` | U, I | **Parcial** |
 | Catálogos | Conectada (registro y ajustes) | Sí | Tablas de catálogo | I, R | **Implementado** |
 | Radar: consulta y reporte | Conectada | Sí, en la API | Redis | U, I, R | **Implementado** |
-| Radar como servicio independiente | Sin cambios | `apps/radar` y proxy | Redis | U, I con dobles | **Parcial:** en PR, sin desplegar |
+| Radar como servicio independiente | Sin cambios | `apps/radar` y proxy | Redis | U, I con dobles | **Parcial:** en `main`, sin desplegar |
 | Feed: lectura | Conectada, sin filtros | Sí, con filtros y paginación | `feed_posts` | U, I, R | **Parcial** |
 | Feed: publicación | Conectada | Sí | `feed_posts` | U, I, R | **Implementado** |
 | Feed: «me gusta» | Local | No | No | Ninguna | **Simulado** |
@@ -91,7 +91,7 @@ Los resultados de ejecución, con su fecha y procedencia, están en el [informe 
 | Seed de demostración restringido a local | Implementado | [load_demo_seed.ts](../../apps/api/src/database/migrations/load_demo_seed.ts) |
 | Diagnóstico de conexiones de solo lectura | Implementado | [diagnostico-conexiones.js](../../apps/api/scripts/diagnostico-conexiones.js) |
 | Reversión de migraciones | No implementado | — |
-| Integración continua | Parcial | [ci.yml](../../.github/workflows/ci.yml) en PR: `verify` correcto, `test-real` fallido |
+| Integración continua | Parcial | [ci.yml](../../.github/workflows/ci.yml) en `main`: `verify` correcto, `test-real` fallido |
 | Rutas de salud | Implementado en la etapa 3 | [health.routes.ts](../../apps/api/src/health/health.routes.ts) |
 | Validación de configuración al arrancar | Implementado en la etapa 3 | [env.ts](../../apps/api/src/config/env.ts) |
 | Comprobación de límites entre unidades | Implementado en la etapa 3 | [check-boundaries.js](../../scripts/check-boundaries.js) |
@@ -106,7 +106,7 @@ Los resultados de ejecución, con su fecha y procedencia, están en el [informe 
 | 1. Línea base y recuperación de infraestructura | Línea base ejecutada. Recuperación: la base responde a la API; Redis sin verificar | [ETAPA_01_LINEA_BASE.md](../migracion/ETAPA_01_LINEA_BASE.md), [Mapa de despliegue](../05-despliegue-y-operacion/01-mapa-de-despliegue.md) |
 | 2. Estabilización | Ejecutada en el código e integrada en `main`. Aplicación completa en la base remota: parcialmente verificada | [ETAPA_02_ESTABILIZACION.md](../migracion/ETAPA_02_ESTABILIZACION.md) |
 | 3. Monorepo, contratos y límites | Implementada, en `main` y en producción | [ETAPA_03_PREPARACION_SEPARACION.md](../migracion/ETAPA_03_PREPARACION_SEPARACION.md) |
-| 4. Extracción de Radar | Implementada parcialmente: código en PR, CI en rojo, sin desplegar | [Extracción de Radar](../migracion/EXTRACCION_RADAR.md) |
+| 4. Extracción de Radar | Implementada parcialmente: código en `main`, CI en rojo, servicio sin desplegar | [Extracción de Radar](../migracion/EXTRACCION_RADAR.md) |
 | 5 a 8 | Propuestas; sin ejecución | [Plan de migración](03-plan-de-migracion.md) |
 
 ## Balance

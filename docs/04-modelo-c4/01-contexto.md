@@ -58,9 +58,9 @@ Comprobación externa de solo lectura del 2026-10-30, salvo donde se indique.
 |---|---|---|
 | PostgreSQL | `GET /health/ready` informó `database: up` y `GET /api/v1/catalogs/schools` devolvió datos | IMPLEMENTADO. Proveedor Supabase: PENDIENTE DE VALIDACIÓN |
 | Redis | `GET /health/ready` informó `radar: up`, que en modo local equivale a un `PING` correcto a Redis | IMPLEMENTADO, de forma indirecta. Proveedor Upstash: PENDIENTE DE VALIDACIÓN |
-| Vercel | `/login` respondió 200; GitHub registra el despliegue de producción de `96783ef` | IMPLEMENTADO |
+| Vercel | `/login` respondió 200; GitHub registra el despliegue de producción de `b763885` | IMPLEMENTADO |
 | Render | `GET /health/live` respondió 200 | IMPLEMENTADO |
-| GitHub | Repositorio público, PR n.º 5 abierto, flujo de CI ejecutado | IMPLEMENTADO |
+| GitHub | Repositorio público, flujo de CI ejecutado | IMPLEMENTADO |
 
 ## Lo que no aparece porque no existe
 

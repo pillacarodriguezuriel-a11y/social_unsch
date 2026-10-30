@@ -5,7 +5,7 @@ Un **dominio** es un área del negocio con reglas y datos propios. Aquí se iden
 | Dominio | Qué resuelve | Módulos actuales | Datos | Límite real | Dificultad de extracción |
 |---|---|---|---|---|---|
 | Identidad | Cuentas, sesión, términos, catálogos | `auth`, `users`, `catalogs` | `users`, `faculties`, `professional_schools`, `campus_pavilions` | Módulos separados; `users` es la tabla más compartida | Alta |
-| Radar | Estado del campus por consenso | `radar`; `apps/radar` en PR | Redis `radar:*` | Fuerte: sin SQL ni dependencias de otros módulos | Baja |
+| Radar | Estado del campus por consenso | `radar`; `apps/radar` sin desplegar | Redis `radar:*` | Fuerte: sin SQL ni dependencias de otros módulos | Baja |
 | Comunidad | Publicaciones y búsqueda de compañeros | `feed`, `matchmaking` | `feed_posts`, `matchmaking_*` | Parcial: `JOIN` con `users` | Media |
 | Movilidad | Rutas y reservas | `carpooling` | `carpooling_*` | Parcial: contactos de `users` dentro de una transacción | Alta |
 | Recursos y créditos | Material académico y saldo | Ninguno | `academic_files`, `file_downloads`, `wiki_credits_log`, `users.credits_balance` | Solo en esquema y disparadores | Por construir |

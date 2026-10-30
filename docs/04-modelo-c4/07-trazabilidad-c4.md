@@ -6,7 +6,7 @@ Relaciona cada funcionalidad con su representación en los cuatro niveles y con 
 Requisito → Dominio → Contenedor → Componente → Código
 ```
 
-Referencia: rama `feat/etapa-4-radar-service`, commit `f480728`. El estado de cada requisito está en [Requisitos funcionales](../01-analisis-del-sistema/04-requisitos-funcionales.md). La relación con historias y pruebas está en la [matriz de trazabilidad](../01-analisis-del-sistema/09-matriz-de-trazabilidad.md).
+Referencia: `main`, commit `b763885`. El estado de cada requisito está en [Requisitos funcionales](../01-analisis-del-sistema/04-requisitos-funcionales.md). La relación con historias y pruebas está en la [matriz de trazabilidad](../01-analisis-del-sistema/09-matriz-de-trazabilidad.md).
 
 ## Funcionalidades con backend
 
