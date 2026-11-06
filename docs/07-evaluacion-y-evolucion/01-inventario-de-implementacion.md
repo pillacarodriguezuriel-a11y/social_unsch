@@ -53,7 +53,7 @@ Cinco pantallas trabajan contra la API y seis no.
 
 ### API
 
-16 rutas en 7 módulos; el frontend consume 10. La lista completa está en [Contratos e integraciones](../02-arquitectura-de-software/07-contratos-e-integraciones.md).
+16 rutas en 7 módulos; el frontend consume 10. La lista completa está en [Contratos e integraciones](../02-arquitectura-software/07-contratos-e-integraciones.md).
 
 Rutas implementadas que ninguna pantalla usa: `GET /auth/profile-me`, `GET /catalogs/schools`, `POST /matchmaking/score` y las tres de carpooling.
 

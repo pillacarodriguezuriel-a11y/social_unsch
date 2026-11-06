@@ -9,7 +9,7 @@
 
 ## Contexto
 
-SOCIAL-UNSCH necesitaba ofrecer varias funciones distintas a una comunidad cerrada: identidad, radar del campus, publicaciones, matchmaking y movilidad. Lo desarrolla y opera una sola persona, con plataformas de bajo costo ([restricciones](../01-analisis-del-sistema/06-restricciones.md)).
+SOCIAL-UNSCH necesitaba ofrecer varias funciones distintas a una comunidad cerrada: identidad, radar del campus, publicaciones, matchmaking y movilidad. Lo desarrolla y opera una sola persona, con plataformas de bajo costo ([restricciones](../01-analisis-de-sistema/05-restricciones.md)).
 
 El contexto original de la decisión no está documentado. Lo que sigue se reconstruye a partir del código del commit `8e56bfa`.
 

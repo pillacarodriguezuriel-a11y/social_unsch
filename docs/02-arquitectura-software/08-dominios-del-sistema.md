@@ -46,6 +46,6 @@ Línea discontinua: sin acceso a datos, solo verifica el token. Línea continua:
 | Contratos por dominio | IMPLEMENTADO PARCIALMENTE | Solo Radar y el formato de error en [packages/contracts](../../packages/contracts/src/index.ts) |
 | Propiedad de datos por dominio | PROPUESTO | Una sola `DATABASE_URL`; ver [Datos y propiedad por dominio](06-datos-y-propiedad-por-dominio.md) |
 
-Ver también: [Componentes y dependencias](03-componentes-y-dependencias.md) · [Arquitectura objetivo](05-arquitectura-objetivo.md) · [Trazabilidad C4](../04-modelo-c4/07-trazabilidad-c4.md)
+Ver también: [Componentes y dependencias](componentes-arquitectonicos.md) · [Arquitectura objetivo](05-arquitectura-objetivo.md) · [Trazabilidad C4](../04-modelo-c4/07-trazabilidad-c4.md)
 
 [← Índice](../README.md)

@@ -63,6 +63,6 @@ Comprobación externa de solo lectura, 2026-10-30. Una sola muestra por ruta: es
 | Incremento de red de 5 a 15 ms | [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md) | Estimación, sin medición |
 | 100 % operativa del resto de la API con Radar caído | ADR-008 | Probado con dobles; sin medir en producción |
 
-Ver también: [Escenarios de calidad](../01-analisis-del-sistema/08-escenarios-de-calidad.md) · [Estrategia de pruebas](05-estrategia-de-pruebas.md) · [Estado actual y evidencias](07-estado-actual-y-evidencias.md)
+Ver también: [Escenarios de calidad](../01-analisis-de-sistema/08-escenarios-atributos-calidad.md) · [Estrategia de pruebas](05-estrategia-de-pruebas.md) · [Estado actual y evidencias](07-estado-actual-y-evidencias.md)
 
 [← Índice](../README.md)

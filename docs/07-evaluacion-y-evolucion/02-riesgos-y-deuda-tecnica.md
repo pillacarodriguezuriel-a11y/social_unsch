@@ -81,7 +81,7 @@ Revisión del 2026-10-30 sobre `b763885`. Son cambios ya fusionados en `main` co
 | ID | Problema | Evidencia | Prioridad | Etapa sugerida |
 |---|---|---|---|---|
 | DT-19 | Dependencias creadas con `new`, sin interfaces | [radar.service.ts](../../apps/api/src/modules/radar/radar.service.ts) y demás servicios | Media | Al extraer cada servicio |
-| DT-20 | La tabla `users` se consulta desde cinco módulos | [Componentes y dependencias](../02-arquitectura-de-software/03-componentes-y-dependencias.md) | Media | 5 |
+| DT-20 | La tabla `users` se consulta desde cinco módulos | [Componentes y dependencias](../02-arquitectura-software/componentes-arquitectonicos.md) | Media | 5 |
 | DT-21 | Código de prueba en producción: parámetro `injectedFailure` y cliente alternativo si `pool.connect` no existe | [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts), [carpooling.service.ts](../../apps/api/src/modules/carpooling/carpooling.service.ts) | Media | 6 |
 | DT-22 | Métodos de repositorio sin uso en el flujo actual | `createRequest`, `deleteRequest`, `getPassengerMeta` en [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts) | Baja | 6 |
 | DT-23 | Códigos de error de otros dominios en matchmaking | [matchmaking.service.ts](../../apps/api/src/modules/matchmaking/matchmaking.service.ts) | Baja | 3 |

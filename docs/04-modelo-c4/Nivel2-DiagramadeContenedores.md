@@ -62,6 +62,6 @@ No hay comunicación entre la aplicación web y las bases de datos, ni entre Pos
 
 El mapa de estos contenedores a las plataformas está en [Mapa de despliegue](../05-despliegue-y-operacion/01-mapa-de-despliegue.md).
 
-**Nivel anterior:** [C1 · Contexto](01-contexto.md) · **Siguiente nivel:** [C3 · Componentes](03-componentes-del-backend.md) · **Evolución:** [C2 de transición](05-contenedores-de-transicion.md)
+**Nivel anterior:** [C1 · Contexto](Nivel1-DiagramadeContextodelSistema.md) · **Siguiente nivel:** [C3 · Componentes](Nivel3-Diagrama-de-Componentes.md) · **Evolución:** [C2 de transición](05-contenedores-de-transicion.md)
 
 [← Guía del modelo C4](README.md) · [← Índice](../README.md)

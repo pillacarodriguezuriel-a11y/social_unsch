@@ -1,6 +1,6 @@
 # Escenarios de calidad
 
-Cada escenario concreta un [atributo de calidad](05-atributos-de-calidad.md) en una situación comprobable. Sigue la estructura fuente, estímulo, entorno, artefacto («elemento afectado»), respuesta y métrica («medida»). Los resultados están en [Métricas](../07-evaluacion-y-evolucion/06-metricas.md). Las medidas numéricas marcadas como **objetivo** son propuestas pendientes de validación: no hay mediciones de rendimiento ni de disponibilidad en el repositorio.
+Cada escenario concreta un [atributo de calidad](04-atributos-de-calidad.md) en una situación comprobable. Sigue la estructura fuente, estímulo, entorno, artefacto («elemento afectado»), respuesta y métrica («medida»). Los resultados están en [Métricas](../07-evaluacion-y-evolucion/06-metricas.md). Las medidas numéricas marcadas como **objetivo** son propuestas pendientes de validación: no hay mediciones de rendimiento ni de disponibilidad en el repositorio.
 
 En la columna de estado, «Verificado» significa que existe una prueba automatizada que cubre la respuesta; la fecha y procedencia de sus ejecuciones están en el [informe de documentación](../INFORME_DOCUMENTACION.md).
 
@@ -41,7 +41,7 @@ En la columna de estado, «Verificado» significa que existe una prueba automati
 | Respuesta esperada | Una solicitud se acepta; la otra recibe un error de negocio 400 |
 | Medida | Exactamente una fila activa por ruta y pasajero |
 | Verificación | [carpooling.real.test.ts](../../apps/api/tests/real/carpooling.real.test.ts), escenario 2 |
-| Estado | Implementado y verificado con prueba automatizada. Depende de que el índice exista; ver [Errores y consistencia](../03-diseno-de-software/06-errores-y-consistencia.md) |
+| Estado | Implementado y verificado con prueba automatizada. Depende de que el índice exista; ver [Errores y consistencia](../03-diseño-de-software/06-errores-y-consistencia.md) |
 
 ## EC-04 Integridad: competencia por el último asiento
 

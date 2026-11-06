@@ -48,7 +48,7 @@ flowchart TB
 | Render | Sistema externo | Ejecuta la API |
 | GitHub | Sistema externo | Aloja el código, ejecuta la integración continua y origina los despliegues del frontend |
 
-El detalle de actores y roles está en [Actores](../01-analisis-del-sistema/02-actores.md).
+El detalle de actores y roles está en [Actores](../01-analisis-de-sistema/01-actores.md).
 
 ## Estado de verificación de los sistemas externos
 
@@ -73,6 +73,6 @@ Si alguno de ellos se incorpora, este diagrama debe actualizarse.
 
 La extracción de Radar no cambia este nivel: para quien usa el sistema sigue siendo una sola plataforma, y Radar es un contenedor interno, no un sistema externo.
 
-**Siguiente nivel:** [C2 · Contenedores actuales](02-contenedores-actuales.md)
+**Siguiente nivel:** [C2 · Contenedores actuales](Nivel2-DiagramadeContenedores.md)
 
 [← Guía del modelo C4](README.md) · [← Índice](../README.md)

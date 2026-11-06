@@ -1,6 +1,6 @@
 # Historias de usuario
 
-Las historias se redactaron a partir del comportamiento observado en el código y de las pantallas existentes. El estado indica si el flujo completo funciona con persistencia compartida; los requisitos asociados están en [Requisitos funcionales](04-requisitos-funcionales.md).
+Las historias se redactaron a partir del comportamiento observado en el código y de las pantallas existentes. El estado indica si el flujo completo funciona con persistencia compartida; los requisitos asociados están en [Requisitos funcionales](03-requisitos-funcionales.md).
 
 ## Identidad y acceso
 

@@ -48,7 +48,7 @@ El detalle está en el [plan de migración](../07-evaluacion-y-evolucion/03-plan
 
 - La migración gradual permite validar cada paso con el sistema en uso.
 - Empezar por ordenar el repositorio y los contratos reduce el riesgo de todas las extracciones posteriores.
-- El orden por dominios sigue el acoplamiento real medido en el código ([Componentes y dependencias](../02-arquitectura-de-software/03-componentes-y-dependencias.md)): primero lo menos acoplado.
+- El orden por dominios sigue el acoplamiento real medido en el código ([Componentes y dependencias](../02-arquitectura-software/componentes-arquitectonicos.md)): primero lo menos acoplado.
 - Las áreas sin backend (recursos, moderación) pueden construirse directamente con la estructura objetivo.
 
 ## Consecuencias
@@ -75,7 +75,7 @@ Estos costos no son hipotéticos: son la razón por la que la propuesta incluye 
 |---|---|
 | Etapas 1 y 2 integradas | *Pull requests* 1 y 2, fusionados en `main` el 2026-10-12; commit `e704b8a` |
 | Módulos sin importaciones cruzadas | [src/modules](../../apps/api/src/modules) |
-| Acoplamiento por datos que condiciona el orden | [Componentes y dependencias](../02-arquitectura-de-software/03-componentes-y-dependencias.md) |
+| Acoplamiento por datos que condiciona el orden | [Componentes y dependencias](../02-arquitectura-software/componentes-arquitectonicos.md) |
 | Etapas 3 a 8 | Sin evidencia de ejecución: son propuesta |
 
 ## Condiciones para reconsiderarla

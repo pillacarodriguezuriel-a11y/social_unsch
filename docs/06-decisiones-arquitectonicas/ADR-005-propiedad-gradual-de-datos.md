@@ -15,7 +15,7 @@ Separar el código en servicios no basta si todos siguen leyendo las mismas tabl
 - La tabla `users` la escriben dos módulos y la leen tres más con `JOIN`.
 - Hay claves foráneas entre dominios y dos disparadores que modifican tablas de otro dominio.
 
-El detalle está en [Datos y propiedad por dominio](../02-arquitectura-de-software/06-datos-y-propiedad-por-dominio.md).
+El detalle está en [Datos y propiedad por dominio](../02-arquitectura-software/06-datos-y-propiedad-por-dominio.md).
 
 Separar físicamente las bases desde el principio rompería transacciones y restricciones que hoy protegen la integridad, y exigiría más recursos de plataforma.
 

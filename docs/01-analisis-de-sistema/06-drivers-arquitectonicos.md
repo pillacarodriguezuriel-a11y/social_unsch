@@ -6,14 +6,14 @@ Un *driver* arquitectónico es un requisito, atributo o restricción con peso su
 
 | ID | Driver | Origen | Qué condiciona |
 |---|---|---|---|
-| DA-01 | El radar maneja datos efímeros, de escritura frecuente y sin relación con el resto del modelo | [RF-007, RF-008](04-requisitos-funcionales.md) | Almacén separado (Redis) y ser el primer candidato a servicio independiente |
-| DA-02 | Acceso restringido a la comunidad universitaria | [RF-001 a RF-004](04-requisitos-funcionales.md) | Autenticación propia y un punto único de verificación de identidad |
-| DA-03 | Operaciones que no admiten estados intermedios: reserva de asientos, doble coincidencia, créditos | Integridad en [Atributos de calidad](05-atributos-de-calidad.md) | Transacciones en PostgreSQL; limita qué datos pueden repartirse entre servicios |
+| DA-01 | El radar maneja datos efímeros, de escritura frecuente y sin relación con el resto del modelo | [RF-007, RF-008](03-requisitos-funcionales.md) | Almacén separado (Redis) y ser el primer candidato a servicio independiente |
+| DA-02 | Acceso restringido a la comunidad universitaria | [RF-001 a RF-004](03-requisitos-funcionales.md) | Autenticación propia y un punto único de verificación de identidad |
+| DA-03 | Operaciones que no admiten estados intermedios: reserva de asientos, doble coincidencia, créditos | Integridad en [Atributos de calidad](04-atributos-de-calidad.md) | Transacciones en PostgreSQL; limita qué datos pueden repartirse entre servicios |
 | DA-04 | El sistema debe poder dividirse sin detener el servicio ni reescribirse | Objetivo del curso y del proyecto | Migración gradual; contratos estables antes de mover código |
-| DA-05 | Un solo operador y planes de bajo costo | [RA-02, RA-03](06-restricciones.md) | Pocos servicios, sin infraestructura de orquestación propia |
-| DA-06 | Los identificadores de catálogo ya están referenciados por datos existentes | [RT-09](06-restricciones.md) | Carga de catálogos no destructiva; los catálogos como dato de referencia compartido |
-| DA-07 | Varias áreas funcionales todavía no tienen backend | [RF-018 a RF-023](04-requisitos-funcionales.md) | Las áreas nuevas pueden nacer ya con la estructura objetivo, sin migración |
-| DA-08 | Los datos de contacto solo deben revelarse tras un acuerdo mutuo | [RF-012, RF-017](04-requisitos-funcionales.md) | La información de contacto no debe viajar en listados ni en el token |
+| DA-05 | Un solo operador y planes de bajo costo | [RA-02, RA-03](05-restricciones.md) | Pocos servicios, sin infraestructura de orquestación propia |
+| DA-06 | Los identificadores de catálogo ya están referenciados por datos existentes | [RT-09](05-restricciones.md) | Carga de catálogos no destructiva; los catálogos como dato de referencia compartido |
+| DA-07 | Varias áreas funcionales todavía no tienen backend | [RF-018 a RF-023](03-requisitos-funcionales.md) | Las áreas nuevas pueden nacer ya con la estructura objetivo, sin migración |
+| DA-08 | Los datos de contacto solo deben revelarse tras un acuerdo mutuo | [RF-012, RF-017](03-requisitos-funcionales.md) | La información de contacto no debe viajar en listados ni en el token |
 
 ## Relación entre drivers y decisiones
 

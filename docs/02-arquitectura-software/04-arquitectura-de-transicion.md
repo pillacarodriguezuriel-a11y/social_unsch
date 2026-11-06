@@ -132,6 +132,6 @@ La comprobación de la API tiene un tope de 2 s, aunque el proxy admita más tie
 
 Riesgos completos en [Riesgos de la extracción](../migracion/EXTRACCION_RADAR.md#riesgos) y en [Riesgos y deuda técnica](../07-evaluacion-y-evolucion/02-riesgos-y-deuda-tecnica.md).
 
-Ver también: [Arquitectura actual](01-arquitectura-actual.md) · [Arquitectura objetivo](05-arquitectura-objetivo.md) · [C2 de transición](../04-modelo-c4/05-contenedores-de-transicion.md)
+Ver también: [Arquitectura actual](arquitectura-inicial.md) · [Arquitectura objetivo](05-arquitectura-objetivo.md) · [C2 de transición](../04-modelo-c4/05-contenedores-de-transicion.md)
 
 [← Índice](../README.md)

@@ -20,7 +20,7 @@
 
 Sustituir la API única por un conjunto reducido de **servicios por dominio**, cada uno dueño de sus reglas y de sus datos, organizados por dentro con arquitectura hexagonal y comunicados por contratos explícitos. Los eventos asíncronos se usan solo donde la operación lo admite.
 
-El número de servicios se mantiene bajo a propósito: el proyecto lo opera una persona ([restricciones](../01-analisis-del-sistema/06-restricciones.md)).
+El número de servicios se mantiene bajo a propósito: el proyecto lo opera una persona ([restricciones](../01-analisis-de-sistema/05-restricciones.md)).
 
 ## Servicios propuestos
 

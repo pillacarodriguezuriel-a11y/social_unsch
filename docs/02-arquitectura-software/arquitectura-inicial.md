@@ -1,6 +1,6 @@
-# Arquitectura actual
+# Arquitectura inicial de Social-UNSCH
 
-Descripción de lo que **opera hoy en producción**, comprobado el 2026-10-30 sobre `main` (`b763885`). La API desplegada ya incluye el código de la etapa 4, pero sigue atendiendo Radar en proceso. El servicio `apps/radar` está en el repositorio sin desplegar y pertenece a la [arquitectura de transición](04-arquitectura-de-transicion.md). Lo que no pudo comprobarse se indica.
+Esta vista documenta la configuración con Radar local, observada en producción el 2026-10-30 sobre `main` (`b763885`). La API desplegada ya incluye el código de la etapa 4, pero sigue atendiendo Radar en proceso. El servicio `apps/radar` está en el repositorio sin desplegar y pertenece a la [arquitectura de transición](04-arquitectura-de-transicion.md). Lo que no pudo comprobarse se indica.
 
 ## En una frase
 
@@ -96,7 +96,7 @@ Desde la etapa 3, `createApp()` construye la aplicación sin abrir conexiones; [
 | `carpooling` | `/carpooling` | `GET /`, `POST /:route_id/request`, `PATCH /:route_id/confirm` | PostgreSQL | Sí |
 | `catalogs` | `/catalogs` | `GET /`, `GET /schools` | PostgreSQL | No |
 
-Son 16 rutas. Cada módulo vive en `src/modules/<nombre>/` y, salvo `catalogs`, se compone de rutas, controlador, servicio y repositorio. La estructura interna se detalla en [Organización interna](../03-diseno-de-software/01-organizacion-interna.md).
+Son 16 rutas. Cada módulo vive en `src/modules/<nombre>/` y, salvo `catalogs`, se compone de rutas, controlador, servicio y repositorio. La estructura interna se detalla en [Organización interna](../03-diseño-de-software/diseño-interno/diseño-interno-de-modulos.md).
 
 ### Acceso a datos
 
@@ -138,7 +138,7 @@ Para evitar suposiciones, se enumera lo que un lector podría esperar y no está
 
 ## Puntos de acoplamiento
 
-Resumen; el análisis completo está en [Componentes y dependencias](03-componentes-y-dependencias.md).
+Resumen; el análisis completo está en [Componentes y dependencias](componentes-arquitectonicos.md).
 
 | Acoplamiento | Dónde |
 |---|---|
@@ -155,6 +155,6 @@ Resumen; el análisis completo está en [Componentes y dependencias](03-componen
 | Un fallo de la API detiene todo salvo las páginas estáticas | Punto único de fallo | [Riesgos](../07-evaluacion-y-evolucion/02-riesgos-y-deuda-tecnica.md) |
 | Seis pantallas sin datos compartidos | Funcionalidad aparente | [Inventario](../07-evaluacion-y-evolucion/01-inventario-de-implementacion.md) |
 
-Ver también: [Arquitectura de transición](04-arquitectura-de-transicion.md) · [Arquitectura objetivo](05-arquitectura-objetivo.md) · [C2 actual](../04-modelo-c4/02-contenedores-actuales.md)
+Ver también: [Arquitectura de transición](04-arquitectura-de-transicion.md) · [Arquitectura objetivo](05-arquitectura-objetivo.md) · [C2 actual](../04-modelo-c4/Nivel2-DiagramadeContenedores.md)
 
 [← Índice](../README.md)

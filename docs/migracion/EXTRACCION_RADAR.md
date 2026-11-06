@@ -204,6 +204,6 @@ No eliminar `RADAR_PROXY_TARGET` ni dejarlo vacío con `RADAR_MODE=proxy`: la AP
 
 > Las cifras de latencia de ETAPA_04 **no miden el sistema**. [benchmark-radar.js](../../scripts/benchmark-radar.js) levanta servidores HTTP escritos a mano con un almacén en memoria: no ejecuta `apps/api`, `apps/radar` ni Redis. Ver [Métricas](../07-evaluacion-y-evolucion/06-metricas.md).
 
-Ver también: [Estrategia de migración](README.md) · [C2 de transición](../04-modelo-c4/05-contenedores-de-transicion.md) · [Nivel de código de Radar](../04-modelo-c4/04-codigo-y-secuencias.md) · [Pendientes](../07-evaluacion-y-evolucion/08-pendientes.md)
+Ver también: [Estrategia de migración](README.md) · [C2 de transición](../04-modelo-c4/05-contenedores-de-transicion.md) · [Nivel de código de Radar](../04-modelo-c4/Nivel4-DiagramadeCodigo.md) · [Pendientes](../07-evaluacion-y-evolucion/08-pendientes.md)
 
 [← Índice](../README.md)

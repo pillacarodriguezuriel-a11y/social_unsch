@@ -13,7 +13,7 @@ La vista por niveles C4 está en [Trazabilidad C4](../04-modelo-c4/07-trazabilid
 
 | Historia | Requisito | Módulo | Endpoint o componente | Prueba existente | Etapa de evolución |
 |---|---|---|---|---|---|
-| [HU-01](03-historias-de-usuario.md) | RF-001, RF-002 | `auth` | `POST /auth/register` | U `auth.service`, `auth.validators`; I `auth.routes`; R `auth.real` | 5 (servicio de identidad) |
+| [HU-01](02-historias-del-usuario.md) | RF-001, RF-002 | `auth` | `POST /auth/register` | U `auth.service`, `auth.validators`; I `auth.routes`; R `auth.real` | 5 (servicio de identidad) |
 | HU-02 | RF-003, RF-004 | `auth`, middleware | `POST /auth/login`, `requireAuth` | U `auth.service`; I `auth.routes`; R `auth.real` | 5 |
 | HU-03 | RF-005 | `users` | `PATCH /users/accept-terms`, `RouteGuard` | U `users.service`, `users.repository`; I `users.routes`. Sin prueba del bloqueo en el navegador | 3 (definir la exigencia en la API), 5 |
 | HU-04 | RF-006 | `catalogs` | `GET /catalogs` | I `catalogs.routes`; R `migrations.real` escenario 11 | 5 |

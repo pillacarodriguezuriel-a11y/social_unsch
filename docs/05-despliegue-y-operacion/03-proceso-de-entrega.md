@@ -141,6 +141,6 @@ Los mecanismos concretos de cada plataforma deben confirmarse en su panel y docu
 
 ### Entrega durante la migración a servicios
 
-Cuando haya más de una unidad de servidor, cada una necesitará su propia construcción, sus propias variables y su propia ruta de salud, y la entrada de API permitirá revertir una extracción sin redesplegar. Ver [Arquitectura de transición](../02-arquitectura-de-software/04-arquitectura-de-transicion.md).
+Cuando haya más de una unidad de servidor, cada una necesitará su propia construcción, sus propias variables y su propia ruta de salud, y la entrada de API permitirá revertir una extracción sin redesplegar. Ver [Arquitectura de transición](../02-arquitectura-software/04-arquitectura-de-transicion.md).
 
 [← Índice](../README.md)
