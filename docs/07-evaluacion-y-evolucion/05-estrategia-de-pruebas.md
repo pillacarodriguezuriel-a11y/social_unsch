@@ -39,6 +39,6 @@ flowchart TB
 | Sin pruebas de componentes ni de extremo a extremo con navegador | Regresiones de pantalla sin detectar | [P-16](08-pendientes.md#frontend) |
 | Sin pruebas de carga | Sin datos de rendimiento | [P-09](08-pendientes.md#calidad) |
 
-Ver también: [Métricas](06-metricas.md) · [Escenarios de calidad](../01-analisis-del-sistema/08-escenarios-de-calidad.md) · [Criterios de validación](04-criterios-de-validacion.md)
+Ver también: [Métricas](06-metricas.md) · [Escenarios de calidad](../01-analisis-de-sistema/08-escenarios-atributos-calidad.md) · [Criterios de validación](04-criterios-de-validacion.md)
 
 [← Índice](../README.md)

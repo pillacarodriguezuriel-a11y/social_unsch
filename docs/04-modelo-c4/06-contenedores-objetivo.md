@@ -102,6 +102,6 @@ Los cuatro cilindros de PostgreSQL representan **propiedad separada**, no necesa
 - El número de servicios puede reducirse: mantener Identidad y Comunidad juntas es una variante válida si el costo de operación lo aconseja.
 - Marketplace y empleo no aparecen: el plan de migración no les asigna servicio.
 
-**Relacionados:** [C2 actual](02-contenedores-actuales.md) · [C2 de transición](05-contenedores-de-transicion.md) · [Arquitectura objetivo](../02-arquitectura-de-software/05-arquitectura-objetivo.md)
+**Relacionados:** [C2 actual](Nivel2-DiagramadeContenedores.md) · [C2 de transición](05-contenedores-de-transicion.md) · [Arquitectura objetivo](../02-arquitectura-software/05-arquitectura-objetivo.md)
 
 [← Guía del modelo C4](README.md) · [← Índice](../README.md)

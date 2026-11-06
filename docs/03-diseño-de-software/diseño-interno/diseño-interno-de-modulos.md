@@ -1,8 +1,6 @@
 # Organización interna
 
-> **Actualización 2026-10-30.** Este documento conserva su análisis original. Desde entonces: Radar recibe sus dependencias por constructor y tiene el puerto `RadarStore`; existe composición explícita en `composition.ts`. Ver [C4, nivel de código](../04-modelo-c4/04-codigo-y-secuencias.md).
-
-Cómo está ordenado el código del backend por dentro. Descrito en el commit `8e56bfa` y actualizado con la etapa 3 ([ETAPA_03](../migracion/ETAPA_03_PREPARACION_SEPARACION.md)), que movió el backend a `apps/api` y separó composición y arranque.
+Cómo está ordenado el código del backend por dentro. Descrito en el commit `8e56bfa` y actualizado con la etapa 3 ([ETAPA_03](../../migracion/ETAPA_03_PREPARACION_SEPARACION.md)), que movió el backend a `apps/api` y separó composición y arranque.
 
 ## Estructura de directorios
 
@@ -71,20 +69,20 @@ sequenceDiagram
     K-->>C: 201 con post_id
 ```
 
-Archivos: [feed.routes.ts](../../apps/api/src/modules/feed/feed.routes.ts), [feed.controller.ts](../../apps/api/src/modules/feed/feed.controller.ts), [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts), [feed.repository.ts](../../apps/api/src/modules/feed/feed.repository.ts).
+Archivos: [feed.routes.ts](../../../apps/api/src/modules/feed/feed.routes.ts), [feed.controller.ts](../../../apps/api/src/modules/feed/feed.controller.ts), [feed.service.ts](../../../apps/api/src/modules/feed/feed.service.ts), [feed.repository.ts](../../../apps/api/src/modules/feed/feed.repository.ts).
 
 ## Cómo se conectan las piezas
 
-No hay contenedor de dependencias ni punto de composición. Cada clase crea la siguiente al definirse:
+Feed, usuarios, autenticación, matchmaking y movilidad crean sus dependencias concretas dentro de los módulos. El recorrido habitual es el siguiente.
 
 | Dónde | Qué crea |
 |---|---|
 | Archivo de rutas | `new XController()` |
 | Controlador | `private xService = new XService()` |
 | Servicio | `private xRepository = new XRepository()` |
-| Repositorio | Importa `pool` o `redis` desde `config` |
+| Repositorio SQL | Importa `pool` desde `config/database` |
 
-Las conexiones (`pool`, `redis`) son objetos únicos del proceso, creados al importar su módulo de configuración. La conexión a Redis se abre en ese momento; la de PostgreSQL, al ejecutar la primera consulta.
+Radar se construye desde [composition.ts](../../../apps/api/src/composition.ts). En modo local crea el cliente Redis y lo inyecta en el módulo. En modo proxy la API crea un cliente HTTP para enviar las solicitudes al servicio independiente. El pool de PostgreSQL se comparte entre los módulos SQL y conecta al ejecutar la primera consulta.
 
 ## Cumplimiento real de las capas
 
@@ -92,12 +90,12 @@ La separación se respeta en general, con estas desviaciones observadas:
 
 | Desviación | Dónde | Evidencia |
 |---|---|---|
-| Controlador que consulta la base | `catalogs` | [catalogs.controller.ts](../../apps/api/src/modules/catalogs/catalogs.controller.ts) |
-| Ruta con lógica en línea | `GET /auth/profile-me` responde desde el archivo de rutas | [auth.routes.ts](../../apps/api/src/modules/auth/auth.routes.ts) |
-| Controladores que construyen respuestas de error sin pasar por `AppError` | Comprobaciones de usuario ausente y de parámetros en `feed`, `radar`, `carpooling`, `matchmaking` y `users` | Por ejemplo, [radar.controller.ts](../../apps/api/src/modules/radar/radar.controller.ts) |
-| Reglas de negocio en el repositorio | La máquina de estados del matchmaking y las comprobaciones de la confirmación de asiento están dentro de transacciones SQL | [matchmaking.repository.ts](../../apps/api/src/modules/matchmaking/matchmaking.repository.ts), [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts) |
-| Reglas de negocio en el almacén | Consenso del radar en un script Lua; créditos y moderación en disparadores | [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts), [003_credits_and_wiki.sql](../../apps/api/src/database/migrations/sql/003_credits_and_wiki.sql) |
-| Código de prueba dentro del código de producción | Parámetro `injectedFailure` y cliente alternativo cuando `pool.connect` no existe | [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts), [carpooling.service.ts](../../apps/api/src/modules/carpooling/carpooling.service.ts) |
+| Controlador que consulta la base | `catalogs` | [catalogs.controller.ts](../../../apps/api/src/modules/catalogs/catalogs.controller.ts) |
+| Ruta con lógica en línea | `GET /auth/profile-me` responde desde el archivo de rutas | [auth.routes.ts](../../../apps/api/src/modules/auth/auth.routes.ts) |
+| Controladores que construyen respuestas de error sin pasar por `AppError` | Comprobaciones de usuario ausente y de parámetros en `feed`, `radar`, `carpooling`, `matchmaking` y `users` | Por ejemplo, [radar.controller.ts](../../../apps/api/src/modules/radar/radar.controller.ts) |
+| Reglas de negocio en el repositorio | La máquina de estados del matchmaking y las comprobaciones de la confirmación de asiento están dentro de transacciones SQL | [matchmaking.repository.ts](../../../apps/api/src/modules/matchmaking/matchmaking.repository.ts), [carpooling.repository.ts](../../../apps/api/src/modules/carpooling/carpooling.repository.ts) |
+| Reglas de negocio en el almacén | Consenso del radar en un script Lua; créditos y moderación en disparadores | [radar.repository.ts](../../../apps/api/src/modules/radar/radar.repository.ts), [003_credits_and_wiki.sql](../../../apps/api/src/database/migrations/sql/003_credits_and_wiki.sql) |
+| Código de prueba dentro del código de producción | Parámetro `injectedFailure` y cliente alternativo cuando `pool.connect` no existe | [carpooling.repository.ts](../../../apps/api/src/modules/carpooling/carpooling.repository.ts), [carpooling.service.ts](../../../apps/api/src/modules/carpooling/carpooling.service.ts) |
 
 Colocar una regla dentro de una transacción o de un script atómico no es en sí un defecto: es la forma de garantizar que la comprobación y el cambio ocurran juntos. El costo es que la regla queda ligada a la tecnología de almacenamiento.
 
@@ -118,11 +116,11 @@ El parámetro `injectedFailure` no es alcanzable desde HTTP: el controlador no l
 
 | Ubicación | Contenido |
 |---|---|
-| [app/(auth)](../../apps/web/app/%28auth%29) | Inicio de sesión y registro |
-| [app/(dashboard)](../../apps/web/app/%28dashboard%29) | Pantallas tras iniciar sesión, con un `layout` común |
-| [components/ui](../../apps/web/components/ui) | 19 componentes; mezclan presentación con llamadas a la API o a `localStorage` |
-| [app/lib/api.ts](../../apps/web/app/lib/api.ts) | Cliente HTTP |
-| [app/lib/unsch.constants.ts](../../apps/web/app/lib/unsch.constants.ts) | Catálogos y valores permitidos |
+| [app/(auth)](../../../apps/web/app/%28auth%29) | Inicio de sesión y registro |
+| [app/(dashboard)](../../../apps/web/app/%28dashboard%29) | Pantallas tras iniciar sesión, con un `layout` común |
+| [components/ui](../../../apps/web/components/ui) | 19 componentes; mezclan presentación con llamadas a la API o a `localStorage` |
+| [app/lib/api.ts](../../../apps/web/app/lib/api.ts) | Cliente HTTP |
+| [app/lib/unsch.constants.ts](../../../apps/web/app/lib/unsch.constants.ts) | Catálogos y valores permitidos |
 
 No hay capa de servicios ni gestor de estado en el frontend: cada componente llama directamente al cliente HTTP o a `localStorage`.
 
@@ -130,6 +128,6 @@ No hay capa de servicios ni gestor de estado en el frontend: cada componente lla
 
 > **Estado: Propuesto.**
 
-Para los servicios futuros se propone la estructura hexagonal descrita en [Arquitectura objetivo](../02-arquitectura-de-software/05-arquitectura-objetivo.md): un núcleo con casos de uso y puertos, adaptadores de entrada y salida, y un único archivo de composición por servicio. Los módulos existentes no necesitan reescribirse antes de migrar; la reorganización puede hacerse al extraer cada uno.
+Para los servicios futuros se propone la estructura hexagonal descrita en [Arquitectura objetivo](../../02-arquitectura-software/05-arquitectura-objetivo.md): un núcleo con casos de uso y puertos, adaptadores de entrada y salida, y un único archivo de composición por servicio. Los módulos existentes no necesitan reescribirse antes de migrar; la reorganización puede hacerse al extraer cada uno.
 
-[← Índice](../README.md)
+[← Índice](../../README.md)

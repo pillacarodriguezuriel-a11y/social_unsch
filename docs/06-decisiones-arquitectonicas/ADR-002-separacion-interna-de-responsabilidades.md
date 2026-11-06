@@ -62,7 +62,7 @@ Análisis posterior.
 - **Sin acoplamiento de código, pero con acoplamiento de datos.** Los módulos no se importan, pero leen las mismas tablas.
 - Algunos servicios solo reenvían llamadas, lo que añade archivos sin aportar reglas.
 
-Esta decisión **no equivale a arquitectura hexagonal**: no hay puertos, la dirección de dependencias va del negocio a la infraestructura y no existe un punto de composición. El análisis está en [Estilos y enfoques](../02-arquitectura-de-software/02-estilos-y-enfoques.md).
+Esta decisión **no equivale a arquitectura hexagonal**: no hay puertos, la dirección de dependencias va del negocio a la infraestructura y no existe un punto de composición. El análisis está en [Estilos y enfoques](../02-arquitectura-software/estilo-arquitectonico.md).
 
 ## Evidencias
 

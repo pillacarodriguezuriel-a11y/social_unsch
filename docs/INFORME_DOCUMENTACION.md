@@ -9,6 +9,10 @@ Cómo se elaboró esta documentación, qué se comprobó realmente y qué limita
 | Rama de trabajo | `docs/arquitectura-social-unsch` |
 | Alcance del cambio | Solo archivos Markdown: `docs/` y `README.md` |
 
+## Reorganización del 2026-11-06
+
+El [índice](README.md) reúne los 19 temas de la [referencia académica](https://github.com/devlizbethjaico/Marketplace-arquitSoft-02/tree/main/docs) en cuatro bloques. Se mantuvieron los ADR, los informes de migración y las evidencias propias. Se revisó el diseño de Radar contra el código de `303ea07`. Las verificaciones de despliegue y pruebas que siguen corresponden a sus fechas originales.
+
 ## Revisión del 2026-10-30
 
 Se revisó toda la documentación contra el código de `b763885`, con estas reglas: solo archivos Markdown, ningún cambio de código, y sin leer archivos `.env`. Se actualizó tras la fusión del PR n.º 5. Las secciones siguientes describen la edición original del 2026-10-12.
@@ -23,7 +27,7 @@ Se revisó toda la documentación contra el código de `b763885`, con estas regl
 | Enlaces | Enlaces y anclas resueltos por script |
 | Diagramas | Revisión estática por script de estructura y caracteres conflictivos. **No se renderizaron con el parser oficial de Mermaid**: conviene revisarlos en la vista previa de GitHub |
 
-La estructura numerada existente se conservó en lugar de crear otra paralela. La equivalencia está en el [portal](README.md#mapa-de-la-documentación).
+La edición de octubre conservó la estructura numerada existente.
 
 ## Método
 

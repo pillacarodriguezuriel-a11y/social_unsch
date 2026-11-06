@@ -1,6 +1,6 @@
 # Atributos de calidad
 
-Un atributo de calidad describe cómo debe comportarse el sistema, no qué hace. Aquí se listan los que más pesan en SOCIAL-UNSCH, qué mecanismo existe hoy para cada uno y qué falta. Los escenarios medibles están en [Escenarios de calidad](08-escenarios-de-calidad.md).
+Un atributo de calidad describe cómo debe comportarse el sistema, no qué hace. Aquí se listan los que más pesan en SOCIAL-UNSCH, qué mecanismo existe hoy para cada uno y qué falta. Los escenarios medibles están en [Escenarios de calidad](08-escenarios-atributos-calidad.md).
 
 Ningún atributo de ejecución tiene hoy una medición sostenida: no hay pruebas de carga, monitoreo ni registro de disponibilidad. Lo que se indica como «existe» es un mecanismo en el código, no un resultado medido. Lo medido hasta ahora está en [Métricas](../07-evaluacion-y-evolucion/06-metricas.md).
 
@@ -31,7 +31,7 @@ Ningún atributo de ejecución tiene hoy una medición sostenida: no hay pruebas
 | Verificación de propiedad del correo | No existe | Declarado como pendiente en [roles.ts](../../apps/api/src/shared/auth/roles.ts) |
 | Revocación de tokens o cierre de sesión en servidor | No existe | El cierre de sesión solo borra `localStorage` |
 | Límite de intentos o de frecuencia | No existe | Sin middleware de limitación en [app.ts](../../apps/api/src/app.ts) |
-| Autorización por rol en la API | No existe | Solo `requireAuth`; ver [Actores](02-actores.md) |
+| Autorización por rol en la API | No existe | Solo `requireAuth`; ver [Actores](01-actores.md) |
 | Token fuera del alcance de scripts | No existe | El token se guarda en `localStorage` ([api.ts](../../apps/web/app/lib/api.ts)) |
 
 ### Integridad de datos
@@ -44,7 +44,7 @@ Ningún atributo de ejecución tiene hoy una medición sostenida: no hay pruebas
 | Voto de radar atómico | Implementado | Script Lua en [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts) |
 | Migraciones transaccionales con validación de estructura | Implementado | [migrator.ts](../../apps/api/src/database/migrations/migrator.ts) |
 
-Los límites exactos de estas garantías se analizan en [Errores y consistencia](../03-diseno-de-software/06-errores-y-consistencia.md).
+Los límites exactos de estas garantías se analizan en [Errores y consistencia](../03-diseño-de-software/06-errores-y-consistencia.md).
 
 ### Modificabilidad
 
@@ -52,7 +52,7 @@ Los límites exactos de estas garantías se analizan en [Errores y consistencia]
 |---|---|---|
 | Módulos por dominio sin importaciones entre sí | Implementado | Ningún archivo de `src/modules/*` importa de otro módulo |
 | Capas controlador, servicio y repositorio | Implementado en seis de siete módulos | `catalogs` consulta la base desde el controlador |
-| Dependencias invertidas mediante interfaces | Parcial | Solo Radar: puerto `RadarStore` e inyección por constructor. Los demás servicios instancian sus repositorios; ver [Estilos y enfoques](../02-arquitectura-de-software/02-estilos-y-enfoques.md) |
+| Dependencias invertidas mediante interfaces | Parcial | Solo Radar: puerto `RadarStore` e inyección por constructor. Los demás servicios instancian sus repositorios; ver [Enfoque arquitectónico](../02-arquitectura-software/enfoque-arquitectonico.md) |
 | Independencia de datos entre módulos | Parcial | Radar no usa PostgreSQL; feed, matchmaking y carpooling consultan la tabla `users` directamente |
 
 ### Disponibilidad y operabilidad

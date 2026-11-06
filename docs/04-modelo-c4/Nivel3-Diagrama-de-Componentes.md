@@ -171,7 +171,7 @@ flowchart LR
 | Una sola `DATABASE_URL` | Todos los módulos pueden leer todas las tablas | 5 |
 | Clases creadas con `new` en todos los módulos salvo `radar` | No se puede sustituir el almacén sin tocar el servicio | Al extraer cada uno |
 
-Análisis completo en [Componentes y dependencias](../02-arquitectura-de-software/03-componentes-y-dependencias.md).
+Análisis completo en [Componentes y dependencias](../02-arquitectura-software/componentes-arquitectonicos.md).
 
 ## Componentes de la aplicación web
 
@@ -184,6 +184,6 @@ No se elabora un nivel 3 completo del frontend. Sus piezas relevantes para la ar
 | Guarda de ruta | Aviso de términos | [RouteGuard.tsx](../../apps/web/components/ui/RouteGuard.tsx) |
 | Disposición del panel | Redirigir al inicio de sesión si no hay token | [layout.tsx](../../apps/web/app/%28dashboard%29/layout.tsx) |
 
-**Nivel anterior:** [C2 · Contenedores actuales](02-contenedores-actuales.md) · **Siguiente nivel:** [C4 · Código y secuencias](04-codigo-y-secuencias.md)
+**Nivel anterior:** [C2 · Contenedores actuales](Nivel2-DiagramadeContenedores.md) · **Siguiente nivel:** [C4 · Código y secuencias](Nivel4-DiagramadeCodigo.md)
 
 [← Guía del modelo C4](README.md) · [← Índice](../README.md)

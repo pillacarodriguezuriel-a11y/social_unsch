@@ -60,6 +60,6 @@ Objetivo, criterios de entrada y salida, riesgos y reversión de cada etapa: [Pl
 | Este documento y [Extracción de Radar](EXTRACCION_RADAR.md) | Vivos: reflejan el estado vigente |
 | Informes `ETAPA_*`, [Inventario de configuración](INVENTARIO_CONFIGURACION.md), [Resultados de verificación](RESULTADOS_VERIFICACION.md) | Registros de su momento. Donde difieren del código, vale el código |
 
-Ver también: [Arquitectura de transición](../02-arquitectura-de-software/04-arquitectura-de-transicion.md) · [Riesgos y deuda técnica](../07-evaluacion-y-evolucion/02-riesgos-y-deuda-tecnica.md) · [Pendientes](../07-evaluacion-y-evolucion/08-pendientes.md)
+Ver también: [Arquitectura de transición](../02-arquitectura-software/04-arquitectura-de-transicion.md) · [Riesgos y deuda técnica](../07-evaluacion-y-evolucion/02-riesgos-y-deuda-tecnica.md) · [Pendientes](../07-evaluacion-y-evolucion/08-pendientes.md)
 
 [← Índice](../README.md)

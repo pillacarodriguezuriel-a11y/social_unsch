@@ -89,7 +89,7 @@ Tras la etapa 3: rutas de vida y disponibilidad, respuesta 503 en la disponibili
 | Métricas por ruta | Tasa de solicitudes, de errores y duración |
 | Alertas | Sobre la ruta de disponibilidad y la tasa de errores |
 | Respaldo programado | Copia periódica de PostgreSQL fuera del proveedor, con una restauración de prueba |
-| Objetivos de servicio | Definir y medir disponibilidad y latencia; hoy solo hay objetivos sin validar en [Escenarios de calidad](../01-analisis-del-sistema/08-escenarios-de-calidad.md) |
+| Objetivos de servicio | Definir y medir disponibilidad y latencia; hoy solo hay objetivos sin validar en [Escenarios de calidad](../01-analisis-de-sistema/08-escenarios-atributos-calidad.md) |
 | Reconexión a Redis | Implementada |
 | Cierre ordenado | Implementado en la etapa 3 |
 

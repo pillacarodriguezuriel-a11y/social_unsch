@@ -326,7 +326,7 @@ flowchart TB
 | Puerto de almacenamiento | Sí: `RadarStore` | No |
 | Dependencias inyectadas | Sí, por constructor | No: `new` en campos privados |
 | Composición explícita | Sí: `composition.ts`, `apps/radar/src/app.ts` | No |
-| Dominio separado de la aplicación | No: `RadarService` reúne ambos y mantiene los valores permitidos | No |
+| Dominio separado de la aplicación | No: `RadarService` reúne ambos y valida con valores de `@social-unsch/contracts` | No |
 | Puerto ubicado en el centro | No: `RadarStore` se declara en el archivo del adaptador, y el servicio importa de `radar.repository.ts` | No aplica |
 | Regla sin dependencia de HTTP | Parcial: `RadarService` lanza errores con estado HTTP | No |
 
@@ -341,6 +341,6 @@ Radar es, por tanto, un primer paso hacia puertos y adaptadores, no una arquitec
 | La identidad llega resuelta desde el token | `req.user` en Radar y carpooling |
 | La frontera de Radar es HTTP y clave pública; no comparte código con la API | Secuencia A3 |
 
-**Nivel anterior:** [C3 · Componentes](03-componentes-del-backend.md) · **Trazabilidad:** [Requisito a código](07-trazabilidad-c4.md)
+**Nivel anterior:** [C3 · Componentes](Nivel3-Diagrama-de-Componentes.md) · **Trazabilidad:** [Requisito a código](07-trazabilidad-c4.md)
 
 [← Guía del modelo C4](README.md) · [← Índice](../README.md)

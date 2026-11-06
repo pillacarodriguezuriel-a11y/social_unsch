@@ -6,7 +6,7 @@ Relaciona cada funcionalidad con su representación en los cuatro niveles y con 
 Requisito → Dominio → Contenedor → Componente → Código
 ```
 
-Referencia: `main`, commit `b763885`. El estado de cada requisito está en [Requisitos funcionales](../01-analisis-del-sistema/04-requisitos-funcionales.md). La relación con historias y pruebas está en la [matriz de trazabilidad](../01-analisis-del-sistema/09-matriz-de-trazabilidad.md).
+Referencia: `main`, commit `b763885`. El estado de cada requisito está en [Requisitos funcionales](../01-analisis-de-sistema/03-requisitos-funcionales.md). La relación con historias y pruebas está en la [matriz de trazabilidad](../01-analisis-de-sistema/09-matriz-de-trazabilidad.md).
 
 ## Funcionalidades con backend
 
@@ -48,6 +48,6 @@ No tienen representación en los niveles 3 y 4 de la API.
 | Movilidad | Módulo `carpooling` | Servicio propio | PROPUESTO |
 | Recursos | Sin módulo; tablas sin API | Servicio propio | PROPUESTO |
 
-Más detalle en [Dominios del sistema](../02-arquitectura-de-software/08-dominios-del-sistema.md).
+Más detalle en [Dominios del sistema](../02-arquitectura-software/08-dominios-del-sistema.md).
 
 [← Guía del modelo C4](README.md) · [← Índice](../README.md)

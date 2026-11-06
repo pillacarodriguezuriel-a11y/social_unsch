@@ -79,6 +79,6 @@ La reversión funciona porque ambas implementaciones comparten formato de claves
 
 Se detalla en [Pendientes](../07-evaluacion-y-evolucion/08-pendientes.md): corregir `test-real` en CI, fusionar el PR, desplegar Radar, medir en la plataforma real, activar el proxy y ensayar la reversión.
 
-**Relacionados:** [C2 actual](02-contenedores-actuales.md) · [C2 objetivo](06-contenedores-objetivo.md) · [Arquitectura de transición](../02-arquitectura-de-software/04-arquitectura-de-transicion.md) · [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md)
+**Relacionados:** [C2 actual](Nivel2-DiagramadeContenedores.md) · [C2 objetivo](06-contenedores-objetivo.md) · [Arquitectura de transición](../02-arquitectura-software/04-arquitectura-de-transicion.md) · [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md)
 
 [← Guía del modelo C4](README.md) · [← Índice](../README.md)
