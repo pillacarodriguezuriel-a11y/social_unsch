@@ -33,6 +33,8 @@
     "test:radar": "npm test -w @social-unsch/radar",
     "test:real": "npm run test:real -w @social-unsch/api",
     "test:web": "npm test -w @social-unsch/web",
+    "test:e2e": "npm run build:contracts && npm run build:api && npm run build:radar && node --test --test-concurrency=1 tests/e2e/radar.e2e.test.js",
+    "bench:radar": "npm run build:contracts && npm run build:api && npm run build:radar && node scripts/benchmark-radar.js",
     "db:migrate": "npm run db:migrate -w @social-unsch/api",
     "db:catalogs": "npm run db:catalogs -w @social-unsch/api",
     "db:seed:demo": "npm run db:seed:demo -w @social-unsch/api --",

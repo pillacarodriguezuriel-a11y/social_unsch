@@ -84,6 +84,13 @@ export class RadarRepository implements RadarStore {
       throw new Error('Error al ejecutar pipeline de Redis');
     }
 
+    // Un comando fallido no significa «sin consenso»: sin esta comprobación, con Redis caído la
+    // respuesta sería 200 con todos los nodos «indefinido».
+    const failed = results.find(([error]) => error);
+    if (failed) {
+      throw failed[0];
+    }
+
     const parseNodeStatus = (res: any, field: 'status' | 'occupancy') => {
       const data = res[1] as Record<string, string> | null;
       if (!data || Object.keys(data).length === 0) {

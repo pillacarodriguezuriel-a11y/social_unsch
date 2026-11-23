@@ -47,6 +47,16 @@ export function generateEphemeralRsaKeys(): { privateKey: string; publicKey: str
  * No detiene ni afecta contenedores ajenos ni proyectos paralelos.
  */
 export async function startTestContainers(): Promise<void> {
+  try {
+    await launchTestContainers();
+  } catch (error) {
+    // Si el arranque falla, Jest no ejecuta globalTeardown: se limpia aquí para no dejar contenedores huérfanos.
+    await stopTestContainers();
+    throw error;
+  }
+}
+
+async function launchTestContainers(): Promise<void> {
   console.log('[TestEnv]: Iniciando contenedores desechables de prueba...');
 
   // Detener instancias previas huérfanas si quedaron registradas

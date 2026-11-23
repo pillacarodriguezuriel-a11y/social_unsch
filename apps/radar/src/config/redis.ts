@@ -1,6 +1,12 @@
 import Redis, { RedisOptions } from 'ioredis';
 
 /**
+ * Límite por comando. Sin él, un Redis que mantiene la conexión abierta pero deja de responder
+ * deja las solicitudes pendientes indefinidamente (comprobado con `docker pause`).
+ */
+export const REDIS_COMMAND_TIMEOUT_MS = 1500;
+
+/**
  * Crea el cliente Redis para el servicio Radar con estrategias de recuperación y límites seguros.
  * 
  * Mejoras ante la deuda técnica previa:
@@ -14,6 +20,7 @@ export function createRadarRedisClient(url: string, customOptions: Partial<Redis
   const options: RedisOptions = {
     maxRetriesPerRequest: 1,
     enableOfflineQueue: false,
+    commandTimeout: REDIS_COMMAND_TIMEOUT_MS,
     retryStrategy(times) {
       // Reconexión resiliente: backoff de 100ms, 200ms, ... hasta un máximo de 3000ms
       const delay = Math.min(times * 100, 3000);

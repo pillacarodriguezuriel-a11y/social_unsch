@@ -1,6 +1,6 @@
 jest.mock('ioredis');
 import Redis from 'ioredis';
-import { createRadarRedisClient } from '../../src/config/redis';
+import { createRadarRedisClient, REDIS_COMMAND_TIMEOUT_MS } from '../../src/config/redis';
 
 describe('apps/radar - createRadarRedisClient', () => {
   let mockRedisConstructor: jest.Mock;
@@ -49,6 +49,14 @@ describe('apps/radar - createRadarRedisClient', () => {
     expect(strategy(50)).toBe(3000); // capped at 3000
     // No retorna null tras 5 intentos, permitiendo recuperarse de caídas
     expect(strategy(6)).not.toBeNull();
+  });
+
+  it('limita la duración de cada comando para no dejar solicitudes pendientes si Redis deja de responder', () => {
+    createRadarRedisClient('redis://localhost:6379');
+    const [, options] = mockRedisConstructor.mock.calls[0];
+    expect(options.commandTimeout).toBe(REDIS_COMMAND_TIMEOUT_MS);
+    expect(REDIS_COMMAND_TIMEOUT_MS).toBeGreaterThan(0);
+    expect(REDIS_COMMAND_TIMEOUT_MS).toBeLessThan(2000); // menor que el límite de /health/ready
   });
 
   it('activa TLS cuando la URL inicia con rediss://', () => {
