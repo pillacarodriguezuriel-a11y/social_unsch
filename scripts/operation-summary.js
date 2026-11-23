@@ -3,7 +3,7 @@
 const fs=require('fs');
 const readline=require('readline');
 const {percentile}=require('./lib/measurement');
-const routes=new Set(['/health/live','/health/ready','/api/v1/radar/status','/api/v1/radar/report','/api/v1/catalogs','/api/v1/auth/login','/api/v1/users/me','/api/v1/feed']);
+const routes=new Set(['/health/live','/health/ready','/api/v1/radar/status','/api/v1/radar/report','/api/v1/catalogs','/api/v1/auth/login','/api/v1/auth/profile-me','/api/v1/feed','/api/v1/feed/']);
 async function summarize(file,since,until) {
   const start=Date.parse(since), end=Date.parse(until);
   if (!Number.isFinite(start)||!Number.isFinite(end)||end<=start) throw new Error('Ventana inválida');

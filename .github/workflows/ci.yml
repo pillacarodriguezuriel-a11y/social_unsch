@@ -14,14 +14,18 @@ jobs:
   verify:
     name: Verificación Estática, Tipos, Cobertura y Compilación
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.14.0', '24.11.1']
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js 20.x
+      - name: Configurar Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: '20.14.0'
+          node-version: ${{ matrix.node }}
           cache: 'npm'
 
       - name: Instalación limpia de dependencias
@@ -33,6 +37,10 @@ jobs:
   test-real:
     name: Pruebas Reales con Servicios Desechables (PostgreSQL y Redis)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.14.0', '24.11.1']
     needs: verify
     # Sin `services`: el arnés (apps/api/tests/real/helpers/test-environment.ts) crea sus propios
     # contenedores en 127.0.0.1:55432 y 56379. Declarar servicios en esos puertos provocaba el
@@ -41,10 +49,10 @@ jobs:
       - name: Clonar repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js 20.x
+      - name: Configurar Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: '20.14.0'
+          node-version: ${{ matrix.node }}
           cache: 'npm'
 
       - name: Instalación limpia de dependencias
@@ -63,15 +71,19 @@ jobs:
   e2e-radar:
     name: E2E de Radar (API y Radar compilados, PostgreSQL y Redis reales)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.14.0', '24.11.1']
     needs: verify
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js 20.x
+      - name: Configurar Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: '20.14.0'
+          node-version: ${{ matrix.node }}
           cache: 'npm'
 
       - name: Instalación limpia de dependencias

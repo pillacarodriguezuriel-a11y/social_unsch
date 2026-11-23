@@ -1,0 +1,5 @@
+Fuente oficial google/fonts, commit b31870aff700ab7a1d74fa0c6887d95beb9e0037
+Archivo original: ofl/manrope/Manrope[wght].ttf
+SHA256: 3AE11C49DB0455A3CC33E37D380F20FDB8C7F8B41DC07625C177E3D87A9D6AE6
+Licencia: OFL.txt (SIL Open Font License).
+Sin modificaciones al binario. Descargado 2026-11-23 para compilación reproducible sin Google Fonts en tiempo de build.
