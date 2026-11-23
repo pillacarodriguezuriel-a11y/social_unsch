@@ -30,6 +30,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { execFile } = require('child_process');
+const { monitorEventLoopDelay } = require('perf_hooks');
+const { RadarStatusResponseSchema, RadarReportResponseSchema } = require('@social-unsch/contracts');
 const jwt = require('jsonwebtoken');
 const st = require('./lib/radar-stack');
 
@@ -44,6 +47,8 @@ const cfg = {
   s3Seconds: Number(process.env.BENCH_S3_SECONDS || 30),
   requestTimeoutMs: 10000,
 };
+for (const [key, value] of Object.entries(cfg)) if (!Number.isFinite(value) || value <= 0) throw new Error(`Configuración inválida: ${key}`);
+if (!Number.isInteger(cfg.reps) || cfg.reps < 3 || cfg.users !== 50 || cfg.s1Seconds < 30 || cfg.s1WarmupSeconds < 10 || cfg.s2PerMinute !== 100 || cfg.s2Seconds !== 60) throw new Error('La aceptación exige >=3 repeticiones, 50 usuarios, >=30s, >=10s de calentamiento y 100 reportes/60s');
 // Puertos distintos en cada repetición: un puerto reutilizado tras matar el proceso anterior deja
 // sockets keep-alive muertos en el pool del cliente y provoca errores de conexión ajenos al sistema.
 const BASE_PORTS = { api: 3510, radar: 4510 };
@@ -58,11 +63,7 @@ const token = (id) => jwt.sign({ user_id: id, role: 'student' }, keys.privateKey
 const statusTokens = Array.from({ length: 200 }, (_, i) => token(`bench-status-${i}`));
 let reportSeq = 0;
 
-function percentile(sorted, p) {
-  if (sorted.length === 0) return null;
-  const idx = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
-  return sorted[Math.max(0, idx)];
-}
+const { percentile, median } = require('./lib/measurement');
 
 function summarize(samples, durationS) {
   const ok = samples.filter((s) => s.ok).map((s) => s.ms).sort((a, b) => a - b);
@@ -84,8 +85,9 @@ async function timed(url, init) {
   const t0 = process.hrtime.bigint();
   try {
     const res = await fetch(url, { ...init, signal: AbortSignal.timeout(cfg.requestTimeoutMs) });
-    await res.arrayBuffer();
-    return { ok: res.status === 200, status: res.status, ms: Number(process.hrtime.bigint() - t0) / 1e6 };
+    const body = await res.json().catch(() => null);
+    const valid = (url.endsWith(REPORT) ? RadarReportResponseSchema : RadarStatusResponseSchema).safeParse(body).success;
+    return { ok: res.status === 200 && valid, updated: body?.updated === true, status: res.status, ms: Number(process.hrtime.bigint() - t0) / 1e6 };
   } catch (e) {
     return { ok: false, status: 0, timeout: e.name === 'TimeoutError', ms: Number(process.hrtime.bigint() - t0) / 1e6 };
   }
@@ -102,31 +104,26 @@ async function closedLoop(base, seconds) {
   return samples;
 }
 
-const REPORT_TARGETS = [
-  ['comedor', ['fluid', 'medium_queue', 'Cola Larga', 'Cerrado']],
-  ['rectorado', ['empty_window', 'waiting_15', 'Colapsado']],
-  ['biblioteca_floor_1', ['20', '40', '60']],
-  ['biblioteca_floor_3', ['10', '50', '90']],
-  ['campus_alert', ['cultural_event', 'Clase suspendida']],
-];
-
 async function openLoop(base, perMinute, seconds) {
   const interval = 60000 / perMinute;
   const total = Math.round((seconds * 1000) / interval);
   const pending = [];
+  // Firmar fuera de la ventana medida: el generador no compite haciendo RSA por cada envío.
+  const tokens = Array.from({length: total}, () => token(`bench-report-${++reportSeq}`));
   const start = Date.now();
   for (let i = 0; i < total; i++) {
     const wait = start + i * interval - Date.now();
     if (wait > 0) await st.sleep(wait);
-    const [node, values] = REPORT_TARGETS[i % REPORT_TARGETS.length];
-    const status = values[Math.floor(i / REPORT_TARGETS.length) % values.length];
+    const node = 'comedor', status = 'fluid';
     pending.push(timed(base + REPORT, {
       method: 'POST',
-      headers: { authorization: `Bearer ${token(`bench-report-${++reportSeq}`)}`, 'content-type': 'application/json' },
+      headers: { authorization: `Bearer ${tokens[i]}`, 'content-type': 'application/json' },
       body: JSON.stringify({ node, status }),
     }));
   }
-  return Promise.all(pending);
+  const samples = await Promise.all(pending);
+  await st.sleep(Math.max(0, start + seconds * 1000 - Date.now()));
+  return samples;
 }
 
 /** Datos equivalentes en cada repetición: Redis vacío y tres nodos con consenso publicado. */
@@ -154,7 +151,9 @@ async function openLoopStatus(base, perSecond, seconds) {
     if (wait > 0) await st.sleep(wait);
     pending.push(timed(base + STATUS, { headers: { authorization: `Bearer ${statusTokens[i % statusTokens.length]}` } }));
   }
-  return Promise.all(pending);
+  const samples = await Promise.all(pending);
+  await st.sleep(Math.max(0, start + seconds * 1000 - Date.now()));
+  return samples;
 }
 
 async function startMode(mode) {
@@ -164,6 +163,7 @@ async function startMode(mode) {
   const cold = {};
   if (mode === 'proxy') {
     const radar = st.radarProcess({ port: PORTS.radar, redisUrl: infra.redisUrl, keys });
+    radar.preload = path.join(__dirname, 'lib', 'bench-telemetry.js');
     cold.radarMs = await radar.start({ readyPath: '/health/ready' });
     procs.push(radar);
   }
@@ -171,6 +171,7 @@ async function startMode(mode) {
     port: PORTS.api, databaseUrl: infra.databaseUrl, redisUrl: infra.redisUrl, keys,
     radarMode: mode, radarTarget: mode === 'proxy' ? `http://127.0.0.1:${PORTS.radar}` : undefined,
   });
+  api.preload = path.join(__dirname, 'lib', 'bench-telemetry.js');
   cold.apiMs = await api.start({ readyPath: '/health/ready' });
   procs.push(api);
   return { api, procs, cold };
@@ -180,12 +181,25 @@ async function stopAll(procs) {
   for (const p of [...procs].reverse()) await p.stop();
 }
 
-function usageDelta(procs, before, seconds) {
-  return procs.map((p, i) => {
-    const after = st.processUsage(p.pid());
-    if (!before[i] || !after) return { name: p.name, cpuPctOfOneCore: null, rssMb: null };
-    return { name: p.name, cpuPctOfOneCore: ((after.cpuSeconds - before[i].cpuSeconds) / seconds) * 100, rssMb: after.rssMb };
-  });
+async function measure(procs, run) {
+  const started = Date.now();
+  const cpu = process.cpuUsage();
+  const loop = monitorEventLoopDelay({ resolution: 10 }); loop.enable();
+  const containers = [];
+  let pending = null;
+  const poll = () => {
+    if (pending) return;
+    pending = new Promise(resolve => execFile('docker', ['stats','--no-stream','--format','{{.Name}};{{.CPUPerc}};{{.MemUsage}}',infra.pgName,infra.redisName], {timeout:5000}, (error, out) => {
+      containers.push({at: new Date().toISOString(), stats: error ? null : out.trim().split('\n')}); resolve();
+    })).finally(() => {pending=null;});
+  };
+  const timer = setInterval(poll,5000);
+  let samples;
+  try { samples = await run(); } finally {clearInterval(timer); loop.disable();}
+  const end = Date.now(), seconds = (end-started)/1000, used=process.cpuUsage(cpu);
+  const generator = {cpuPctOfOneCore:(used.user+used.system)/seconds/10000,rssMb:process.memoryUsage().rss/1048576,eventLoopP95Ms:loop.percentile(95)/1e6,eventLoopMaxMs:loop.max/1e6};
+  if (pending) await pending;
+  return {samples, ...summarize(samples,seconds),durationS:seconds,generator,containers,usage:procs.map(p=>({name:p.name,samples:p.telemetry.filter(x=>x.at>=started && x.at<=end)}))};
 }
 
 async function runRep(mode, rep) {
@@ -193,39 +207,32 @@ async function runRep(mode, rep) {
   try {
     await seed(api.url);
     await closedLoop(api.url, cfg.s1WarmupSeconds);
-    let before = procs.map((p) => st.processUsage(p.pid()));
-    let t0 = Date.now();
-    const s1 = await closedLoop(api.url, cfg.s1Seconds);
-    const s1Duration = (Date.now() - t0) / 1000;
-    const s1Usage = usageDelta(procs, before, s1Duration);
-    const s1Containers = infra.containerStats();
+    const s1 = await measure(procs, () => closedLoop(api.url, cfg.s1Seconds));
 
     await seed(api.url);
-    before = procs.map((p) => st.processUsage(p.pid()));
-    t0 = Date.now();
-    const s2 = await openLoop(api.url, cfg.s2PerMinute, cfg.s2Seconds);
-    const s2Duration = (Date.now() - t0) / 1000;
-    const s2Usage = usageDelta(procs, before, s2Duration);
+    infra.flushRedis();
+    const s2 = await measure(procs, () => openLoop(api.url, cfg.s2PerMinute, cfg.s2Seconds));
+    const updates = s2.samples.filter(s=>s.updated).length;
+    const remainingRaw = infra.redisCli('SCARD','radar:comedor:reports:fluid');
+    const remaining = remainingRaw === null ? null : Number(remainingRaw);
+    s2.integrity = {updates, remaining, expectedUpdates:33, expectedRemaining:1, pass:s2.ok===100 && updates===33 && remaining===1 && infra.redisCli('HGET','radar:comedor:status','status') === 'fluid'};
 
-    t0 = Date.now();
-    const s3 = await openLoopStatus(api.url, cfg.s3PerSecond, cfg.s3Seconds);
-    const s3Duration = (Date.now() - t0) / 1000;
+    await seed(api.url);
+    await openLoopStatus(api.url, cfg.s3PerSecond, 10);
+    const s3 = await measure(procs, () => openLoopStatus(api.url, cfg.s3PerSecond, cfg.s3Seconds));
+    for (const s of [s1,s2,s3]) delete s.samples;
 
     return {
       mode, rep, cold,
-      s1: { ...summarize(s1, s1Duration), durationS: s1Duration, users: cfg.users, usage: s1Usage, containers: s1Containers },
-      s2: { ...summarize(s2, s2Duration), durationS: s2Duration, targetPerMinute: cfg.s2PerMinute, usage: s2Usage },
-      s3: { ...summarize(s3, s3Duration), durationS: s3Duration, targetPerSecond: cfg.s3PerSecond },
+      s1: { ...s1, users: cfg.users },
+      s2: { ...s2, targetPerMinute: cfg.s2PerMinute },
+      s3: { ...s3, targetPerSecond: cfg.s3PerSecond },
     };
   } finally {
     await stopAll(procs);
   }
 }
 
-const median = (xs) => {
-  const s = xs.filter((x) => x !== null).sort((a, b) => a - b);
-  return s.length ? s[Math.floor((s.length - 1) / 2)] : null;
-};
 const fmt = (x, d = 1) => (x === null || x === undefined ? '—' : Number(x).toFixed(d));
 
 function environment() {
@@ -233,7 +240,7 @@ function environment() {
   return {
     date: new Date().toISOString(),
     commit: safe(() => execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: st.ROOT }).toString().trim()),
-    dirty: safe(() => execFileSync('git', ['status', '--porcelain', '--', 'apps', 'packages'], { cwd: st.ROOT }).toString().trim() !== ''),
+    dirty: safe(() => execFileSync('git', ['status', '--porcelain', '--', 'apps', 'packages', 'scripts', 'package.json', 'package-lock.json'], { cwd: st.ROOT }).toString().trim() !== ''),
     node: process.version,
     platform: `${os.platform()} ${os.release()}`,
     cpu: `${os.cpus()[0].model} × ${os.cpus().length}`,
@@ -241,6 +248,7 @@ function environment() {
     docker: safe(() => execFileSync('docker', ['version', '--format', '{{.Server.Version}}']).toString().trim()),
     images: ['postgres:16-alpine', 'redis:7-alpine'],
     config: cfg,
+    foreignContainers: safe(() => execFileSync('docker',['ps','--format','{{.Names}}']).toString().trim().split('\n').filter(x=>!x.startsWith('social_unsch_')).length),
     note: 'Generador de carga, API, Radar y contenedores comparten el mismo equipo. No representa la plataforma de producción.',
   };
 }
@@ -285,17 +293,18 @@ async function main() {
   const overheadPct = ((agg.proxy.s1P95MedianMs - agg.local.s1P95MedianMs) / agg.local.s1P95MedianMs) * 100;
   const s3OverheadPct = ((agg.proxy.s3P95MedianMs - agg.local.s3P95MedianMs) / agg.local.s3P95MedianMs) * 100;
   const verdicts = [
-    ['S1 p95 < 500 ms con 50 usuarios, modo local', agg.local.s1P95MedianMs < THRESHOLDS.s1P95Ms],
-    ['S1 p95 < 500 ms con 50 usuarios, modo proxy', agg.proxy.s1P95MedianMs < THRESHOLDS.s1P95Ms],
+    ['S1 p95 < 500 ms con 50 usuarios, modo local', byMode('local').every(r => r.s1.p95 < THRESHOLDS.s1P95Ms && r.s1.ok === r.s1.requests)],
+    ['S1 p95 < 500 ms con 50 usuarios, modo proxy', byMode('proxy').every(r => r.s1.p95 < THRESHOLDS.s1P95Ms && r.s1.ok === r.s1.requests)],
     ['S1 sobrecarga p95 del proxy ≤ 20 %', overheadPct <= THRESHOLDS.overheadP95Pct],
-    ['S2 100 reportes/min sin errores inesperados, ambos modos', agg.local.s2Errors === 0 && agg.proxy.s2Errors === 0],
+    ['S2 100 reportes/min sin errores ni pérdida de votos, ambos modos', results.every(r=>r.s2.integrity.pass)],
     ['S2 p95 < 500 ms, ambos modos', agg.local.s2P95MedianMs < THRESHOLDS.s2P95Ms && agg.proxy.s2P95MedianMs < THRESHOLDS.s2P95Ms],
   ].map(([criterion, pass]) => ({ criterion, pass }));
 
-  const out = { environment: env, thresholds: THRESHOLDS, aggregate: agg, overheadP95Pct: overheadPct, diagnosticS3OverheadP95Pct: s3OverheadPct, verdicts, runs: results };
+  const pairs = Array.from({length:cfg.reps},(_,i)=>{const a=results.find(r=>r.rep===i+1&&r.mode==='local').s1.p95,b=results.find(r=>r.rep===i+1&&r.mode==='proxy').s1.p95;return {rep:i+1,localP95:a,proxyP95:b,additionalMs:b-a,overheadPct:(b-a)/a*100,pass:(b-a)/a*100<=20};});
+  const out = { environment: env, thresholds: THRESHOLDS, aggregate: agg, overheadP95Pct: overheadPct, additionalP95Ms:agg.proxy.s1P95MedianMs-agg.local.s1P95MedianMs, pairs, diagnosticS3OverheadP95Pct: s3OverheadPct, verdicts, runs: results };
   const file = process.env.BENCH_OUT || path.join(st.ROOT, 'docs', 'migracion', 'evidencias', `benchmark-radar-${env.date.slice(0, 10)}.json`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(out, null, 2) + '\n');
+  fs.writeFileSync(file, JSON.stringify(out, null, 2) + '\n', { flag:'wx' });
 
   console.log('\n| Modo | S1 p50 | S1 p95 | S1 p99 | S1 rps | S1 errores | S2 p95 | S2 errores | Arranque API | Arranque Radar |');
   console.log('|---|---|---|---|---|---|---|---|---|---|');

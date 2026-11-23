@@ -43,6 +43,9 @@
     "build:contracts": "npm run build -w @social-unsch/contracts",
     "check:boundaries": "node scripts/check-boundaries.js",
     "test:boundaries": "node --test scripts/check-boundaries.test.js",
-    "verify": "npm run check:boundaries && npm run test:boundaries && npm run typecheck && npm run test:coverage && npm run test:web && npm run build:all"
+    "verify": "npm run test:operations && npm run check:boundaries && npm run test:boundaries && npm run typecheck && npm run test:coverage && npm run test:web && npm run build:all",
+    "test:operations": "node --test scripts/measurement.test.js",
+    "ops:probe": "node scripts/operational-probe.js",
+    "ops:summary": "node scripts/operation-summary.js"
   }
 }
