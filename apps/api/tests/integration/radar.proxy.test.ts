@@ -137,6 +137,46 @@ describe('fallos', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it('el transporte HTTP nativo responde 502 si el destino cierra la conexión o no escucha', async () => {
+    upstream.closeAllConnections?.();
+    await new Promise<void>((resolve) => upstream.close(() => resolve()));
+    const mod = createRadarProxyModule({ target: upstreamUrl, timeoutMs: 500 });
+    const app = createTestApp({ radar: mod });
+
+    const res = await request(app).get('/api/v1/radar/status');
+    expect(res.status).toBe(502);
+    expect(ErrorResponseSchema.parse(res.body).code).toBe('ERR_RADAR_UPSTREAM_UNAVAILABLE');
+    await expect(mod.checkReady()).resolves.toBe(false);
+    mod.close?.();
+  });
+
+  it('con fetchImpl inyectado soporta reenvío, timeout y readiness exitosos y fallidos', async () => {
+    const mockFetch = jest.fn(async () => new globalThis.Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const mod = createRadarProxyModule({ target: upstreamUrl, timeoutMs: 500, fetchImpl: mockFetch });
+    const app = createTestApp({ radar: mod });
+
+    const res = await request(app).get('/api/v1/radar/status');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    await expect(mod.checkReady()).resolves.toBe(true);
+
+    const abortFetch = jest.fn((_u: string, init: RequestInit) => new Promise<globalThis.Response>((_r, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+    }));
+    const timeoutMod = createRadarProxyModule({ target: upstreamUrl, timeoutMs: 30, fetchImpl: abortFetch });
+    const timeoutRes = await request(createTestApp({ radar: timeoutMod })).get('/api/v1/radar/status');
+    expect(timeoutRes.status).toBe(504);
+    expect(ErrorResponseSchema.parse(timeoutRes.body).code).toBe('ERR_RADAR_UPSTREAM_TIMEOUT');
+    await expect(timeoutMod.checkReady()).resolves.toBe(false);
+
+    const httpsMod = createRadarProxyModule({ target: new URL('https://radar.interno'), timeoutMs: 50 });
+    expect(httpsMod.mode).toBe('proxy');
+    httpsMod.close?.();
+    const httpDefaultPortMod = createRadarProxyModule({ target: new URL('http://radar.interno'), timeoutMs: 50 });
+    expect(httpDefaultPortMod.mode).toBe('proxy');
+    httpDefaultPortMod.close?.();
+  });
+
   it('un 5xx del destino se devuelve tal cual, sin repetir la escritura', async () => {
     handler = (_req, res) => {
       res.writeHead(503, { 'content-type': 'application/json' });
