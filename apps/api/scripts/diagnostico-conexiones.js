@@ -44,10 +44,11 @@ function describe(rawUrl) {
 async function checkPostgres() {
   const url = process.env.DATABASE_URL;
   if (!url) return { name: 'PostgreSQL', ok: false, detail: 'DATABASE_URL no definida' };
-  const client = new Client({ connectionString: url, connectionTimeoutMillis: TIMEOUT_MS, query_timeout: TIMEOUT_MS, statement_timeout: TIMEOUT_MS });
+  let client;
   const started = Date.now();
   try {
     const transport = await network(url);
+    client = new Client({ connectionString: url, connectionTimeoutMillis: TIMEOUT_MS, query_timeout: TIMEOUT_MS, statement_timeout: TIMEOUT_MS });
     await client.connect();
     const { rows } = await client.query(
       "SELECT 1 AS ok, current_setting('server_version') AS version, (SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()) AS tls"
@@ -60,24 +61,25 @@ async function checkPostgres() {
   } catch (err) {
     return { name: 'PostgreSQL', ok: false, detail: `${describe(url)} ${safeCode(err)}` };
   } finally {
-    await client.end().catch(() => {});
+    if (client) await client.end().catch(() => {});
   }
 }
 
 async function checkRedis() {
   const url = process.env.REDIS_URL;
   if (!url) return { name: 'Redis', ok: false, detail: 'REDIS_URL no definida (la app usaría redis://127.0.0.1:6379)' };
-  const redis = new Redis(url, {
-    lazyConnect: true,
-    connectTimeout: TIMEOUT_MS,
-    maxRetriesPerRequest: 0,
-    commandTimeout: TIMEOUT_MS,
-    enableOfflineQueue: false,
-    retryStrategy: () => null,
-  });
-  redis.on('error', () => {});
+  let redis;
   const started = Date.now();
   try {
+    redis = new Redis(url, {
+      lazyConnect: true,
+      connectTimeout: TIMEOUT_MS,
+      maxRetriesPerRequest: 0,
+      commandTimeout: TIMEOUT_MS,
+      enableOfflineQueue: false,
+      retryStrategy: () => null,
+    });
+    redis.on('error', () => {});
     await redis.connect();
     const pong = await redis.ping();
     return {
@@ -88,7 +90,7 @@ async function checkRedis() {
   } catch (err) {
     return { name: 'Redis', ok: false, detail: `${describe(url)} ${safeCode(err)}` };
   } finally {
-    redis.disconnect();
+    if (redis) redis.disconnect();
   }
 }
 
@@ -98,4 +100,4 @@ async function checkRedis() {
     console.log(`[${r.ok ? 'OK' : 'FALLO'}] ${r.name}: ${r.detail}`);
   }
   process.exit(results.every((r) => r.ok) ? 0 : 1);
-})();
+})().catch(() => { console.error('Diagnóstico fallido: configuración no válida.'); process.exitCode = 1; });
