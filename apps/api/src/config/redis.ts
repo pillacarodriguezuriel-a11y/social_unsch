@@ -4,6 +4,12 @@ import Redis from 'ioredis';
 export const DEFAULT_LOCAL_REDIS_URL = 'redis://127.0.0.1:6379';
 
 /**
+ * Límite por comando. Sin él, un Redis que mantiene la conexión abierta pero deja de responder
+ * deja las solicitudes del radar pendientes indefinidamente (comprobado con `docker pause`).
+ */
+export const REDIS_COMMAND_TIMEOUT_MS = 1500;
+
+/**
  * Crea el cliente Redis del radar. Solo lo invoca la composición del proceso (composition.ts):
  * importar este archivo no abre conexiones. TLS se activa con el esquema rediss://.
  * Los registros nunca incluyen la URL, que puede contener credenciales.
@@ -13,6 +19,7 @@ export function createRedisClient(url: string): Redis {
   const client = new Redis(url, {
     maxRetriesPerRequest: 1,
     enableOfflineQueue: false,
+    commandTimeout: REDIS_COMMAND_TIMEOUT_MS,
     retryStrategy(times) {
       // Reconexión resiliente: reintentos con backoff exponencial con techo (máximo 3000ms),
       // permitiendo recuperación tras fallos temporales sin encolar indefinidamente.

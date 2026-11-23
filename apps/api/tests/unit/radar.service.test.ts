@@ -21,7 +21,7 @@ const mockEval = redis.eval as jest.Mock;
 
 // ─── Helper: build a mock pipeline with n hgetall results ─────────────────────
 
-const buildPipeline = (results: Array<[null, Record<string, string> | null]>) => {
+const buildPipeline = (results: Array<[Error | null, Record<string, string> | null]>) => {
   const pipeline = {
     hgetall: jest.fn().mockReturnThis(),
     exec: jest.fn().mockResolvedValue(results),
@@ -115,6 +115,13 @@ describe('RadarService', () => {
       const pipeline = { hgetall: jest.fn().mockReturnThis(), exec: jest.fn().mockResolvedValue(null) };
       mockPipeline.mockReturnValueOnce(pipeline);
       await expect(service.getStatus()).rejects.toThrow('Error al ejecutar pipeline de Redis');
+    });
+
+    it('should propagate a per-command pipeline error instead of reporting nodes as undefined', async () => {
+      const results: Array<[Error | null, Record<string, string> | null]> = Array(7).fill([null, {}]);
+      results[3] = [new Error("Stream isn't writeable and enableOfflineQueue options is false"), null];
+      mockPipeline.mockReturnValueOnce(buildPipeline(results));
+      await expect(service.getStatus()).rejects.toThrow("Stream isn't writeable");
     });
   });
 
