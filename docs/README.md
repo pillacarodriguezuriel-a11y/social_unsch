@@ -60,7 +60,7 @@ Los diagramas se leen directamente en GitHub. La [guía C4](04-modelo-c4/README.
 
 ## Migración, operación y evidencias
 
-- La última [verificación de despliegue registrada](07-evaluacion-y-evolucion/07-estado-actual-y-evidencias.md) situó Radar dentro de la API. El [informe de extracción](migracion/EXTRACCION_RADAR.md) explica cómo seleccionar el servicio independiente y revertir el cambio.
+- La última [verificación de despliegue registrada](07-evaluacion-y-evolucion/07-estado-actual-y-evidencias.md) situó Radar dentro de la API. El [cierre de la etapa 4](migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md) validó la separación con infraestructura real y preparó su despliegue. El [informe de extracción](migracion/EXTRACCION_RADAR.md) explica cómo seleccionar el servicio independiente y revertir el cambio.
 - El [inventario de implementación](07-evaluacion-y-evolucion/01-inventario-de-implementacion.md) distingue los flujos conectados a la API de las pantallas con datos simulados. Véanse los [pendientes](07-evaluacion-y-evolucion/08-pendientes.md) y los [riesgos](07-evaluacion-y-evolucion/02-riesgos-y-deuda-tecnica.md).
 - El [mapa de despliegue](05-despliegue-y-operacion/01-mapa-de-despliegue.md), la [configuración](05-despliegue-y-operacion/02-configuracion-y-entornos.md), el [proceso de entrega](05-despliegue-y-operacion/03-proceso-de-entrega.md) y la [guía de recuperación](05-despliegue-y-operacion/04-observabilidad-y-recuperacion.md) describen la operación.
 - Para seguir la evolución del proyecto, consultar los [registros de decisión](06-decisiones-arquitectonicas/README.md), el [plan](07-evaluacion-y-evolucion/03-plan-de-migracion.md) y los [informes de migración](migracion/README.md).

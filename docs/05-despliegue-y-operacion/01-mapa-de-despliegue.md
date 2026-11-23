@@ -4,6 +4,8 @@ Dónde se ejecuta cada pieza del sistema y qué se pudo comprobar. Este document
 
 No se tuvo acceso a los paneles de ninguna plataforma. Todo lo verificado se obtuvo desde fuera: API pública de GitHub y solicitudes HTTP de solo lectura hechas el **2026-10-12** y repetidas el **2026-10-30**.
 
+> **Comprobación del 2026-11-23.** `/health/ready` de la API: **503, `database: down`, `radar: up`**. PostgreSQL de producción no respondía. `/health/live` no contestó en 70 s. El servicio Radar seguía respondiendo 404. Configuración y activación preparadas en el [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md).
+
 > **Comprobación del 2026-10-30.** API: `/health/live` 200 (32,6 s en frío) y `/health/ready` con `database: up` y `radar: up`, lo que confirma que Redis responde. La respuesta incluye `x-request-id`, añadida por la etapa 4: la API desplegada ya tiene ese código, lo que indica despliegue automático desde `main`. Web: `/login` 200 y último despliegue de producción en `b763885`. Servicio Radar en `social-unsch-radar.onrender.com`: **404, no desplegado**. Donde las tablas siguientes digan otra cosa sobre Redis, prevalece esta nota.
 
 ## Mapa
@@ -56,7 +58,7 @@ Consecuencia operativa: **todo cambio que llega a `main` publica el frontend**, 
 
 ### Render: servicio Radar
 
-NO IMPLEMENTADO. El servicio previsto no existe con el nombre documentado. Procedimiento en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md#activación).
+NO IMPLEMENTADO. El servicio previsto no existe con el nombre documentado. Configuración exacta, activación, comprobaciones y reversión en el [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md). Con un plan que suspende por inactividad, el arranque en frío supera el límite máximo del proxy (30 s): no se recomienda activar el proxy en esas condiciones.
 
 ### Render: API
 

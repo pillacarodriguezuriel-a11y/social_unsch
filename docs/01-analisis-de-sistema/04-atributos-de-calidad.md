@@ -59,7 +59,8 @@ Los límites exactos de estas garantías se analizan en [Errores y consistencia]
 
 | Mecanismo | Estado | Evidencia |
 |---|---|---|
-| El servidor sigue activo si Redis no está disponible | Implementado | Estrategia de reintentos en [redis.ts](../../apps/api/src/config/redis.ts) |
+| El servidor sigue activo si Redis no está disponible | Implementado y verificado con Redis real detenido y pausado | [redis.ts](../../apps/api/src/config/redis.ts), [E2E](../../tests/e2e/radar.e2e.test.js) |
+| Límite por comando de Redis | Implementado | `commandTimeout` de 1500 ms en API y Radar |
 | Cierre ordenado ante `SIGTERM` | Implementado | [server.ts](../../apps/api/src/server.ts) y [bootstrap.ts](../../apps/api/src/bootstrap.ts) cierran el servidor, PostgreSQL y Redis |
 | Rutas de salud | Implementado en la etapa 3 | `GET /health/live` y `GET /health/ready` ([health.routes.ts](../../apps/api/src/health/health.routes.ts)) |
 | Registro JSON por solicitud con `x-request-id` | Implementado | [logging.middleware.ts](../../apps/api/src/middlewares/logging.middleware.ts) |
@@ -73,7 +74,8 @@ Los límites exactos de estas garantías se analizan en [Errores y consistencia]
 | Pruebas contra PostgreSQL y Redis reales en contenedores | Implementado | [tests/real](../../apps/api/tests/real), [jest.real.config.ts](../../apps/api/jest.real.config.ts) |
 | Umbral de cobertura del 90 % | Implementado | [jest.config.ts](../../apps/api/jest.config.ts) |
 | Pruebas del frontend | Parcial | Lógica de `app/lib` y tipos del contrato ([apps/web/tests](../../apps/web/tests/catalogs.test.ts)); sin componentes |
-| Proxy contra Radar por HTTP | Implementado con Redis simulado | [proxy.e2e.test.ts](../../apps/radar/tests/integration/proxy.e2e.test.ts) |
-| Integración continua | Parcial | [ci.yml](../../.github/workflows/ci.yml) en `main`: `verify` correcto, `test-real` fallido |
+| Proxy contra Radar por HTTP | Implementado con procesos y Redis reales | [radar.e2e.test.js](../../tests/e2e/radar.e2e.test.js) |
+| Benchmark con las aplicaciones reales | Implementado, solo local | [benchmark-radar.js](../../scripts/benchmark-radar.js) |
+| Integración continua | Implementado en la rama del [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md): `verify`, `test-real` y `e2e-radar` | [ci.yml](../../.github/workflows/ci.yml) |
 
 [← Índice](../README.md)

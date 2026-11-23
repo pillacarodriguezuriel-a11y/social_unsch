@@ -1,6 +1,6 @@
 # Extracción de Radar
 
-Documento vivo del estado de la extracción, verificado el 2026-10-30 sobre `b763885`. El registro histórico de la implementación es [ETAPA_04](ETAPA_04_EXTRACCION_RADAR.md); la decisión, [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Si difieren, vale este documento y, por encima de él, el código.
+Documento vivo del estado de la extracción, actualizado el 2026-11-23 con el [cierre de la etapa 4](ETAPA_04_CIERRE_VALIDACION_RADAR.md). El registro histórico de la implementación es [ETAPA_04](ETAPA_04_EXTRACCION_RADAR.md); la decisión, [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Si difieren, vale este documento y, por encima de él, el código.
 
 ## ¿Por qué Radar?
 
@@ -22,12 +22,13 @@ Es el dominio con menor costo de separación. Sirve para validar el mecanismo an
 | Fusión a `main` | IMPLEMENTADO | PR n.º 5, 2026-10-30 |
 | Código de la etapa 4 en la API de producción | IMPLEMENTADO | La respuesta incluye `x-request-id` |
 | CI, job `verify` | Correcto | Ejecuciones `39985651148` y `41060703064` |
-| CI, job `test-real` | **Fallido** | Mismas ejecuciones; causa en [Pruebas requeridas](#pruebas-requeridas) |
-| Pruebas locales con dobles | Correctas | 59 de 59 en Radar; 448 de 448 en la API (2026-10-30) |
-| Despliegue en Render | NO IMPLEMENTADO | `social-unsch-radar.onrender.com/health/live` respondió 404 el 2026-10-30, también tras la fusión |
+| CI, job `test-real` | Corregido en el [cierre de la etapa 4](ETAPA_04_CIERRE_VALIDACION_RADAR.md) | Causa demostrada: conflicto de puertos |
+| CI, job `e2e-radar` | Añadido en el [cierre de la etapa 4](ETAPA_04_CIERRE_VALIDACION_RADAR.md) | 14 escenarios con procesos y Redis reales |
+| Pruebas E2E con infraestructura real | Correctas en local: 14 de 14 (2026-11-23) | [radar.e2e.test.js](../../tests/e2e/radar.e2e.test.js) |
+| Despliegue en Render | NO IMPLEMENTADO | 404 el 2026-10-30 y el 2026-11-23 |
 | Modo en producción | Local | `radar: up` con el servicio remoto inexistente. Valor de la variable: PENDIENTE DE VALIDACIÓN |
 
-**Conclusión:** Radar tiene código de servicio independiente, pero **aún no es un servicio en operación**.
+**Conclusión:** Radar es un servicio independiente **probado** (local y CI), pero **no está en operación**.
 
 ## Dependencias
 
@@ -174,8 +175,9 @@ No eliminar `RADAR_PROXY_TARGET` ni dejarlo vacío con `RADAR_MODE=proxy`: la AP
 | Implementaciones divergentes | Reversión con comportamiento distinto | Congelar cambios; retirar la copia local a tiempo | Abierto; ya hay una diferencia en `last_updated` |
 | Dos entradas a Radar | El servicio queda expuesto en internet además de por la API | Exige token; valorar una restricción adicional | Abierto |
 | CORS permisivo | Sin `ALLOWED_ORIGINS` en producción usa orígenes por defecto con `localhost`, solo con aviso | Definir la variable; endurecer `env.ts` | Abierto |
-| Pruebas reales sin pasar en CI | La etapa 4 se fusionó sin la red de seguridad prevista | Corregir `test-real` antes de activar el proxy | **Bloqueante para activar** |
-| Sin pruebas de `apps/radar` con Redis real | El script Lua solo se prueba de verdad desde la API | Añadir suite real | Abierto |
+| Pruebas reales sin pasar en CI | La etapa 4 se fusionó sin la red de seguridad prevista | Corregido en el cierre | Resuelto en la rama |
+| Sin pruebas de `apps/radar` con Redis real | El script Lua solo se probaba desde la API | E2E con Radar compilado y Redis real | Resuelto en la rama |
+| Sobrecarga del proxy mayor que el umbral | p95 +156 % con 50 usuarios en local | Medir en la plataforma antes de activar; revisar el criterio | **Abierto** |
 | Costo y operación | Un servicio más | Medir antes de seguir | Abierto |
 
 ## Pruebas requeridas
@@ -185,24 +187,24 @@ No eliminar `RADAR_PROXY_TARGET` ni dejarlo vacío con `RADAR_MODE=proxy`: la AP
 | Unitarias, contrato y salud | Correctas con dobles | [apps/radar/tests](../../apps/radar/tests/unit/radar.service.test.ts) |
 | Autenticación directa | Correcta con dobles | [radar.direct-auth.test.ts](../../apps/radar/tests/integration/radar.direct-auth.test.ts) |
 | Proxy contra Radar por HTTP real | Correcta; Redis simulado | [proxy.e2e.test.ts](../../apps/radar/tests/integration/proxy.e2e.test.ts) |
-| Paridad | Limitada: comprueba `apps/radar` contra valores esperados, **sin ejecutar** la implementación de la API | [radar.parity.test.ts](../../apps/radar/tests/parity/radar.parity.test.ts) |
-| API contra PostgreSQL y Redis reales | **Fallida en CI** | Ver abajo |
-| `apps/radar` contra Redis real | NO IMPLEMENTADO | — |
+| Paridad | Real en errores y contrato: la misma batería contra API local y API proxy (E2E, escenarios 3, 4, 9 y 10). La prueba con dobles sigue siendo limitada | [radar.e2e.test.js](../../tests/e2e/radar.e2e.test.js) |
+| API contra PostgreSQL y Redis reales | Correcta en local; CI corregida | [tests/real](../../apps/api/tests/real/radar.real.test.ts) |
+| `apps/radar` contra Redis real | Correcta: E2E | [radar.e2e.test.js](../../tests/e2e/radar.e2e.test.js) |
 | Reversión en plataforma real | NO IMPLEMENTADO | — |
 
-**Fallo de `test-real`.** El log exige autenticación y no se pudo leer; las anotaciones públicas solo indican `exit code 1`. Hipótesis por análisis del código, PENDIENTE DE VALIDACIÓN: el flujo declara servicios en los puertos 55432 y 56379, y el arnés [test-environment.ts](../../apps/api/tests/real/helpers/test-environment.ts) lanza sus propios contenedores en esos mismos puertos, lo que provocaría un conflicto. El arnés además ignora las variables `DATABASE_URL` y `REDIS_URL` del flujo. Primera acción: leer el log.
+**Fallo de `test-real` (resuelto).** Confirmado y reproducido: el flujo declaraba servicios en 55432 y 56379 y el arnés lanzaba sus propios contenedores en esos mismos puertos. Detalle en el [cierre de la etapa 4](ETAPA_04_CIERRE_VALIDACION_RADAR.md).
 
 ## Métricas
 
 | Métrica | Meta propuesta | Resultado |
 |---|---|---|
-| Latencia p95 por proxy frente a local | No peor en más de un 20 % | PENDIENTE DE MEDICIÓN |
+| Latencia p95 por proxy frente a local | No peor en más de un 20 % | **NO CUMPLE en local**: +156 % (ver [Métricas](../07-evaluacion-y-evolucion/06-metricas.md)) |
 | Tasa de 5xx en `/api/v1/radar/*` | No superior a la previa | PENDIENTE DE MEDICIÓN |
-| Arranque en frío de Radar | Menor que `RADAR_PROXY_TIMEOUT_MS` | PENDIENTE DE MEDICIÓN |
+| Arranque en frío de Radar | Menor que `RADAR_PROXY_TIMEOUT_MS` | Proceso local 450 ms; en Render PENDIENTE DE MEDICIÓN |
 | Tiempo de reversión | Por definir | PENDIENTE DE MEDICIÓN |
-| Aislamiento: Radar caído, resto de la API sin errores | 0 % de errores | Probado con dobles; PENDIENTE DE MEDICIÓN en producción |
+| Aislamiento: Radar caído, resto de la API sin errores | 0 % de errores | Cumple en local y CI con procesos reales; PENDIENTE en producción |
 
-> Las cifras de latencia de ETAPA_04 **no miden el sistema**. [benchmark-radar.js](../../scripts/benchmark-radar.js) levanta servidores HTTP escritos a mano con un almacén en memoria: no ejecuta `apps/api`, `apps/radar` ni Redis. Ver [Métricas](../07-evaluacion-y-evolucion/06-metricas.md).
+> Las cifras de latencia de ETAPA_04 (2026-10-23) **no miden el sistema**: el script de entonces simulaba los servidores. Lo sustituye el benchmark real del 2026-11-23.
 
 Ver también: [Estrategia de migración](README.md) · [C2 de transición](../04-modelo-c4/05-contenedores-de-transicion.md) · [Nivel de código de Radar](../04-modelo-c4/Nivel4-DiagramadeCodigo.md) · [Pendientes](../07-evaluacion-y-evolucion/08-pendientes.md)
 

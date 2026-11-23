@@ -6,14 +6,15 @@ Separa lo que se propone medir de lo que se ha medido. Una meta no es un resulta
 
 | Criterio | Meta propuesta | Verificación | Resultado |
 |---|---|---|---|
-| Latencia p95 de `GET /radar/status` | Menor de 500 ms con 50 usuarios simultáneos | Prueba de carga contra un entorno desplegado | PENDIENTE DE MEDICIÓN |
-| Latencia p95 por proxy frente a local | No peor en más de un 20 % | Misma carga en ambos modos | PENDIENTE DE MEDICIÓN |
+| Latencia p95 de `GET /radar/status` | Menor de 500 ms con 50 usuarios simultáneos | Prueba de carga | **Cumple en local**: 82,7 ms local y 212,1 ms proxy, mediana de 3 repeticiones ([cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md#7-benchmark-real)). En la plataforma: PENDIENTE DE MEDICIÓN |
+| Latencia p95 por proxy frente a local | No peor en más de un 20 % | Misma carga en ambos modos | **NO CUMPLE en local**: +156 % con 50 usuarios; +11 ms (+319 %) a 20 solicitudes/s ([cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md#7-benchmark-real)) |
+| 100 reportes válidos por minuto | Cero errores inesperados y p95 menor de 500 ms | Carga a tasa fija | **Cumple en local**: 0 errores en 600 reportes; p95 18,2 ms local y 17,1 ms proxy |
 | Tasa de errores 5xx | No superior a la previa a la activación | Registros JSON durante la observación | PENDIENTE DE MEDICIÓN |
 | Disponibilidad | Por definir | Comprobación externa periódica de `/health/ready` | PENDIENTE DE MEDICIÓN |
 | Duración de despliegue | Por definir | Historial de Render y Vercel | PENDIENTE DE MEDICIÓN |
 | Tiempo de recuperación ante base pausada | Menor de 30 min | Simulacro cronometrado | PENDIENTE DE MEDICIÓN |
 | Tiempo de reversión de Radar | Por definir | Ensayo de `RADAR_MODE=local` | PENDIENTE DE MEDICIÓN |
-| Arranque en frío de Radar | Menor que `RADAR_PROXY_TIMEOUT_MS` | `curl -w` tras la suspensión | PENDIENTE DE MEDICIÓN |
+| Arranque en frío de Radar | Menor que `RADAR_PROXY_TIMEOUT_MS` | `curl -w` tras la suspensión | Proceso local: 450 ms hasta `/health/ready`. En Render: PENDIENTE DE MEDICIÓN; el de la API superó los 30 s |
 | Consumo de recursos | Dentro del plan contratado | Panel de la plataforma | PENDIENTE DE MEDICIÓN |
 | Costo mensual | Dentro del presupuesto, sin definir | Facturación | PENDIENTE DE MEDICIÓN |
 | Cobertura | 90 % o más en API y Radar | `npm run test:coverage` | Ver abajo |
@@ -53,11 +54,26 @@ Comprobación externa de solo lectura, 2026-10-30. Una sola muestra por ruta: es
 | `GET /login` en Vercel | 200 en 0,94 s |
 | `GET` del servicio Radar previsto | 404: no desplegado |
 
+### Rendimiento de Radar (2026-11-23, local)
+
+Benchmark con las aplicaciones reales, commit `723e283`, 3 repeticiones por modo alternadas. Datos completos: [benchmark-radar-2026-11-23.json](../migracion/evidencias/benchmark-radar-2026-11-23.json). Válido solo para este equipo, esta carga y esta duración.
+
+| Escenario | Modo | p50 | p95 | p99 | Rendimiento | Errores |
+|---|---|---|---|---|---|---|
+| S1: 50 usuarios simultáneos, 30 s | Local | 36,8 ms | 82,7 ms | 141,2 ms | 1 203 rps | 0 |
+| S1 | Proxy | 80,0 ms | 212,1 ms | 328,8 ms | 520 rps | 0 |
+| S2: 100 reportes/min, 60 s | Local | — | 18,2 ms | — | 100 por repetición | 0 |
+| S2 | Proxy | — | 17,1 ms | — | 100 por repetición | 0 |
+| S3: 20 solicitudes/s, 30 s | Local | 2,3 ms | 3,5 ms | — | 600 por repetición | 0 |
+| S3 | Proxy | 4,5 ms | 14,5 ms | — | 600 por repetición | 0 |
+
+Medianas de las tres repeticiones. La dispersión entre repeticiones fue alta: el p95 local de S1 osciló entre 46 y 182 ms. Ver las limitaciones en el informe.
+
 ## Cifras que no deben citarse como resultados
 
 | Cifra | Origen | Por qué no vale como medición |
 |---|---|---|
-| Sobrecarga del proxy de +0,27 ms a +0,82 ms en p95 y tiempos de arranque | Tabla de [ETAPA_04 §9](../migracion/ETAPA_04_EXTRACCION_RADAR.md#9-mediciones-de-rendimiento-reproducibles) | [benchmark-radar.js](../../scripts/benchmark-radar.js) simula ambos servidores con `http.createServer` y un almacén en memoria. No ejecuta `apps/api`, `apps/radar`, el proxy real ni Redis |
+| Sobrecarga del proxy de +0,27 ms a +0,82 ms en p95 y tiempos de arranque (2026-10-23) | Tabla de [ETAPA_04 §9](../migracion/ETAPA_04_EXTRACCION_RADAR.md#9-mediciones-de-rendimiento-reproducibles) | La versión de entonces de `benchmark-radar.js` simulaba ambos servidores con `http.createServer` y un almacén en memoria. No ejecuta `apps/api`, `apps/radar`, el proxy real ni Redis |
 | Arranque en Docker de 500 a 1500 ms | Misma tabla | No hay Dockerfile en el repositorio ni medición registrada |
 | Arranque en frío de Radar de unos 50 s | Misma tabla | Estimación; el servicio no está desplegado. Lo observado es de la API: 32,6 s |
 | Incremento de red de 5 a 15 ms | [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md) | Estimación, sin medición |

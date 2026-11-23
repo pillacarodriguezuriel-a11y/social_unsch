@@ -113,7 +113,7 @@ Propuesta original:
 
 ## Etapa 4 · Extracción de Radar
 
-**Estado: implementada parcialmente.** Fusionada en `main` con el PR n.º 5 (`b763885`), con `verify` correcto y `test-real` fallido; servicio Radar sin desplegar y proxy sin activar. Estado vigente en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md). Fundamento en [ADR-004](../06-decisiones-arquitectonicas/ADR-004-extraccion-inicial-de-radar.md) y [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Documento de etapa: [ETAPA_04_EXTRACCION_RADAR](../migracion/ETAPA_04_EXTRACCION_RADAR.md).
+**Estado: implementada parcialmente.** Código en `main` desde el PR n.º 5 (`b763885`). El [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md) validó la separación con infraestructura real y corrigió la CI y dos defectos de resiliencia. Servicio Radar sin desplegar y proxy sin activar. Estado vigente en [Extracción de Radar](../migracion/EXTRACCION_RADAR.md). Fundamento en [ADR-004](../06-decisiones-arquitectonicas/ADR-004-extraccion-inicial-de-radar.md) y [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Documento de etapa: [ETAPA_04_EXTRACCION_RADAR](../migracion/ETAPA_04_EXTRACCION_RADAR.md).
 
 **Objetivo:** primer servicio independiente (`apps/radar`), con el dominio menos acoplado, compatibilidad de contratos estricta y activación reversible.
 
@@ -125,14 +125,14 @@ Propuesta original:
 | Proxy con observabilidad y correlación | Hecho: `RADAR_MODE=proxy` en la API con propagación de `x-request-id`, timeouts configurables y sin reintentos automáticos |
 | Resiliencia de Redis | Hecho: `enableOfflineQueue: false`, `maxRetriesPerRequest: 1`, reconexión exponencial acotada a 3s sin bloqueos indefinidos |
 | Límites arquitectónicos | Hecho: verificado con `npm run verify` (`radar-sin-api`, `radar-sin-web`, `radar-sin-pg`, `api-sin-radar-interno`) |
-| Integración continua | Parcial: `verify` correcto; `test-real` fallido en la única ejecución |
-| Pruebas y mediciones | Parcial: 59 pruebas en Radar y 521 en el monorepo, con dobles. Sin pruebas de `apps/radar` contra Redis real. El benchmark simula los servidores y no mide el sistema |
+| Integración continua | Corregida en el cierre: `test-real` y `e2e-radar` añadidos |
+| Pruebas y mediciones | Hechas en el cierre: 14 escenarios E2E con API y Radar reales y benchmark real. Solo local y CI; sin medición en la plataforma |
 | Conservar reversibilidad | Hecho en código: `RADAR_MODE=local` y reinicio de la API, sin migrar datos ni tocar el frontend. Sin ensayar en producción |
 
 | Criterio | Detalle |
 |---|---|
 | Entrada | Etapa 3 completa; Redis verificado; contratos compartidos en `packages/contracts` |
-| Salida | Pendiente: CI completa en verde, despliegue, medición real, ensayo de reversión y 2 semanas de observación |
+| Salida | Pendiente: despliegue, medición en la plataforma, ensayo de reversión en producción y 2 semanas de observación |
 | Activación productiva | Pendiente de autorización formal y despliegue del servicio en Render (Web Service Node.js) |
 | Reversión | `RADAR_MODE=local` en la API y reinicio. No vaciar `RADAR_PROXY_TARGET`: la API no arrancaría |
 | Riesgos | Ver [Riesgos](../migracion/EXTRACCION_RADAR.md#riesgos) |

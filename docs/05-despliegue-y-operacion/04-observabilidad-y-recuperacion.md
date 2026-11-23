@@ -49,7 +49,8 @@ La primera solicitud tras un periodo sin uso puede tardar decenas de segundos; n
 |---|---|---|---|
 | API suspendida por inactividad | La primera acción tarda mucho | Ninguna | Automática al recibir tráfico |
 | Base de datos pausada o inaccesible | No se puede iniciar sesión; errores genéricos | Errores 500 en el registro de la API | Reactivar la base en el panel del proveedor; la API se recupera sin redespliegue, según el diseño del pool |
-| Redis inaccesible | El radar no carga; lo demás funciona | `radar: down` en `/health/ready` y errores de conexión | Restaurar el recurso o corregir `REDIS_URL`. El cliente reconecta sin límite de intentos, con tope de 3 s entre ellos |
+| Redis inaccesible | El radar responde 500 controlado; lo demás funciona | `radar: down` en `/health/ready` y errores de conexión | Restaurar el recurso o corregir `REDIS_URL`. El cliente reconecta solo, con espera máxima de 3 s entre intentos (verificado en E2E) |
+| Redis sin respuesta, con la conexión abierta | Hasta 1,5 s de espera y 500 controlado | `radar: down` | Igual que el anterior. Antes de la corrección las solicitudes quedaban pendientes indefinidamente |
 | Servicio Radar caído, en modo proxy | Radar responde 502 o 504; lo demás funciona | `radar: down` en la API | Corregir el servicio o [revertir](../migracion/EXTRACCION_RADAR.md#estrategia-de-rollback) |
 | Esquema por detrás del código | Errores 500 en rutas concretas | Error de SQL en el registro | Aplicar las migraciones pendientes |
 | Claves JWT cambiadas | Todos los usuarios pierden la sesión | Respuestas 401 | Volver a iniciar sesión |

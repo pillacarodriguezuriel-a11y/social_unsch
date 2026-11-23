@@ -40,6 +40,17 @@ Son 16 rutas bajo `/api/v1`, más `/health/live` y `/health/ready`. Definición:
 
 ## Pruebas y compilación
 
+> **Actualización 2026-11-23.** Resultados del [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md), en la rama `feat/etapa-5-validacion-radar`:
+>
+> | Comprobación | Local | CI |
+> |---|---|---|
+> | `npm run verify` | Correcto: 452 + 61 + 14 pruebas | Correcto, [45215241769](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45215241769) |
+> | `npm run test:real` | 36 de 36 | 36 de 36, [45215241769](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45215241769) |
+> | `npm run test:e2e` | 14 de 14 | 14 de 14, [45215241769](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45215241769) |
+>
+> La tabla siguiente conserva la comprobación del 2026-10-30.
+
+
 | Comprobación | Resultado | Procedencia |
 |---|---|---|
 | Límites (`check:boundaries`) | Sin infracciones | Local, 2026-10-30 |
@@ -52,6 +63,9 @@ Son 16 rutas bajo `/api/v1`, más `/health/live` y `/health/ready`. Definición:
 Cobertura en [Métricas](06-metricas.md). Ejecuciones: [39985651148](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/39985651148) en el PR y [41060703064](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/41060703064) en `main`.
 
 ## Producción y salud
+
+> **Actualización 2026-11-23.** `GET /health/ready` respondió **503 con `database: down` y `radar: up`**, y `GET /health/live` no respondió en 70 s. PostgreSQL de producción no estaba disponible; el panel de Supabase no es accesible desde este trabajo. El servicio Radar previsto seguía respondiendo 404.
+
 
 Solicitudes GET de solo lectura, 2026-10-30, 12:51 y 13:10 UTC. La tabla muestra la primera; la segunda, tras la fusión, repitió los resultados de salud y de Radar.
 
@@ -83,7 +97,7 @@ No se usó ninguna cuenta ni se escribió en producción. El commit exacto de la
 |---|---|
 | 1 y 2 | IMPLEMENTADO |
 | 3 | IMPLEMENTADO, en producción |
-| 4 | IMPLEMENTADO PARCIALMENTE |
+| 4 | IMPLEMENTADO PARCIALMENTE: separación validada en local y CI; servicio sin desplegar |
 | 5 a 8 | PROPUESTO |
 
 Ver también: [Pendientes](08-pendientes.md) · [Métricas](06-metricas.md) · [Plan de migración](03-plan-de-migracion.md)
