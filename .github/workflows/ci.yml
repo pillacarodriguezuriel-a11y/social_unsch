@@ -82,7 +82,9 @@ jobs:
           set -o pipefail
           # Las pruebas fallidas se publican como anotaciones para poder leerlas sin descargar el log.
           npm run test:e2e 2>&1 | tee e2e.log || {
-            grep -aE "✖|not ok|AssertionError|Error:|expected|actual|Tiempo agotado" e2e.log | head -40 | sed 's/^/::error title=E2E Radar::/'
+            # GitHub admite 10 anotaciones de error por paso: primero los mensajes de error, después las pruebas fallidas.
+            { grep -aE "Error|falló|Tiempo agotado|SEGURIDAD|expected|actual" e2e.log | grep -av "✖" | head -7
+              grep -a "^✖" e2e.log | head -3; } | sed 's/^/::error title=E2E Radar::/'
             exit 1
           }
 
