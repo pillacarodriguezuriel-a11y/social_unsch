@@ -16,7 +16,7 @@
 > - **§7, `ALLOWED_ORIGINS`:** en Radar no es obligatoria; solo genera un aviso.
 > - **§13, reversión:** eliminar `RADAR_PROXY_TARGET` con `RADAR_MODE=proxy` impide arrancar la API. Hay que definir `RADAR_MODE=local` y reiniciar.
 >
-> Estado vigente en [Extracción de Radar](EXTRACCION_RADAR.md).
+> Estado vigente en [Extracción de Radar](EXTRACCION_RADAR.md). Validación con infraestructura real y benchmark real: [cierre de la etapa 4](ETAPA_04_CIERRE_VALIDACION_RADAR.md) (2026-11-23).
 
 Esta etapa extrae Radar del proceso principal de la API y lo ejecuta como una aplicación independiente (`apps/radar`), manteniendo la compatibilidad total de contratos, el consumo desde el frontend mediante la API principal y un mecanismo de activación y reversión instantánea.
 

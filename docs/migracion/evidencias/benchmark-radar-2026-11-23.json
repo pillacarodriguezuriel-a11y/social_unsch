@@ -1,0 +1,572 @@
+{
+  "environment": {
+    "date": "2026-11-23T15:59:20.879Z",
+    "commit": "723e283",
+    "dirty": false,
+    "node": "v24.11.1",
+    "platform": "win32 10.0.26300",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12450H × 12",
+    "memoryGb": 15.6,
+    "docker": "29.0.1",
+    "images": [
+      "postgres:16-alpine",
+      "redis:7-alpine"
+    ],
+    "config": {
+      "reps": 3,
+      "users": 50,
+      "s1Seconds": 30,
+      "s1WarmupSeconds": 10,
+      "s2PerMinute": 100,
+      "s2Seconds": 60,
+      "s3PerSecond": 20,
+      "s3Seconds": 30,
+      "requestTimeoutMs": 10000
+    },
+    "note": "Generador de carga, API, Radar y contenedores comparten el mismo equipo. No representa la plataforma de producción."
+  },
+  "thresholds": {
+    "s1P95Ms": 500,
+    "overheadP95Pct": 20,
+    "s2P95Ms": 500
+  },
+  "aggregate": {
+    "local": {
+      "s1P95MedianMs": 82.7287,
+      "s1P50MedianMs": 36.8077,
+      "s1P99MedianMs": 141.2353,
+      "s1RpsMedian": 1202.5754500382657,
+      "s1Errors": 0,
+      "s2P95MedianMs": 18.1579,
+      "s2Errors": 0,
+      "s3P50MedianMs": 2.2718,
+      "s3P95MedianMs": 3.4593,
+      "s3Errors": 0,
+      "coldApiMedianMs": 615.68,
+      "coldRadarMedianMs": null
+    },
+    "proxy": {
+      "s1P95MedianMs": 212.1348,
+      "s1P50MedianMs": 79.9458,
+      "s1P99MedianMs": 328.7972,
+      "s1RpsMedian": 519.8988420071876,
+      "s1Errors": 0,
+      "s2P95MedianMs": 17.1173,
+      "s2Errors": 0,
+      "s3P50MedianMs": 4.4759,
+      "s3P95MedianMs": 14.4815,
+      "s3Errors": 0,
+      "coldApiMedianMs": 607.5295,
+      "coldRadarMedianMs": 449.6121
+    }
+  },
+  "overheadP95Pct": 156.42225733028562,
+  "diagnosticS3OverheadP95Pct": 318.6251553782558,
+  "verdicts": [
+    {
+      "criterion": "S1 p95 < 500 ms con 50 usuarios, modo local",
+      "pass": true
+    },
+    {
+      "criterion": "S1 p95 < 500 ms con 50 usuarios, modo proxy",
+      "pass": true
+    },
+    {
+      "criterion": "S1 sobrecarga p95 del proxy ≤ 20 %",
+      "pass": false
+    },
+    {
+      "criterion": "S2 100 reportes/min sin errores inesperados, ambos modos",
+      "pass": true
+    },
+    {
+      "criterion": "S2 p95 < 500 ms, ambos modos",
+      "pass": true
+    }
+  ],
+  "runs": [
+    {
+      "mode": "local",
+      "rep": 1,
+      "cold": {
+        "apiMs": 615.68
+      },
+      "s1": {
+        "requests": 67155,
+        "ok": 67155,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 2237.306769722815,
+        "p50": 19.2469,
+        "p95": 46.404,
+        "p99": 66.9266,
+        "max": 144.9329,
+        "durationS": 30.016,
+        "users": 50,
+        "usage": [
+          {
+            "name": "api-local",
+            "cpuPctOfOneCore": 97.29186100746269,
+            "rssMb": 240
+          }
+        ],
+        "containers": [
+          {
+            "name": "social_unsch_bench_pg",
+            "cpu": "0.04%",
+            "mem": "33.34MiB / 7.571GiB"
+          },
+          {
+            "name": "social_unsch_bench_redis",
+            "cpu": "0.35%",
+            "mem": "3.848MiB / 7.571GiB"
+          }
+        ]
+      },
+      "s2": {
+        "requests": 100,
+        "ok": 100,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 1.6829916860210712,
+        "p50": 3.0882,
+        "p95": 7.1401,
+        "p99": 14.4518,
+        "max": 16.084,
+        "durationS": 59.418,
+        "targetPerMinute": 100,
+        "usage": [
+          {
+            "name": "api-local",
+            "cpuPctOfOneCore": 0.47334141169342625,
+            "rssMb": 65.5625
+          }
+        ]
+      },
+      "s3": {
+        "requests": 600,
+        "ok": 600,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 20.0213561131874,
+        "p50": 2.7239,
+        "p95": 6.4002,
+        "p99": 12.4208,
+        "max": 43.6776,
+        "durationS": 29.968,
+        "targetPerSecond": 20
+      }
+    },
+    {
+      "mode": "proxy",
+      "rep": 1,
+      "cold": {
+        "radarMs": 449.6121,
+        "apiMs": 607.5295
+      },
+      "s1": {
+        "requests": 15624,
+        "ok": 15624,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 519.8988420071876,
+        "p50": 79.9458,
+        "p95": 212.1348,
+        "p99": 328.7972,
+        "max": 453.9369,
+        "durationS": 30.052,
+        "users": 50,
+        "usage": [
+          {
+            "name": "radar",
+            "cpuPctOfOneCore": 45.02612138959138,
+            "rssMb": 216.953125
+          },
+          {
+            "name": "api-proxy",
+            "cpuPctOfOneCore": 52.14919140157062,
+            "rssMb": 262.9453125
+          }
+        ],
+        "containers": [
+          {
+            "name": "social_unsch_bench_pg",
+            "cpu": "0.00%",
+            "mem": "36.29MiB / 7.571GiB"
+          },
+          {
+            "name": "social_unsch_bench_redis",
+            "cpu": "0.41%",
+            "mem": "3.91MiB / 7.571GiB"
+          }
+        ]
+      },
+      "s2": {
+        "requests": 100,
+        "ok": 100,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 1.68321831341525,
+        "p50": 6.7355,
+        "p95": 17.1173,
+        "p99": 31.412,
+        "max": 58.4205,
+        "durationS": 59.41,
+        "targetPerMinute": 100,
+        "usage": [
+          {
+            "name": "radar",
+            "cpuPctOfOneCore": 0.39450429220669925,
+            "rssMb": 64.28515625
+          },
+          {
+            "name": "api-proxy",
+            "cpuPctOfOneCore": 0.8679094428547384,
+            "rssMb": 74.3125
+          }
+        ]
+      },
+      "s3": {
+        "requests": 600,
+        "ok": 600,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 20.030045067601403,
+        "p50": 5.7493,
+        "p95": 42.4962,
+        "p99": 79.527,
+        "max": 124.6221,
+        "durationS": 29.955,
+        "targetPerSecond": 20
+      }
+    },
+    {
+      "mode": "local",
+      "rep": 2,
+      "cold": {
+        "apiMs": 522.4747
+      },
+      "s1": {
+        "requests": 19608,
+        "ok": 19608,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 652.9905421606501,
+        "p50": 58.584,
+        "p95": 181.9743,
+        "p99": 282.3865,
+        "max": 445.7996,
+        "durationS": 30.028,
+        "users": 50,
+        "usage": [
+          {
+            "name": "api-local",
+            "cpuPctOfOneCore": 51.46238510723325,
+            "rssMb": 233.83984375
+          }
+        ],
+        "containers": [
+          {
+            "name": "social_unsch_bench_pg",
+            "cpu": "0.47%",
+            "mem": "36.76MiB / 7.571GiB"
+          },
+          {
+            "name": "social_unsch_bench_redis",
+            "cpu": "0.39%",
+            "mem": "3.668MiB / 7.571GiB"
+          }
+        ]
+      },
+      "s2": {
+        "requests": 100,
+        "ok": 100,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 1.6830766641420516,
+        "p50": 2.9113,
+        "p95": 39.7303,
+        "p99": 68.5861,
+        "max": 178.3356,
+        "durationS": 59.415,
+        "targetPerMinute": 100,
+        "usage": [
+          {
+            "name": "api-local",
+            "cpuPctOfOneCore": 0.7363460405621476,
+            "rssMb": 64.91796875
+          }
+        ]
+      },
+      "s3": {
+        "requests": 600,
+        "ok": 600,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 20.03205128205128,
+        "p50": 2.2718,
+        "p95": 3.0745,
+        "p99": 5.9719,
+        "max": 10.8794,
+        "durationS": 29.952,
+        "targetPerSecond": 20
+      }
+    },
+    {
+      "mode": "proxy",
+      "rep": 2,
+      "cold": {
+        "radarMs": 557.2,
+        "apiMs": 670.7552
+      },
+      "s1": {
+        "requests": 14045,
+        "ok": 14045,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 466.5957941596625,
+        "p50": 83.8394,
+        "p95": 250.7592,
+        "p99": 345.441,
+        "max": 451.0023,
+        "durationS": 30.101,
+        "users": 50,
+        "usage": [
+          {
+            "name": "radar",
+            "cpuPctOfOneCore": 38.67188797714361,
+            "rssMb": 216.90234375
+          },
+          {
+            "name": "api-proxy",
+            "cpuPctOfOneCore": 45.679545530048834,
+            "rssMb": 256.078125
+          }
+        ],
+        "containers": [
+          {
+            "name": "social_unsch_bench_pg",
+            "cpu": "0.00%",
+            "mem": "36.77MiB / 7.571GiB"
+          },
+          {
+            "name": "social_unsch_bench_redis",
+            "cpu": "0.40%",
+            "mem": "3.934MiB / 7.571GiB"
+          }
+        ]
+      },
+      "s2": {
+        "requests": 100,
+        "ok": 100,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 1.682935038707506,
+        "p50": 5.8003,
+        "p95": 19.5321,
+        "p99": 30.6491,
+        "max": 34.7783,
+        "durationS": 59.42,
+        "targetPerMinute": 100,
+        "usage": [
+          {
+            "name": "radar",
+            "cpuPctOfOneCore": 0.49962133961629085,
+            "rssMb": 65.2421875
+          },
+          {
+            "name": "api-proxy",
+            "cpuPctOfOneCore": 0.5785089195557052,
+            "rssMb": 73.52734375
+          }
+        ]
+      },
+      "s3": {
+        "requests": 600,
+        "ok": 600,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 20.028707814534165,
+        "p50": 4.4759,
+        "p95": 14.4815,
+        "p99": 37.3508,
+        "max": 153.6151,
+        "durationS": 29.957,
+        "targetPerSecond": 20
+      }
+    },
+    {
+      "mode": "local",
+      "rep": 3,
+      "cold": {
+        "apiMs": 670.7484
+      },
+      "s1": {
+        "requests": 36141,
+        "ok": 36141,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 1202.5754500382657,
+        "p50": 36.8077,
+        "p95": 82.7287,
+        "p99": 141.2353,
+        "max": 359.8562,
+        "durationS": 30.053,
+        "users": 50,
+        "usage": [
+          {
+            "name": "api-local",
+            "cpuPctOfOneCore": 72.73608292017435,
+            "rssMb": 237.5390625
+          }
+        ],
+        "containers": [
+          {
+            "name": "social_unsch_bench_pg",
+            "cpu": "0.01%",
+            "mem": "36.76MiB / 7.571GiB"
+          },
+          {
+            "name": "social_unsch_bench_redis",
+            "cpu": "0.34%",
+            "mem": "4.652MiB / 7.571GiB"
+          }
+        ]
+      },
+      "s2": {
+        "requests": 100,
+        "ok": 100,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 1.6829916860210712,
+        "p50": 3.3796,
+        "p95": 18.1579,
+        "p99": 32.9072,
+        "max": 36.5541,
+        "durationS": 59.418,
+        "targetPerMinute": 100,
+        "usage": [
+          {
+            "name": "api-local",
+            "cpuPctOfOneCore": 0.39445117641118854,
+            "rssMb": 68.7109375
+          }
+        ]
+      },
+      "s3": {
+        "requests": 600,
+        "ok": 600,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 20.026702269692922,
+        "p50": 2.2527,
+        "p95": 3.4593,
+        "p99": 5.2977,
+        "max": 11.6055,
+        "durationS": 29.96,
+        "targetPerSecond": 20
+      }
+    },
+    {
+      "mode": "proxy",
+      "rep": 3,
+      "cold": {
+        "radarMs": 383.8652,
+        "apiMs": 487.294
+      },
+      "s1": {
+        "requests": 56236,
+        "ok": 56236,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 1872.9725228975853,
+        "p50": 24.6483,
+        "p95": 43.2343,
+        "p99": 66.5431,
+        "max": 189.1531,
+        "durationS": 30.025,
+        "users": 50,
+        "usage": [
+          {
+            "name": "radar",
+            "cpuPctOfOneCore": 93.88009991673606,
+            "rssMb": 221.953125
+          },
+          {
+            "name": "api-proxy",
+            "cpuPctOfOneCore": 99.60449625312239,
+            "rssMb": 255.93359375
+          }
+        ],
+        "containers": [
+          {
+            "name": "social_unsch_bench_pg",
+            "cpu": "0.00%",
+            "mem": "36.76MiB / 7.571GiB"
+          },
+          {
+            "name": "social_unsch_bench_redis",
+            "cpu": "0.35%",
+            "mem": "3.93MiB / 7.571GiB"
+          }
+        ]
+      },
+      "s2": {
+        "requests": 100,
+        "ok": 100,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 1.683020011107932,
+        "p50": 3.7586,
+        "p95": 4.9013,
+        "p99": 5.5069,
+        "max": 9.6091,
+        "durationS": 59.417,
+        "targetPerMinute": 100,
+        "usage": [
+          {
+            "name": "radar",
+            "cpuPctOfOneCore": 0.3681606274298601,
+            "rssMb": 65.06640625
+          },
+          {
+            "name": "api-proxy",
+            "cpuPctOfOneCore": 0.42075500277698297,
+            "rssMb": 74.5703125
+          }
+        ]
+      },
+      "s3": {
+        "requests": 600,
+        "ok": 600,
+        "unexpectedErrors": 0,
+        "timeouts": 0,
+        "errorRatePct": 0,
+        "rps": 20.031382499248824,
+        "p50": 3.1301,
+        "p95": 5.5795,
+        "p99": 9.6974,
+        "max": 13.2096,
+        "durationS": 29.953,
+        "targetPerSecond": 20
+      }
+    }
+  ]
+}

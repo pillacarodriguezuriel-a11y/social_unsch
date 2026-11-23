@@ -1,10 +1,12 @@
 # Pendientes
 
-Acciones abiertas, verificadas el 2026-10-30. Este documento registra hallazgos: **no corrige código**. Los identificadores `DT` remiten a [Riesgos y deuda técnica](02-riesgos-y-deuda-tecnica.md), que conserva el catálogo completo.
+Acciones abiertas, verificadas el 2026-10-30 y actualizadas el 2026-11-23 con el [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md). Este documento registra hallazgos: **no corrige código**. Los identificadores `DT` remiten a [Riesgos y deuda técnica](02-riesgos-y-deuda-tecnica.md), que conserva el catálogo completo.
 
 ## Críticos
 
-### P-01 · `test-real` falla en CI
+### P-01 · `test-real` falla en CI · **RESUELTO en la rama**
+
+- **Resolución (2026-11-23):** causa demostrada (conflicto de puertos) y corregida; el job pasa en CI. Pendiente de fusionar.
 
 - **Problema:** el job de pruebas reales falla en el PR n.º 5 y en `main`.
 - **Impacto:** las 36 pruebas de concurrencia, migraciones y Redis no protegen `main`: la etapa 4 se fusionó y desplegó sin ellas.
@@ -56,7 +58,9 @@ Acciones abiertas, verificadas el 2026-10-30. Este documento registra hallazgos:
 
 ## Calidad
 
-### P-07 · `apps/radar` sin pruebas contra Redis real
+### P-07 · `apps/radar` sin pruebas contra Redis real · **RESUELTO en la rama**
+
+- **Resolución (2026-11-23):** suite E2E con Radar compilado y Redis real, en CI.
 
 - **Problema:** todas sus pruebas usan Redis simulado.
 - **Impacto:** el script y la conexión TLS no se ejercitan desde el servicio.
@@ -64,7 +68,9 @@ Acciones abiertas, verificadas el 2026-10-30. Este documento registra hallazgos:
 - **Etapa relacionada:** 4.
 - **Acción recomendada:** añadir una suite real y sumarla a CI.
 
-### P-08 · La paridad no compara ambas implementaciones
+### P-08 · La paridad no compara ambas implementaciones · **PARCIAL**
+
+- **Avance (2026-11-23):** la E2E compara API local y API proxy en errores, autenticación y fallos. No cubre toda la lógica de votación por separado.
 
 - **Problema:** [radar.parity.test.ts](../../apps/radar/tests/parity/radar.parity.test.ts) solo ejecuta `apps/radar`.
 - **Impacto:** da una seguridad mayor de la real.
@@ -72,7 +78,9 @@ Acciones abiertas, verificadas el 2026-10-30. Este documento registra hallazgos:
 - **Etapa relacionada:** 4.
 - **Acción recomendada:** ejecutar la misma batería HTTP contra ambos modos desde fuera.
 
-### P-09 · El benchmark no mide el sistema
+### P-09 · El benchmark no mide el sistema · **RESUELTO en la rama**
+
+- **Resolución (2026-11-23):** benchmark reescrito con las aplicaciones reales. Su resultado no cumple el umbral de sobrecarga: ver P-24.
 
 - **Problema:** [benchmark-radar.js](../../scripts/benchmark-radar.js) simula los servidores.
 - **Impacto:** las cifras de ETAPA_04 y ADR-008 no sirven para decidir.
@@ -80,13 +88,29 @@ Acciones abiertas, verificadas el 2026-10-30. Este documento registra hallazgos:
 - **Etapa relacionada:** 4.
 - **Acción recomendada:** medir con las aplicaciones reales y Redis, en local y en la plataforma.
 
+### P-24 · Sobrecarga del proxy por encima del umbral
+
+- **Problema:** con 50 usuarios simultáneos, el p95 por proxy fue un 156 % peor que en modo local; a 20 solicitudes/s, 11 ms más. El umbral es un 20 %.
+- **Impacto:** no puede afirmarse que la separación cumpla el criterio de rendimiento acordado.
+- **Evidencia:** [benchmark-radar-2026-11-23.json](../migracion/evidencias/benchmark-radar-2026-11-23.json). Medición local con alta dispersión entre repeticiones.
+- **Etapa relacionada:** 4.
+- **Acción recomendada:** medir en la plataforma real y en un equipo dedicado; decidir explícitamente si el criterio relativo es adecuado con latencias base de pocos milisegundos. No cambiar la meta sin registrar la decisión.
+
 ## Infraestructura
+
+### P-25 · PostgreSQL de producción no disponible
+
+- **Problema:** el 2026-11-23 la salud de la API respondió `database: down`.
+- **Impacto:** inicio de sesión, feed, matchmaking y carpooling no funcionan en producción.
+- **Evidencia:** `GET /health/ready` 503. Causa probable, PENDIENTE DE VALIDACIÓN: pausa por inactividad del plan gratuito de Supabase.
+- **Etapa relacionada:** 1.
+- **Acción recomendada:** que el propietario revise el panel de Supabase; ver P-02.
 
 ### P-10 · Arranque en frío incompatible con el proxy
 
 - **Problema:** si Radar se suspende, tardaría más que el límite máximo del proxy (30 s).
 - **Impacto:** las primeras solicitudes recibirían 504.
-- **Evidencia:** 32,6 s observados en la API; límite en [env.ts](../../apps/api/src/config/env.ts). Comportamiento de Radar: PENDIENTE DE MEDICIÓN.
+- **Evidencia:** 32,6 s observados en la API el 2026-10-30 y más de 70 s el 2026-11-23; límite en [env.ts](../../apps/api/src/config/env.ts). Alternativas en el [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md).
 - **Etapa relacionada:** 4.
 - **Acción recomendada:** decidir el plan de instancia o un latido antes de activar.
 

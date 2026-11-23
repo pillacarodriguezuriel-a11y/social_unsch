@@ -33,7 +33,7 @@
     "test:radar": "npm test -w @social-unsch/radar",
     "test:real": "npm run test:real -w @social-unsch/api",
     "test:web": "npm test -w @social-unsch/web",
-    "test:e2e": "npm run build:contracts && npm run build:api && npm run build:radar && node --test --test-concurrency=1 tests/e2e/radar.e2e.test.js",
+    "test:e2e": "npm run build:contracts && npm run build:api && npm run build:radar && node --test --test-concurrency=1 --test-reporter=spec tests/e2e/radar.e2e.test.js",
     "bench:radar": "npm run build:contracts && npm run build:api && npm run build:radar && node scripts/benchmark-radar.js",
     "db:migrate": "npm run db:migrate -w @social-unsch/api",
     "db:catalogs": "npm run db:catalogs -w @social-unsch/api",
@@ -43,6 +43,9 @@
     "build:contracts": "npm run build -w @social-unsch/contracts",
     "check:boundaries": "node scripts/check-boundaries.js",
     "test:boundaries": "node --test scripts/check-boundaries.test.js",
-    "verify": "npm run check:boundaries && npm run test:boundaries && npm run typecheck && npm run test:coverage && npm run test:web && npm run build:all"
+    "verify": "npm run test:operations && npm run check:boundaries && npm run test:boundaries && npm run typecheck && npm run test:coverage && npm run test:web && npm run build:all",
+    "test:operations": "node --test scripts/measurement.test.js",
+    "ops:probe": "node scripts/operational-probe.js",
+    "ops:summary": "node scripts/operation-summary.js"
   }
 }

@@ -181,6 +181,7 @@ class AppProcess {
     this.env = env;
     this.port = port;
     this.logs = [];
+    this.telemetry = [];
     this.child = null;
     this.exit = null;
   }
@@ -193,13 +194,22 @@ class AppProcess {
     if (await tcpOpen(this.port)) throw new Error(`${this.name}: el puerto ${this.port} ya está ocupado`);
     const startedAt = process.hrtime.bigint();
     this.exit = null;
-    this.child = spawn(process.execPath, [this.entry], { cwd: this.cwd, env: this.env, stdio: ['ignore', 'pipe', 'pipe'] });
-    const collect = (chunk) => {
-      for (const line of chunk.toString().split(/\r?\n/)) if (line) this.logs.push(line);
+    this.child = spawn(process.execPath, [...(this.preload ? ['--require', this.preload] : []), this.entry], { cwd: this.cwd, env: this.env, stdio: ['ignore', 'pipe', 'pipe'] });
+    const collect = () => {
+      let pending = '';
+      return (chunk) => {
+      const lines = (pending + chunk.toString()).split(/\r?\n/);
+      pending = lines.pop();
+      for (const line of lines) if (line) {
+        if (line.startsWith('{"type":"bench-resource"')) {
+          try { this.telemetry.push(JSON.parse(line)); } catch { /* no métricas parciales */ }
+        } else this.logs.push(line);
+      }
       if (this.logs.length > 20000) this.logs.splice(0, this.logs.length - 20000);
+      };
     };
-    this.child.stdout.on('data', collect);
-    this.child.stderr.on('data', collect);
+    this.child.stdout.on('data', collect());
+    this.child.stderr.on('data', collect());
     this.exitPromise = new Promise((resolve) => this.child.once('exit', (code, signal) => {
       this.exit = { code, signal };
       resolve(this.exit);

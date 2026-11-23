@@ -79,8 +79,8 @@ En la columna de estado, «Verificado» significa que existe una prueba automati
 | Elemento afectado | Módulo de radar y resto de la API |
 | Respuesta esperada | El radar responde con error controlado; autenticación, feed, matchmaking y carpooling siguen funcionando |
 | Medida | **Objetivo pendiente de validación:** 0 % de errores en rutas que no usan Redis |
-| Verificación | Prueba propuesta: detener Redis y ejecutar las rutas de los demás módulos |
-| Estado | Parcial. Desde la etapa 3, `/health/ready` informa `degraded` sin afectar al resto ([health.routes.ts](../../apps/api/src/health/health.routes.ts)); hay pruebas con dobles, sin ensayo con Redis detenido |
+| Verificación | [radar.e2e.test.js](../../tests/e2e/radar.e2e.test.js), escenarios 10 y 11: Redis detenido y pausado |
+| Estado | Implementado y verificado con infraestructura real en local y CI ([cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md)). El ensayo reveló dos defectos, ya corregidos: solicitudes pendientes sin límite con Redis pausado y respuestas 200 «indefinido» con Redis caído |
 
 ## EC-07 Disponibilidad: PostgreSQL no responde
 
@@ -118,8 +118,8 @@ En la columna de estado, «Verificado» significa que existe una prueba automati
 | Elemento afectado | `GET /radar/status` |
 | Respuesta esperada | Estado consolidado de los siete puntos en una sola respuesta |
 | Medida | **Objetivo pendiente de validación:** percentil 95 inferior a 500 ms con 50 usuarios simultáneos |
-| Verificación | Prueba de carga por definir |
-| Estado | PENDIENTE DE MEDICIÓN. El código usa una sola ida y vuelta a Redis mediante *pipeline* ([radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts)). El benchmark existente no mide el sistema: ver [Métricas](../07-evaluacion-y-evolucion/06-metricas.md) |
+| Verificación | [benchmark-radar.js](../../scripts/benchmark-radar.js), escenario S1 |
+| Estado | Medido en local, ver [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md). Sin medición en la plataforma real |
 
 ## EC-10 Operabilidad: migración fallida
 
@@ -158,7 +158,7 @@ En la columna de estado, «Verificado» significa que existe una prueba automati
 | Respuesta esperada | 502 o 504 solo en Radar; `/health/ready` informa `degraded`; los demás módulos siguen atendiendo |
 | Medida | 0 % de errores en rutas ajenas a Radar; respuesta dentro de `RADAR_PROXY_TIMEOUT_MS` |
 | Verificación | [radar.proxy.test.ts](../../apps/api/tests/integration/radar.proxy.test.ts), [proxy.e2e.test.ts](../../apps/radar/tests/integration/proxy.e2e.test.ts) |
-| Estado | Implementado y probado con dobles; PENDIENTE DE MEDICIÓN en producción |
+| Estado | Verificado con procesos reales en local y CI (E2E, escenarios 8 y 9). Sin medición en producción |
 
 ## EC-13 Seguridad: acceso directo al servicio Radar
 
@@ -184,7 +184,7 @@ En la columna de estado, «Verificado» significa que existe una prueba automati
 | Respuesta esperada | Los votos se cuentan sin pérdida; la API no se degrada |
 | Medida | **Objetivo pendiente de validación:** 0 % de errores y p95 inferior a 500 ms |
 | Verificación | Prueba de carga por definir |
-| Estado | PENDIENTE DE MEDICIÓN. Radar no guarda estado en memoria y el voto es atómico, lo que favorece añadir instancias; no probado |
+| Estado | Medido en local con una instancia, ver [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md). Varias instancias: no probado |
 
 ## EC-15 Mantenibilidad: cambio del contrato de Radar
 

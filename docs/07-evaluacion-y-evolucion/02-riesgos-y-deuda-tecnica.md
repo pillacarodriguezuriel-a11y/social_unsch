@@ -46,6 +46,17 @@ Revisión del 2026-10-30 sobre `b763885`. Son cambios ya fusionados en `main` co
 | DT-54 | Un JSON malformado en la API no es `AppError` y responde 500 en lugar de 400. Por lectura de código | [error.middleware.ts](../../apps/api/src/middlewares/error.middleware.ts) | Baja | 5 |
 | DT-55 | CI usa PostgreSQL 16; `docker-compose.yml` y el arnés real, 15. Versión de producción sin confirmar | [ci.yml](../../.github/workflows/ci.yml), [docker-compose.yml](../../docker-compose.yml) | Baja | 4 |
 
+## Estado tras el cierre de la etapa 4
+
+Revisión del 2026-11-23, en la rama `feat/etapa-5-validacion-radar` ([cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md)).
+
+| ID | Problema | Estado |
+|---|---|---|
+| DT-38 | Integración continua incompleta | Resuelta en la rama: `test-real` corregido y `e2e-radar` añadido |
+| DT-56 | Con Redis sin respuesta, las solicitudes del radar quedaban pendientes indefinidamente | Resuelta: `commandTimeout` de 1500 ms |
+| DT-57 | Con Redis caído, `GET /radar/status` respondía 200 con nodos «indefinido» | Resuelta: el error se propaga y responde 500 |
+| DT-58 | La sobrecarga del proxy supera el umbral del 20 % en local | Abierta |
+
 ## Deuda técnica
 
 ### Seguridad y acceso
