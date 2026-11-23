@@ -82,7 +82,7 @@ jobs:
           set -o pipefail
           # Las pruebas fallidas se publican como anotaciones para poder leerlas sin descargar el log.
           npm run test:e2e 2>&1 | tee e2e.log || {
-            grep -aE "^✖|AssertionError|Error:|expected|actual|Tiempo agotado" e2e.log | head -40 | sed 's/^/::error title=E2E Radar::/'
+            grep -aE "✖|not ok|AssertionError|Error:|expected|actual|Tiempo agotado" e2e.log | head -40 | sed 's/^/::error title=E2E Radar::/'
             exit 1
           }
 
