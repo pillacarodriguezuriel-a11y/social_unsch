@@ -1,5 +1,7 @@
 # Pendientes
 
+> Prioridad actual: [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md) (§8). Confirmar configuración/despliegue desde paneles, validar en staging/plataforma real el rendimiento del proxy optimizado (`d616f9b`, que ya cumple localmente con -14,8 % en *loopback*, pendiente con red real), decidir presupuesto sin suspensión, autorizar por separado despliegue y activación, y ejecutar 14 días reales de observación. Los arreglos Redis (F-3/F-4) ya están fusionados en `main`; no duplicar su PR. La caída PostgreSQL previa sigue sin causa confirmada y no autoriza restaurar datos.
+
 Acciones abiertas, verificadas el 2026-10-30 y actualizadas el 2026-11-23 con el [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md). Este documento registra hallazgos: **no corrige código**. Los identificadores `DT` remiten a [Riesgos y deuda técnica](02-riesgos-y-deuda-tecnica.md), que conserva el catálogo completo.
 
 ## Críticos

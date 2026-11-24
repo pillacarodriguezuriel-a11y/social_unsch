@@ -1,5 +1,7 @@
 # Etapa 4 · Cierre: validación de la separación de Radar
 
+> Registro histórico. La [etapa 5 vigente](ETAPA_05_OPERACION_RADAR.md) actualiza fusión/CI y salud, difiere Identidad/Comunidad y descarta usar latidos para evitar suspensión. Las recomendaciones de operación de este registro no autorizan cambios de producción.
+
 | Dato | Valor |
 |---|---|
 | Fecha | 2026-11-23 |

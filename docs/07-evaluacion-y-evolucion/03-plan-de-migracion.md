@@ -139,7 +139,13 @@ Propuesta original:
 | Pendientes | Ver [Pendientes](08-pendientes.md) |
 | Punto de decisión | Observar métricas reales en Render antes de autorizar el desmantelamiento del módulo local en la API |
 
-## Etapa 5 · Identidad y Comunidad
+## Etapa 5 · Recuperación operativa y despliegue controlado de Radar
+
+**Estado: abierta.** Recuperar y verificar la línea base local, diagnosticar PostgreSQL, resolver los criterios de rendimiento, preparar despliegue sin suspensión, activar solo con autorización y observar 14 días desde T0 real. No extraer otro dominio. Procedimiento, evidencias y decisiones en [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md).
+
+Entrada: CI y contratos conservados. Salida: proxy autorizado, verificado en producción, reversión preparada y periodo de observación evaluado. Mantener `RADAR_MODE=local` mientras no se cumplan los gates.
+
+## Identidad y Comunidad · Propuesta diferida
 
 **Estado: propuesta.**
 
@@ -177,7 +183,7 @@ El orden interno depende de las dependencias y debe decidirse al llegar. Una sec
 
 | Criterio | Detalle |
 |---|---|
-| Entrada | Contrato de datos de contacto disponible (etapa 5) |
+| Entrada | Contrato de datos de contacto disponible (propuesta diferida de Identidad) |
 | Salida | Las pruebas reales de concurrencia siguen pasando; la confirmación conserva sus garantías; la pantalla usa datos compartidos |
 | Reversión | Por ruta, mediante la entrada |
 

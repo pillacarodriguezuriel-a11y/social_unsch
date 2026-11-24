@@ -1,5 +1,15 @@
 # Riesgos y deuda técnica
 
+## Riesgos operativos de la separación de Radar
+
+- La salud puntual no confirma disponibilidad continua ni causa histórica de PostgreSQL.
+- Sin SHA/configuración del panel no se puede afirmar que las correcciones Redis están desplegadas.
+- La sobrecarga local del proxy pasó de +49,5 % (`577cca6`) a -14,8 % en *loopback* con transporte nativo (`d616f9b`), pero la latencia de red real en staging/Render y el plan sin suspensión siguen siendo puertas abiertas antes de activar.
+- Presupuesto, región y límites reales no verificados; los precios públicos no garantizan capacidad.
+- Sin recolección de logs/cobertura temporal no hay observación de 14 días demostrable.
+
+Tratamiento y responsable: [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md). Mantener modo local y no extraer otros dominios.
+
 Problemas conocidos del código y de la operación, con su evidencia. Este documento los registra; **no corrige ninguno**. No es una auditoría de seguridad completa: recoge lo encontrado al documentar la arquitectura.
 
 La prioridad es una valoración del autor de esta documentación: **Alta**, afecta a datos, seguridad o disponibilidad; **Media**, dificulta la evolución; **Baja**, mantenimiento.

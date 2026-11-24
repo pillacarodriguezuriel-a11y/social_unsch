@@ -1,5 +1,7 @@
 # Social-UNSCH · Documentación de arquitectura
 
+> Fase vigente: [Etapa 5 — Operación de Radar](migracion/ETAPA_05_OPERACION_RADAR.md). Preparación técnica, activación productiva y observación de 14 días son estados distintos; otros dominios quedan diferidos.
+
 Social-UNSCH reúne reportes del campus, publicaciones, búsqueda de compañeros de proyecto y viajes compartidos para la comunidad de la Universidad Nacional de San Cristóbal de Huamanga. Los cuatro bloques siguientes recorren el proyecto desde las necesidades de sus usuarios hasta el código que atiende una petición.
 
 | Dato | Valor |

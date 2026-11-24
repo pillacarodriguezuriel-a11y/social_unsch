@@ -1,5 +1,7 @@
 # Estado actual y evidencias
 
+> Estado de referencia vigente: [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md). En `main` ya están fusionados PR #7 (`324afd2`, resiliencia Redis F-3/F-4 y CI) y PR #8 (`52e12dc`, CI verde [45250089005](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45250089005)). Dos rondas GET de producción (2026-11-23, 19:23Z y 20:03Z) confirmaron API `ready` (`database: up`, `radar: up`, frío ~27,8 s) y Radar previsto en 404; el SHA activo en Render sigue sin confirmar. En la rama de etapa 5 (`d616f9b`) la optimización del proxy nativo pasó 454+61+14 pruebas (API ≥ 92 % ramas, Radar ≥ 91 % ramas), 36 reales, 14 E2E y el benchmark local (-14,8 % sobrecarga S1 p95 en *loopback*). Los resultados históricos siguientes conservan su alcance temporal.
+
 Fotografía verificable del 2026-10-30. No incluye credenciales: no se leyó ningún archivo `.env`.
 
 ## Repositorio
