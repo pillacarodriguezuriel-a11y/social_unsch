@@ -1,9 +1,8 @@
-import express, { Application } from 'express';
+import express, { Application, Router } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes';
 import usersRoutes from './modules/users/users.routes';
-import feedRoutes from './modules/feed/feed.routes';
 import matchmakingRoutes from './modules/matchmaking/matchmaking.routes';
 import carpoolingRoutes from './modules/carpooling/carpooling.routes';
 import catalogsRoutes from './modules/catalogs/catalogs.routes';
@@ -19,6 +18,11 @@ export const RADAR_MOUNT_PATH = '/api/v1/radar';
 export interface AppDependencies {
   /** Unidad de radar a montar (local por defecto; proxy previsto para la etapa 4). */
   radar: RadarModule;
+  /**
+   * Router del dominio Feed. Punto de sustitución (ADR-009): en la etapa 7 se
+   * reemplazaría por un proxy sin cambiar el resto de app.ts.
+   */
+  feedRouter: Router;
   /** Comprobaciones para GET /health/ready. */
   readinessChecks: DependencyCheck[];
   /** Orígenes CORS permitidos. Si se omite, se calculan desde el entorno como antes. */
@@ -66,7 +70,8 @@ export function createApp(deps: AppDependencies): Application {
   app.use('/api/v1/users', usersRoutes);
   // Punto de montaje reemplazable del radar (ADR-007)
   app.use(RADAR_MOUNT_PATH, deps.radar.router);
-  app.use('/api/v1/feed', feedRoutes);
+  // Punto de montaje reemplazable del feed (ADR-009)
+  app.use('/api/v1/feed', deps.feedRouter);
   app.use('/api/v1/matchmaking', matchmakingRoutes);
   app.use('/api/v1/carpooling', carpoolingRoutes);
   app.use('/api/v1/catalogs', catalogsRoutes);

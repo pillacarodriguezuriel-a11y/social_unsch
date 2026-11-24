@@ -2,11 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import { FeedService } from './feed.service';
 
 export class FeedController {
-  private feedService = new FeedService();
+  private readonly feedService: FeedService;
 
-  /**
-   * Obtiene la lista de publicaciones del feed según los filtros y paginación.
-   */
+  constructor(feedService: FeedService = new FeedService()) {
+    this.feedService = feedService;
+  }
+
   getFeed = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const facultyId = req.query.faculty_id ? Number(req.query.faculty_id) : undefined;
@@ -14,7 +15,6 @@ export class FeedController {
       const page = req.query.page ? Number(req.query.page) : 1;
       const limit = req.query.limit ? Number(req.query.limit) : 20;
 
-      // Validar si los parámetros de query numéricos son válidos
       if (
         (req.query.faculty_id && isNaN(facultyId!)) ||
         (req.query.school_id && isNaN(schoolId!)) ||
@@ -30,17 +30,12 @@ export class FeedController {
       }
 
       const posts = await this.feedService.getFeed(facultyId, schoolId, page, limit);
-      res.status(200).json({
-        data: posts,
-      });
+      res.status(200).json({ data: posts });
     } catch (error) {
       next(error);
     }
   };
 
-  /**
-   * Crea una nueva publicación en el feed.
-   */
   createPost = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { content, faculty_id, school_id } = req.body;
@@ -58,7 +53,6 @@ export class FeedController {
       const facultyId = faculty_id ? Number(faculty_id) : null;
       const schoolId = school_id ? Number(school_id) : null;
 
-      // Validaciones básicas de tipo numérico
       if (
         (faculty_id && isNaN(facultyId!)) ||
         (school_id && isNaN(schoolId!))

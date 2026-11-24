@@ -1,28 +1,32 @@
-import { pool } from '../../config/database';
+import { pool as defaultPool } from '../../config/database';
+import { IFeedPost, IFeedRepository, IAuthorMetaReader } from './ports';
+import { PgAuthorMetaAdapter } from './adapters/pg-author-meta.adapter';
+import type { Pool } from 'pg';
 
-export interface FeedPost {
-  id: string; // UUID v4
-  user_id: string; // UUID v4
-  faculty_id: number | null;
-  professional_school_id: number | null;
-  content: string;
-  is_visible: boolean;
-  created_at: Date;
-  author_name: string;
-  author_role: string;
-}
+export type { IFeedPost as FeedPost };
 
-export class FeedRepository {
+export class FeedRepository implements IFeedRepository {
+  private readonly pool: Pool;
+  private readonly authorMetaReader: IAuthorMetaReader;
+
+  constructor(
+    pool: Pool = defaultPool as unknown as Pool,
+    authorMetaReader?: IAuthorMetaReader
+  ) {
+    this.pool = pool;
+    this.authorMetaReader = authorMetaReader ?? new PgAuthorMetaAdapter(pool);
+  }
+
   /**
-   * Recupera las publicaciones del feed aplicando filtros académicos, paginación e índices B-Tree.
-   * Selecciona únicamente registros visibles (is_visible = true) y ordena por fecha descendente.
+   * Recupera publicaciones del feed con filtros académicos y paginación.
+   * Acceso cruzado a Identidad: INNER JOIN con `users` (documentado en ports.ts).
    */
   async findFiltered(
     facultyId?: number,
     schoolId?: number,
     limit: number = 20,
     offset: number = 0
-  ): Promise<FeedPost[]> {
+  ): Promise<IFeedPost[]> {
     let queryText = `
       SELECT f.id, f.user_id, f.faculty_id, f.professional_school_id, f.content, f.is_visible, f.created_at,
              u.full_name as author_name, u.role as author_role
@@ -31,10 +35,9 @@ export class FeedRepository {
       WHERE f.is_visible = true
     `;
 
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
-    // Estos filtros aseguran el uso óptimo del índice compuesto (faculty_id, school_id, created_at DESC)
     if (facultyId) {
       queryText += ` AND f.faculty_id = $${paramIndex}`;
       values.push(facultyId);
@@ -56,30 +59,31 @@ export class FeedRepository {
       values,
     };
 
-    const result = await pool.query<FeedPost>(query);
+    const result = await this.pool.query<IFeedPost>(query);
     return result.rows;
   }
 
   /**
-   * Registra una nueva publicación en el repositorio persistente (PostgreSQL).
+   * Registra una nueva publicación y adjunta los metadatos del autor.
+   * El acceso a datos del autor está encapsulado en IAuthorMetaReader.
    */
   async create(input: {
     userId: string;
     content: string;
     facultyId?: number | null;
     schoolId?: number | null;
-  }): Promise<FeedPost> {
+  }): Promise<IFeedPost> {
     const { userId, content, facultyId = null, schoolId = null } = input;
 
-    const query = {
+    const insertQuery = {
       name: 'insert-new-feed-post',
       text: `
         INSERT INTO feed_posts (
-          user_id, 
-          faculty_id, 
-          professional_school_id, 
-          content, 
-          is_visible, 
+          user_id,
+          faculty_id,
+          professional_school_id,
+          content,
+          is_visible,
           created_at
         ) VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)
         RETURNING id, user_id, faculty_id, professional_school_id, content, is_visible, created_at
@@ -87,22 +91,15 @@ export class FeedRepository {
       values: [userId, facultyId, schoolId, content],
     };
 
-    const result = await pool.query(query);
+    const result = await this.pool.query(insertQuery);
     const post = result.rows[0];
 
-    // Obtener los datos del autor para retornar un objeto FeedPost completo
-    const authorQuery = {
-      name: 'fetch-post-author-meta',
-      text: 'SELECT full_name, role FROM users WHERE id = $1',
-      values: [userId],
-    };
-    const authorResult = await pool.query(authorQuery);
-    const author = authorResult.rows[0];
+    const author = await this.authorMetaReader.getAuthorMeta(userId);
 
     return {
       ...post,
-      author_name: author.full_name,
-      author_role: author.role,
+      author_name: author?.full_name ?? '',
+      author_role: author?.role ?? '',
     };
   }
 }
