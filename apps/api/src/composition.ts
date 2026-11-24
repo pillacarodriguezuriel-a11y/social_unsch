@@ -4,6 +4,7 @@ import { createRedisClient } from './config/redis';
 import { AppDependencies } from './app';
 import { createLocalRadarModule, RadarModule } from './modules/radar/radar.module';
 import { createRadarProxyModule } from './modules/radar/radar.proxy';
+import { createFeedRouter } from './modules/feed/feed.module';
 
 export interface AppResources {
   deps: AppDependencies;
@@ -32,10 +33,13 @@ export function createAppResources(config: ServerConfig): AppResources {
   }
   closers.push(() => pool.end());
 
+  const feedRouter = createFeedRouter({ pool: pool as any });
+
   let closed: Promise<void> | null = null;
   return {
     deps: {
       radar,
+      feedRouter,
       allowedOrigins: config.allowedOrigins,
       readinessChecks: [
         {

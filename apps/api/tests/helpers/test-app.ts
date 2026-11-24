@@ -4,11 +4,16 @@
  * Desde la etapa 3 la aplicación no se crea al importar src/app: se compone con createApp() y
  * recibe sus dependencias. Aquí se monta el radar local con un cliente Redis falso (o el que se
  * indique) y sin comprobaciones de salud, salvo que la prueba las aporte.
+ *
+ * Desde la etapa 6, el feedRouter también se compone aquí usando el pool del módulo database
+ * (que las pruebas de integración mockean a nivel de módulo con jest.mock).
  */
-import { Application } from 'express';
+import { Application, Router } from 'express';
 import { createApp } from '../../src/app';
 import { DependencyCheck } from '../../src/health/health.routes';
 import { createLocalRadarModule, LocalRadarDependencies, RadarModule } from '../../src/modules/radar/radar.module';
+import { createFeedRouter } from '../../src/modules/feed/feed.module';
+import { pool } from '../../src/config/database';
 
 export interface FakeRedis {
   pipeline: jest.Mock;
@@ -27,6 +32,7 @@ export function createFakeRedis(): FakeRedis {
 export interface TestAppOptions {
   redis?: unknown;
   radar?: RadarModule;
+  feedRouter?: Router;
   readinessChecks?: DependencyCheck[];
   allowedOrigins?: string[];
 }
@@ -35,6 +41,7 @@ export function createTestApp(options: TestAppOptions = {}): Application {
   const redis = (options.redis ?? createFakeRedis()) as LocalRadarDependencies['redis'];
   return createApp({
     radar: options.radar ?? createLocalRadarModule({ redis }),
+    feedRouter: options.feedRouter ?? createFeedRouter({ pool: pool as any }),
     readinessChecks: options.readinessChecks ?? [],
     allowedOrigins: options.allowedOrigins,
   });

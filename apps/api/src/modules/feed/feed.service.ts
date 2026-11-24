@@ -1,13 +1,14 @@
-import { FeedRepository, FeedPost } from './feed.repository';
+import { IFeedPost, IFeedRepository } from './ports';
+import { FeedRepository } from './feed.repository';
 import { AppError } from '../../shared/errors/AppError';
 
 export class FeedService {
-  private feedRepository = new FeedRepository();
+  private readonly feedRepository: IFeedRepository;
 
-  /**
-   * Sanitiza entradas de texto para prevenir ataques Cross-Site Scripting (XSS).
-   * Reemplaza caracteres especiales HTML por sus entidades seguras correspondientes.
-   */
+  constructor(feedRepository: IFeedRepository = new FeedRepository()) {
+    this.feedRepository = feedRepository;
+  }
+
   private sanitizeXSS(str: string): string {
     return str
       .replace(/&/g, '&amp;')
@@ -18,31 +19,25 @@ export class FeedService {
       .replace(/\//g, '&#x2F;');
   }
 
-  /**
-   * Recupera las publicaciones visibles aplicando paginación y filtros.
-   */
   async getFeed(
     facultyId?: number,
     schoolId?: number,
     page: number = 1,
     limit: number = 20
-  ): Promise<FeedPost[]> {
+  ): Promise<IFeedPost[]> {
     const validPage = Math.max(1, page);
-    const validLimit = Math.min(50, Math.max(1, limit)); // Capar a un máximo de 50 posts
+    const validLimit = Math.min(50, Math.max(1, limit));
     const offset = (validPage - 1) * validLimit;
 
     return this.feedRepository.findFiltered(facultyId, schoolId, validLimit, offset);
   }
 
-  /**
-   * Crea una nueva publicación en el feed tras sanitizar el contenido.
-   */
   async createPost(input: {
     userId: string;
     content: string;
     facultyId?: number | null;
     schoolId?: number | null;
-  }): Promise<FeedPost> {
+  }): Promise<IFeedPost> {
     if (!input.content || input.content.trim().length === 0) {
       throw new AppError(
         'El contenido de la publicación no puede estar vacío.',
@@ -59,7 +54,6 @@ export class FeedService {
       );
     }
 
-    // Sanitizar contra ataques XSS
     const sanitizedContent = this.sanitizeXSS(input.content.trim());
 
     return this.feedRepository.create({

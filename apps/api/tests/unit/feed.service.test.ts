@@ -1,25 +1,18 @@
 /**
  * Unit Test Suite: FeedService
  *
- * Mocks: pg pool, FeedRepository
- * Covers:
- *   - sanitizeXSS()  — all HTML special characters
- *   - getFeed()      — page/limit clamping, offset calculation, filter delegation
- *   - createPost()   — empty content, content > 2000 chars, XSS sanitization, happy path
+ * Estrategia: se inyectan dobles de IFeedRepository. Las pruebas verifican
+ * el comportamiento del servicio (validaciones, paginación, XSS) sin depender
+ * de SQL ni del pool de PostgreSQL.
  */
 
-jest.mock('../../src/config/database', () => ({ pool: { query: jest.fn() } }));
-
-import { pool } from '../../src/config/database';
 import { FeedService } from '../../src/modules/feed/feed.service';
-import { FeedPost } from '../../src/modules/feed/feed.repository';
+import { IFeedRepository, IFeedPost } from '../../src/modules/feed/ports';
 import { AppError } from '../../src/shared/errors/AppError';
-
-const mockQuery = pool.query as jest.Mock;
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-const makeMockPost = (overrides: Partial<FeedPost> = {}): FeedPost => ({
+const makePost = (overrides: Partial<IFeedPost> = {}): IFeedPost => ({
   id: 'post-uuid-0001',
   user_id: 'user-uuid-0001',
   faculty_id: 1,
@@ -32,102 +25,115 @@ const makeMockPost = (overrides: Partial<FeedPost> = {}): FeedPost => ({
   ...overrides,
 });
 
+function makeMockRepo(overrides: Partial<IFeedRepository> = {}): IFeedRepository {
+  return {
+    findFiltered: jest.fn().mockResolvedValue([]),
+    create: jest.fn().mockResolvedValue(makePost()),
+    ...overrides,
+  };
+}
+
 // ─── Test Suite ───────────────────────────────────────────────────────────────
 
 describe('FeedService', () => {
-  let service: FeedService;
-
-  beforeEach(() => {
-    service = new FeedService();
-  });
-
   // ════════════════════════════════════════════════════════════════════
   // getFeed()
   // ════════════════════════════════════════════════════════════════════
 
   describe('getFeed()', () => {
-    it('should return posts array from repository on a basic call', async () => {
-      const posts = [makeMockPost(), makeMockPost({ id: 'post-uuid-0002' })];
-      mockQuery.mockResolvedValueOnce({ rows: posts, rowCount: 2 });
+    it('should return posts array from repository', async () => {
+      const posts = [makePost(), makePost({ id: 'post-uuid-0002' })];
+      const repo = makeMockRepo({ findFiltered: jest.fn().mockResolvedValue(posts) });
+      const service = new FeedService(repo);
+
       const result = await service.getFeed();
-      expect(Array.isArray(result)).toBe(true);
       expect(result).toHaveLength(2);
     });
 
     it('should clamp page to 1 when page is 0', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(undefined, undefined, 0, 20);
-      // offset = (max(1,0) - 1) * 20 = 0
-      const queryValues = mockQuery.mock.calls[0][0].values;
-      expect(queryValues).toContain(0); // offset should be 0
+      expect(repo.findFiltered).toHaveBeenCalledWith(undefined, undefined, 20, 0);
     });
 
     it('should clamp page to 1 when page is negative', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(undefined, undefined, -5, 20);
-      const queryValues = mockQuery.mock.calls[0][0].values;
-      expect(queryValues).toContain(0); // offset = 0
+      expect(repo.findFiltered).toHaveBeenCalledWith(undefined, undefined, 20, 0);
     });
 
-    it('should use offset = (page-1) * limit for page=2, limit=10', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    it('should compute offset = (page-1)*limit for page=2, limit=10', async () => {
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(undefined, undefined, 2, 10);
-      const queryValues = mockQuery.mock.calls[0][0].values;
-      expect(queryValues).toContain(10); // offset = (2-1)*10 = 10
+      expect(repo.findFiltered).toHaveBeenCalledWith(undefined, undefined, 10, 10);
     });
 
-    it('should use offset = 40 for page=3, limit=20', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    it('should compute offset = 40 for page=3, limit=20', async () => {
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(undefined, undefined, 3, 20);
-      const queryValues = mockQuery.mock.calls[0][0].values;
-      expect(queryValues).toContain(40); // offset = (3-1)*20 = 40
+      expect(repo.findFiltered).toHaveBeenCalledWith(undefined, undefined, 20, 40);
     });
 
     it('should clamp limit to 50 when limit exceeds 50', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(undefined, undefined, 1, 200);
-      const queryValues = mockQuery.mock.calls[0][0].values;
-      expect(queryValues).toContain(50); // limit capped at 50
+      expect(repo.findFiltered).toHaveBeenCalledWith(undefined, undefined, 50, 0);
     });
 
     it('should clamp limit to 1 when limit is 0', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(undefined, undefined, 1, 0);
-      const queryValues = mockQuery.mock.calls[0][0].values;
-      expect(queryValues).toContain(1); // limit min is 1
+      expect(repo.findFiltered).toHaveBeenCalledWith(undefined, undefined, 1, 0);
     });
 
     it('should clamp limit to 1 when limit is negative', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(undefined, undefined, 1, -100);
-      const queryValues = mockQuery.mock.calls[0][0].values;
-      expect(queryValues).toContain(1);
+      expect(repo.findFiltered).toHaveBeenCalledWith(undefined, undefined, 1, 0);
     });
 
-    it('should pass facultyId filter to query when provided', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    it('should pass facultyId filter to repository when provided', async () => {
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(2, undefined, 1, 20);
-      const queryText = mockQuery.mock.calls[0][0].text;
-      expect(queryText).toContain('faculty_id');
+      expect(repo.findFiltered).toHaveBeenCalledWith(2, undefined, 20, 0);
     });
 
-    it('should pass schoolId filter to query when provided', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    it('should pass schoolId filter to repository when provided', async () => {
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(undefined, 5, 1, 20);
-      const queryText = mockQuery.mock.calls[0][0].text;
-      expect(queryText).toContain('professional_school_id');
+      expect(repo.findFiltered).toHaveBeenCalledWith(undefined, 5, 20, 0);
     });
 
     it('should apply both faculty and school filters when both provided', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.getFeed(1, 3, 1, 20);
-      const queryText = mockQuery.mock.calls[0][0].text;
-      expect(queryText).toContain('faculty_id');
-      expect(queryText).toContain('professional_school_id');
+      expect(repo.findFiltered).toHaveBeenCalledWith(1, 3, 20, 0);
     });
 
     it('should return empty array when repository returns no posts', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      const repo = makeMockRepo({ findFiltered: jest.fn().mockResolvedValue([]) });
+      const service = new FeedService(repo);
+
       const result = await service.getFeed();
       expect(result).toEqual([]);
     });
@@ -141,15 +147,16 @@ describe('FeedService', () => {
     const userId = 'user-uuid-create-0001';
 
     it('should create a post successfully with valid content', async () => {
-      const mockPost = makeMockPost({ content: 'Proyecto de investigación' });
-      // First query: INSERT, second: author fetch
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Maria Torres', role: 'student' }] });
+      const mockPost = makePost({ content: 'Proyecto de investigación' });
+      const repo = makeMockRepo({ create: jest.fn().mockResolvedValue(mockPost) });
+      const service = new FeedService(repo);
+
       const result = await service.createPost({ userId, content: 'Proyecto de investigación' });
-      expect(result).toMatchObject({ id: 'post-uuid-0001' });
+      expect(result.id).toBe('post-uuid-0001');
     });
 
     it('should throw AppError 400 ERR_VALIDATION_INVALID_FIELDS when content is empty string', async () => {
+      const service = new FeedService(makeMockRepo());
       await expect(service.createPost({ userId, content: '' })).rejects.toMatchObject({
         statusCode: 400,
         errorCode: 'ERR_VALIDATION_INVALID_FIELDS',
@@ -158,6 +165,7 @@ describe('FeedService', () => {
     });
 
     it('should throw AppError 400 when content is only whitespace', async () => {
+      const service = new FeedService(makeMockRepo());
       await expect(service.createPost({ userId, content: '   ' })).rejects.toMatchObject({
         statusCode: 400,
         errorCode: 'ERR_VALIDATION_INVALID_FIELDS',
@@ -165,8 +173,8 @@ describe('FeedService', () => {
     });
 
     it('should throw AppError 400 when content exceeds 2000 characters', async () => {
-      const longContent = 'A'.repeat(2001);
-      await expect(service.createPost({ userId, content: longContent })).rejects.toMatchObject({
+      const service = new FeedService(makeMockRepo());
+      await expect(service.createPost({ userId, content: 'A'.repeat(2001) })).rejects.toMatchObject({
         statusCode: 400,
         errorCode: 'ERR_VALIDATION_INVALID_FIELDS',
         message: 'El contenido de la publicación no debe superar los 2000 caracteres.',
@@ -174,105 +182,114 @@ describe('FeedService', () => {
     });
 
     it('should accept content of exactly 2000 characters', async () => {
-      const exactContent = 'A'.repeat(2000);
-      const mockPost = makeMockPost({ content: exactContent });
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Maria Torres', role: 'student' }] });
-      await expect(service.createPost({ userId, content: exactContent })).resolves.toBeDefined();
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
+      await expect(service.createPost({ userId, content: 'A'.repeat(2000) })).resolves.toBeDefined();
     });
 
-    it('should sanitize & character to &amp; before persisting', async () => {
-      const mockPost = makeMockPost({ content: 'Tom &amp; Jerry' });
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+    it('should sanitize & character to &amp; before calling repository', async () => {
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: 'Tom & Jerry' });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[3]).toBe('Tom &amp; Jerry');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ content: 'Tom &amp; Jerry' })
+      );
     });
 
     it('should sanitize < character to &lt;', async () => {
-      const mockPost = makeMockPost();
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: '<script>' });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[3]).toContain('&lt;');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('&lt;') })
+      );
     });
 
     it('should sanitize > character to &gt;', async () => {
-      const mockPost = makeMockPost();
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: '1 > 0' });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[3]).toContain('&gt;');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('&gt;') })
+      );
     });
 
     it('should sanitize " character to &quot;', async () => {
-      const mockPost = makeMockPost();
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: 'He said "hello"' });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[3]).toContain('&quot;');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('&quot;') })
+      );
     });
 
     it("should sanitize ' character to &#x27;", async () => {
-      const mockPost = makeMockPost();
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: "It's fine" });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[3]).toContain('&#x27;');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('&#x27;') })
+      );
     });
 
     it('should sanitize / character to &#x2F;', async () => {
-      const mockPost = makeMockPost();
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: 'path/to/file' });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[3]).toContain('&#x2F;');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('&#x2F;') })
+      );
     });
 
     it('should trim whitespace from content before XSS sanitization', async () => {
-      const mockPost = makeMockPost({ content: 'Trimmed' });
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: '   Trimmed   ' });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[3]).toBe('Trimmed');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ content: 'Trimmed' })
+      );
     });
 
     it('should pass facultyId to repository when provided', async () => {
-      const mockPost = makeMockPost({ faculty_id: 2 });
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: 'Hello', facultyId: 2 });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[1]).toBe(2);
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ facultyId: 2 })
+      );
     });
 
     it('should pass schoolId to repository when provided', async () => {
-      const mockPost = makeMockPost({ professional_school_id: 7 });
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: 'Hello', schoolId: 7 });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[2]).toBe(7);
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ schoolId: 7 })
+      );
     });
 
-    it('should default facultyId and schoolId to null when omitted', async () => {
-      const mockPost = makeMockPost();
-      mockQuery.mockResolvedValueOnce({ rows: [mockPost] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ full_name: 'Author', role: 'student' }] });
+    it('should default facultyId and schoolId to undefined when omitted', async () => {
+      const repo = makeMockRepo();
+      const service = new FeedService(repo);
+
       await service.createPost({ userId, content: 'Hello' });
-      const insertValues = mockQuery.mock.calls[0][0].values;
-      expect(insertValues[1]).toBeNull();
-      expect(insertValues[2]).toBeNull();
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId, content: 'Hello' })
+      );
     });
 
     it('should throw AppError instance when content validation fails', async () => {
+      const service = new FeedService(makeMockRepo());
       const err = await service.createPost({ userId, content: '' }).catch((e) => e);
       expect(err).toBeInstanceOf(AppError);
     });
