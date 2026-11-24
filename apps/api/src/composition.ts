@@ -5,6 +5,7 @@ import { AppDependencies } from './app';
 import { createLocalRadarModule, RadarModule } from './modules/radar/radar.module';
 import { createRadarProxyModule } from './modules/radar/radar.proxy';
 import { createFeedRouter } from './modules/feed/feed.module';
+import { createFeedProxyModule } from './modules/feed/feed.proxy';
 
 export interface AppResources {
   deps: AppDependencies;
@@ -33,7 +34,19 @@ export function createAppResources(config: ServerConfig): AppResources {
   }
   closers.push(() => pool.end());
 
-  const feedRouter = createFeedRouter({ pool: pool as any });
+  // Feed: local (default) o proxy hacia apps/feed
+  let feedRouter: AppDependencies['feedRouter'];
+  if (config.feed.mode === 'proxy') {
+    const feedProxy = createFeedProxyModule({
+      target: config.feed.target,
+      timeoutMs: config.feed.timeoutMs,
+      healthPath: '/health/ready',
+    });
+    feedRouter = feedProxy.router;
+    if (feedProxy.close) closers.push(() => Promise.resolve(feedProxy.close!()));
+  } else {
+    feedRouter = createFeedRouter({ pool: pool as any });
+  }
 
   let closed: Promise<void> | null = null;
   return {

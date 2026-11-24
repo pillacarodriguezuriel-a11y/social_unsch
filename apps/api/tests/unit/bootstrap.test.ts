@@ -55,6 +55,16 @@ describe('createAppResources', () => {
     expect(resources.deps.radar.mode).toBe('proxy');
   });
 
+  it('en FEED_MODE=proxy monta el router del proxy de feed y registra close()', async () => {
+    const resources = createAppResources(
+      loadServerConfig({ ...env, FEED_MODE: 'proxy', FEED_PROXY_TARGET: 'http://127.0.0.1:9' })
+    );
+    expect(resources.deps.feedRouter).toBeDefined();
+    // close() cierra el agente del proxy de feed y el pool
+    await resources.close();
+    expect(mockPool.end).toHaveBeenCalledTimes(1);
+  });
+
   it('close() cierra Redis y el pool una sola vez aunque se invoque varias veces', async () => {
     const resources = createAppResources(loadServerConfig(env));
     await Promise.all([resources.close(), resources.close()]);

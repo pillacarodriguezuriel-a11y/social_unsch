@@ -6,6 +6,7 @@ import { DEFAULT_LOCAL_REDIS_URL } from './redis';
  */
 
 export type RadarMode = 'local' | 'proxy';
+export type FeedMode = 'local' | 'proxy';
 
 export interface ServerConfig {
   nodeEnv: string;
@@ -16,6 +17,13 @@ export interface ServerConfig {
   /** Si falta, se usa redis://127.0.0.1:6379 como antes de la etapa 3 (en producción, con aviso). */
   redisUrl: string;
   radar: { mode: 'local' } | { mode: 'proxy'; target: URL; timeoutMs: number };
+  /**
+   * Modo del dominio Feed. 'local' (predeterminado): Feed corre dentro de este proceso.
+   * 'proxy': las peticiones /api/v1/feed se reenvían al servicio Feed independiente.
+   * Activar 'proxy' en producción requiere que Radar esté desplegado y operativo (Etapa 5)
+   * y que el servicio Feed esté desplegado y observado (Etapa 7).
+   */
+  feed: { mode: 'local' } | { mode: 'proxy'; target: URL; timeoutMs: number };
   warnings: string[];
 }
 
@@ -130,6 +138,40 @@ export function loadServerConfig(env: Env = process.env): ServerConfig {
     problems.push("RADAR_MODE debe ser 'local' o 'proxy'.");
   }
 
+  // Feed mode: 'local' (default) or 'proxy'
+  const rawFeedMode = present(env.FEED_MODE) ? env.FEED_MODE.trim().toLowerCase() : 'local';
+  let feed: ServerConfig['feed'] = { mode: 'local' };
+  if (rawFeedMode === 'proxy') {
+    let feedTarget: URL | null = null;
+    if (!present(env.FEED_PROXY_TARGET)) {
+      problems.push('FEED_PROXY_TARGET es obligatoria cuando FEED_MODE=proxy.');
+    } else {
+      try {
+        const parsed = new URL(env.FEED_PROXY_TARGET);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          problems.push('FEED_PROXY_TARGET debe usar http:// o https://.');
+        } else if (parsed.username || parsed.password) {
+          problems.push('FEED_PROXY_TARGET no debe incluir credenciales.');
+        } else if (parsed.search || parsed.hash) {
+          problems.push('FEED_PROXY_TARGET no debe incluir query ni fragmento.');
+        } else {
+          feedTarget = parsed;
+        }
+      } catch {
+        problems.push('FEED_PROXY_TARGET no es una URL válida.');
+      }
+    }
+    const feedTimeoutMs = present(env.FEED_PROXY_TIMEOUT_MS)
+      ? Number(env.FEED_PROXY_TIMEOUT_MS)
+      : DEFAULT_RADAR_PROXY_TIMEOUT_MS;
+    if (!Number.isInteger(feedTimeoutMs) || feedTimeoutMs < 100 || feedTimeoutMs > 30000) {
+      problems.push('FEED_PROXY_TIMEOUT_MS debe ser un entero entre 100 y 30000.');
+    }
+    if (feedTarget) feed = { mode: 'proxy', target: feedTarget, timeoutMs: feedTimeoutMs };
+  } else if (rawFeedMode !== 'local') {
+    problems.push("FEED_MODE debe ser 'local' o 'proxy'.");
+  }
+
   if (problems.length > 0) throw new ConfigError(problems);
 
   return {
@@ -140,6 +182,7 @@ export function loadServerConfig(env: Env = process.env): ServerConfig {
     databaseUrl: env.DATABASE_URL as string,
     redisUrl,
     radar,
+    feed,
     warnings,
   };
 }

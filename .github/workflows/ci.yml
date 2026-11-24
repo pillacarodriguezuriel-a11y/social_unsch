@@ -104,3 +104,38 @@ jobs:
       - name: Eliminar contenedores de prueba
         if: always()
         run: docker rm -f social_unsch_e2e_pg social_unsch_e2e_redis || true
+
+  e2e-feed:
+    name: E2E de Feed (API y Feed compilados, PostgreSQL real)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.14.0', '24.11.1']
+    needs: verify
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+
+      - name: Instalación limpia de dependencias
+        run: npm ci
+
+      - name: Ejecutar pruebas E2E de Feed (proxy y local) contra PostgreSQL desechable
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e:feed 2>&1 | tee e2e-feed.log || {
+            { grep -aE "Tiempo agotado|falló|SEGURIDAD|Error|expected|actual" e2e-feed.log | grep -av "✖" | head -7
+              grep -a "^✖" e2e-feed.log | head -3; } | sed 's/^/::error title=E2E Feed::/'
+            exit 1
+          }
+
+      - name: Eliminar contenedores de prueba
+        if: always()
+        run: docker rm -f social_unsch_e2e_feed_pg || true

@@ -55,6 +55,9 @@ test('detecta una infracción por cada regla', () => {
     'apps/radar/src/b.ts': "import { something } from '@social-unsch/web';",
     'apps/radar/src/c.ts': "import { Pool } from 'pg';",
     'apps/api/src/server.ts': "import { createRadarApp } from '@social-unsch/radar';",
+    'apps/feed/src/a.ts': "import { createApp } from '@social-unsch/api';",
+    'apps/feed/src/b.ts': "import { Component } from '@social-unsch/web';",
+    'packages/feed-domain/src/index.ts': "import { Pool } from 'pg';",
   });
 
   const rules = checkBoundaries(root).map((v) => `${v.rule}:${v.file}`);
@@ -62,6 +65,9 @@ test('detecta una infracción por cada regla', () => {
     'api-sin-radar-interno:apps/api/src/server.ts',
     'api-sin-web:apps/api/src/app.ts',
     'contratos-puros:packages/contracts/src/index.ts',
+    'feed-domain-puro:packages/feed-domain/src/index.ts',
+    'feed-sin-api:apps/feed/src/a.ts',
+    'feed-sin-web:apps/feed/src/b.ts',
     'modulos-aislados:apps/api/src/modules/feed/feed.service.ts',
     'radar-sin-api:apps/radar/src/a.ts',
     'radar-sin-conexiones:apps/api/src/modules/radar/radar.repository.ts',
@@ -72,4 +78,22 @@ test('detecta una infracción por cada regla', () => {
     'web-sin-servidor:apps/web/app/a.tsx',
     'web-sin-servidor:apps/web/app/a.tsx',
   ]);
+});
+
+test('apps/feed puede importar @social-unsch/feed-domain sin infracción', () => {
+  const root = fixture({
+    'apps/feed/src/server.ts': "import { FeedService } from '@social-unsch/feed-domain';",
+    'apps/feed/src/app.ts': "import express from 'express';",
+  });
+  const violations = checkBoundaries(root).filter((v) => v.rule.startsWith('feed'));
+  assert.deepEqual(violations, []);
+});
+
+test('packages/feed-domain puede usar imports relativos internos sin infracción', () => {
+  const root = fixture({
+    'packages/feed-domain/src/ports.ts': 'export interface IFeedPost {}',
+    'packages/feed-domain/src/index.ts': "export * from './ports';",
+  });
+  const violations = checkBoundaries(root).filter((v) => v.rule === 'feed-domain-puro');
+  assert.deepEqual(violations, []);
 });

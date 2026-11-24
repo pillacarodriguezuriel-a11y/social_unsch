@@ -124,6 +124,43 @@ describe('loadServerConfig', () => {
       expect(problemsOf({ ...base, RADAR_MODE: 'remoto' })).toEqual(["RADAR_MODE debe ser 'local' o 'proxy'."]);
     });
   });
+
+  describe('FEED_MODE', () => {
+    it('por defecto usa modo local', () => {
+      const config = loadServerConfig(base);
+      expect(config.feed).toEqual({ mode: 'local' });
+    });
+
+    it('proxy exige un destino http(s) sin credenciales, query ni fragmento', () => {
+      expect(problemsOf({ ...base, FEED_MODE: 'proxy' })).toEqual(['FEED_PROXY_TARGET es obligatoria cuando FEED_MODE=proxy.']);
+      expect(problemsOf({ ...base, FEED_MODE: 'proxy', FEED_PROXY_TARGET: 'ftp://feed' })).toEqual([
+        'FEED_PROXY_TARGET debe usar http:// o https://.',
+      ]);
+      expect(problemsOf({ ...base, FEED_MODE: 'proxy', FEED_PROXY_TARGET: 'https://u:p@feed' })).toEqual([
+        'FEED_PROXY_TARGET no debe incluir credenciales.',
+      ]);
+      expect(problemsOf({ ...base, FEED_MODE: 'proxy', FEED_PROXY_TARGET: 'https://feed?x=1' })).toEqual([
+        'FEED_PROXY_TARGET no debe incluir query ni fragmento.',
+      ]);
+      expect(problemsOf({ ...base, FEED_MODE: 'proxy', FEED_PROXY_TARGET: 'no es url' })).toEqual([
+        'FEED_PROXY_TARGET no es una URL válida.',
+      ]);
+    });
+
+    it('proxy válido con límite de tiempo por defecto y configurable', () => {
+      const config = loadServerConfig({ ...base, FEED_MODE: 'proxy', FEED_PROXY_TARGET: 'https://feed.interno/base' });
+      expect(config.feed).toEqual({ mode: 'proxy', target: new URL('https://feed.interno/base'), timeoutMs: 5000 });
+      const custom = loadServerConfig({ ...base, FEED_MODE: 'PROXY', FEED_PROXY_TARGET: 'http://127.0.0.1:4002', FEED_PROXY_TIMEOUT_MS: '800' });
+      expect(custom.feed).toMatchObject({ mode: 'proxy', timeoutMs: 800 });
+    });
+
+    it('rechaza límite de tiempo fuera de rango y modo desconocido', () => {
+      expect(
+        problemsOf({ ...base, FEED_MODE: 'proxy', FEED_PROXY_TARGET: 'http://feed', FEED_PROXY_TIMEOUT_MS: '50' })
+      ).toEqual(['FEED_PROXY_TIMEOUT_MS debe ser un entero entre 100 y 30000.']);
+      expect(problemsOf({ ...base, FEED_MODE: 'remoto' })).toEqual(["FEED_MODE debe ser 'local' o 'proxy'."]);
+    });
+  });
 });
 
 describe('resolveAllowedOrigins', () => {
