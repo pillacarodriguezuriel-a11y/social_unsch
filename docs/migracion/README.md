@@ -12,7 +12,7 @@ Distribuir un sistema tiene un costo real: más despliegues, fallos de red, cons
 | 2 | Beneficio verificable | ¿Qué mejora, y cómo se mide? | **PENDIENTE DE VALIDACIÓN:** el aislamiento de fallos tiene pruebas con dobles; no hay medición en producción |
 | 3 | Contrato estable | ¿Está escrito y probado? | Sí: [`packages/contracts`](../../packages/contracts/src/radar.ts) y pruebas de contrato |
 | 4 | Capacidad de prueba | ¿Se puede probar el servicio nuevo? | Sí: 14 escenarios E2E con procesos y Redis reales |
-| 5 | Observabilidad | ¿Se ve qué ocurre en ejecución? | Parcial: registros y salud sí; métricas y alertas no |
+| 5 | Observabilidad | ¿Se ve qué ocurre en ejecución? | Parcial: registros/salud y resumen offline; recolección continua y alertas pendientes |
 | 6 | Rollback | ¿Se puede volver atrás? | Parcial: implementado, sin ensayar en producción |
 
 Detenerse también es un resultado válido. La [alternativa de alcance reducido](../07-evaluacion-y-evolucion/03-plan-de-migracion.md#alternativa-de-alcance-reducido) describe cómo quedaría el sistema.
@@ -46,7 +46,8 @@ flowchart LR
 | 2. Estabilización | IMPLEMENTADO; aplicación remota parcialmente verificada | [ETAPA_02](ETAPA_02_ESTABILIZACION.md) |
 | 3. Monorepo, contratos y límites | IMPLEMENTADO: en `main` y en producción | [ETAPA_03](ETAPA_03_PREPARACION_SEPARACION.md) |
 | 4. Extracción de Radar | IMPLEMENTADO PARCIALMENTE: validado con infraestructura real en local y CI; servicio sin desplegar | [ETAPA_04](ETAPA_04_EXTRACCION_RADAR.md), [cierre](ETAPA_04_CIERRE_VALIDACION_RADAR.md), [estado vigente](EXTRACCION_RADAR.md) |
-| 5. Identidad y comunidad | PROPUESTO | [Plan](../07-evaluacion-y-evolucion/03-plan-de-migracion.md#etapa-5--identidad-y-comunidad) |
+| 5. Recuperación operativa y despliegue controlado de Radar | ABIERTA: preparación; activación y observación pendientes | [ETAPA_05](ETAPA_05_OPERACION_RADAR.md) |
+| Identidad y Comunidad | DIFERIDA: fuera de la fase actual | [Plan](../07-evaluacion-y-evolucion/03-plan-de-migracion.md#identidad-y-comunidad--propuesta-diferida) |
 | 6. Movilidad | PROPUESTO | [Plan](../07-evaluacion-y-evolucion/03-plan-de-migracion.md#etapa-6--movilidad) |
 | 7. Recursos, créditos y eventos selectivos | PROPUESTO | [Plan](../07-evaluacion-y-evolucion/03-plan-de-migracion.md#etapa-7--recursos-créditos-e-integración-asíncrona) |
 | 8. Consolidación | PROPUESTO | [Plan](../07-evaluacion-y-evolucion/03-plan-de-migracion.md#etapa-8--consolidación) |

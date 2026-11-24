@@ -15,7 +15,7 @@
 | Rutas de salud | Sí, desde la etapa 3 | `GET /health/live` (proceso) y `GET /health/ready` (PostgreSQL crítico, radar no crítico; 503 solo si cae PostgreSQL) | [health.routes.ts](../../apps/api/src/health/health.routes.ts) |
 | Validación de configuración al arrancar | Sí, desde la etapa 3 | Mensajes con nombres de variables, sin valores | [env.ts](../../apps/api/src/config/env.ts) |
 | Cierre ordenado | Sí, desde la etapa 3 | `SIGTERM`/`SIGINT` cierran el servidor, Redis y PostgreSQL (límite de 10 s) | [server.ts](../../apps/api/src/server.ts), [bootstrap.ts](../../apps/api/src/bootstrap.ts) |
-| Métricas | **No** | — | — |
+| Métricas | Parcial, preparado | Resumen offline JSONL por servicio/ruta/ventana; recolección continua pendiente | [operation-summary.js](../../scripts/operation-summary.js) |
 | Trazas | **No** | — | — |
 | Alertas | **No** | — | — |
 | Auditoría de acciones de usuario | **No** | Solo existe una tabla de auditoría de moderación, sin uso | [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) |
@@ -41,14 +41,14 @@ Sin acceso a los paneles, estas solicitudes de solo lectura permiten diagnostica
 
 Con acceso a las cadenas de conexión, el script [diagnostico-conexiones.js](../../apps/api/scripts/diagnostico-conexiones.js) ejecuta `SELECT 1` y `PING` sin modificar datos ni mostrar credenciales.
 
-La primera solicitud tras un periodo sin uso puede tardar decenas de segundos; no debe interpretarse como caída.
+La primera solicitud tras inactividad puede tardar decenas de segundos. Registrar ese tiempo como impacto al usuario y separar frío de régimen estable; no excluirlo de disponibilidad ni atribuirlo automáticamente a suspensión.
 
 ## Modos de fallo conocidos
 
 | Fallo | Síntoma para el usuario | Señal disponible | Recuperación |
 |---|---|---|---|
 | API suspendida por inactividad | La primera acción tarda mucho | Ninguna | Automática al recibir tráfico |
-| Base de datos pausada o inaccesible | No se puede iniciar sesión; errores genéricos | Errores 500 en el registro de la API | Reactivar la base en el panel del proveedor; la API se recupera sin redespliegue, según el diseño del pool |
+| Base de datos pausada o inaccesible | No se puede iniciar sesión; errores genéricos | Errores 500 en el registro de la API | Confirmar primero la causa (estado del proyecto, DNS, TCP, TLS, pool y credenciales); reanudar solo si la pausa está confirmada y la operación autorizada. No restaurar datos para resolver conectividad |
 | Redis inaccesible | El radar responde 500 controlado; lo demás funciona | `radar: down` en `/health/ready` y errores de conexión | Restaurar el recurso o corregir `REDIS_URL`. El cliente reconecta solo, con espera máxima de 3 s entre intentos (verificado en E2E) |
 | Redis sin respuesta, con la conexión abierta | Hasta 1,5 s de espera y 500 controlado | `radar: down` | Igual que el anterior. Antes de la corrección las solicitudes quedaban pendientes indefinidamente |
 | Servicio Radar caído, en modo proxy | Radar responde 502 o 504; lo demás funciona | `radar: down` en la API | Corregir el servicio o [revertir](../migracion/EXTRACCION_RADAR.md#estrategia-de-rollback) |
@@ -65,6 +65,12 @@ La primera solicitud tras un periodo sin uso puede tardar decenas de segundos; n
 | `localStorage` del usuario | Sesión y datos de las pantallas simuladas | La sesión se recupera iniciando sesión; los datos simulados se pierden |
 
 No hay en el repositorio ningún procedimiento ni automatización de respaldo de PostgreSQL. Si el proveedor ofrece copias automáticas, su existencia y retención están pendientes de verificación.
+
+## Recolección y revisión de Radar
+
+Disponibles `npm run ops:probe` (una ronda GET, sin bucle) y `npm run ops:summary` (agregación offline de logs JSONL en ventanas de 5 min). El segundo solo admite rutas conocidas y no reproduce cuerpos, IDs ni tokens. Una ventana ausente significa sin datos. Salud no demuestra flujos de negocio; son necesarias lecturas autenticadas y evidencia de integridad de escrituras autorizadas.
+
+El calendario T0+14 días, fuentes, ventanas, retención, incidentes y propuestas de alertas están en [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md) (§7). Aún no está iniciado. No habilitar un sondeo que evite la suspensión de un plan gratuito.
 
 ## Propuesta
 

@@ -1,0 +1,70 @@
+{
+  "collectedAt": "2026-11-23T20:03:24.572Z",
+  "collectorCommit": "e15c6f5db6f45bf2fd296af32dcced1a04d2962e",
+  "deployedCommit": null,
+  "environment": "production-readonly",
+  "method": "single GET round; 45s observation timeout, not application timeout",
+  "rows": [
+    {
+      "at": "2026-11-23T20:02:54.635Z",
+      "origin": "https://social-unsch.onrender.com",
+      "route": "/health/live",
+      "http": 200,
+      "status": "ok",
+      "checks": {},
+      "durationMs": 27811.78
+    },
+    {
+      "at": "2026-11-23T20:03:22.447Z",
+      "origin": "https://social-unsch.onrender.com",
+      "route": "/health/ready",
+      "http": 200,
+      "status": "ready",
+      "checks": {
+        "database": "up",
+        "radar": "up"
+      },
+      "durationMs": 595.74
+    },
+    {
+      "at": "2026-11-23T20:03:23.043Z",
+      "origin": "https://social-unsch.onrender.com",
+      "route": "/api/v1/catalogs",
+      "http": 200,
+      "durationMs": 447.64
+    },
+    {
+      "at": "2026-11-23T20:03:23.491Z",
+      "origin": "https://social-unsch.onrender.com",
+      "route": "/api/v1/radar/status",
+      "http": 401,
+      "authRejected": true,
+      "durationMs": 129.06
+    },
+    {
+      "at": "2026-11-23T20:03:23.620Z",
+      "origin": "https://social-unsch-radar.onrender.com",
+      "route": "/health/live",
+      "http": 404,
+      "status": null,
+      "checks": {},
+      "durationMs": 385.59
+    },
+    {
+      "at": "2026-11-23T20:03:24.005Z",
+      "origin": "https://social-unsch-radar.onrender.com",
+      "route": "/health/ready",
+      "http": 404,
+      "status": null,
+      "checks": {},
+      "durationMs": 374.45
+    },
+    {
+      "at": "2026-11-23T20:03:24.380Z",
+      "origin": "https://social-unsch-radar.onrender.com",
+      "route": "/api/v1/radar/status",
+      "http": 404,
+      "durationMs": 191.65
+    }
+  ]
+}

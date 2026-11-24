@@ -14,6 +14,8 @@ export interface RadarModule {
   router: Router;
   /** true si el radar puede atender solicitudes en este momento. Nunca lanza. */
   checkReady(): Promise<boolean>;
+  /** Libera recursos propios del módulo (p. ej. pool HTTP del proxy). Opcional e idempotente. */
+  close?(): Promise<void> | void;
 }
 
 export interface LocalRadarDependencies {

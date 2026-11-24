@@ -1,0 +1,63 @@
+
+> social-unsch@1.0.0 bench:radar
+> npm run build:contracts && npm run build:api && npm run build:radar && node scripts/benchmark-radar.js
+
+
+> social-unsch@1.0.0 build:contracts
+> npm run build -w @social-unsch/contracts
+
+
+> @social-unsch/contracts@1.0.0 build
+> tsc --project tsconfig.json
+
+
+> social-unsch@1.0.0 build:api
+> npm run build -w @social-unsch/api
+
+
+> @social-unsch/api@1.0.0 build
+> npm run build --prefix ../../packages/contracts && tsc --project tsconfig.json
+
+
+> @social-unsch/contracts@1.0.0 build
+> tsc --project tsconfig.json
+
+
+> social-unsch@1.0.0 build:radar
+> npm run build -w @social-unsch/radar
+
+
+> @social-unsch/radar@1.0.0 build
+> npm run build --prefix ../../packages/contracts && tsc --project tsconfig.json
+
+
+> @social-unsch/contracts@1.0.0 build
+> tsc --project tsconfig.json
+
+Benchmark Radar real · commit 577cca6 · 12th Gen Intel(R) Core(TM) i5-12450H × 12 · Node v24.11.1
+  repetición 1, modo local… S1 p95 400.90 ms, 287 rps · S2 p95 35.42 ms · S3 p95 20.44 ms, errores 0
+  repetición 1, modo proxy… S1 p95 283.02 ms, 373 rps · S2 p95 21.64 ms · S3 p95 13.50 ms, errores 0
+  repetición 2, modo local… S1 p95 60.66 ms, 1544 rps · S2 p95 9.78 ms · S3 p95 14.23 ms, errores 0
+  repetición 2, modo proxy… S1 p95 77.62 ms, 1052 rps · S2 p95 17.29 ms · S3 p95 12.80 ms, errores 0
+  repetición 3, modo local… S1 p95 43.06 ms, 1769 rps · S2 p95 12.01 ms · S3 p95 7.52 ms, errores 0
+  repetición 3, modo proxy… S1 p95 90.66 ms, 1171 rps · S2 p95 13.98 ms · S3 p95 11.81 ms, errores 0
+
+| Modo | S1 p50 | S1 p95 | S1 p99 | S1 rps | S1 errores | S2 p95 | S2 errores | Arranque API | Arranque Radar |
+|---|---|---|---|---|---|---|---|---|---|
+| local | 28.70 ms | 60.66 ms | 92.58 ms | 1544 | 0 | 12.01 ms | 0 | 646 ms | — ms |
+| proxy | 41.57 ms | 90.66 ms | 150.10 ms | 1052 | 0 | 17.29 ms | 0 | 495 ms | 427 ms |
+
+Sobrecarga p95 del proxy en S1: 49.5 %
+Diagnóstico S3 (20 solicitudes/s): p95 local 14.23 ms, proxy 12.80 ms, sobrecarga -10.0 %, errores 0
+CUMPLE    S1 p95 < 500 ms con 50 usuarios, modo local
+CUMPLE    S1 p95 < 500 ms con 50 usuarios, modo proxy
+NO CUMPLE S1 sobrecarga p95 del proxy ≤ 20 %
+CUMPLE    S2 100 reportes/min sin errores ni pérdida de votos, ambos modos
+CUMPLE    S2 p95 < 500 ms, ambos modos
+
+Resultados: docs\migracion\evidencias\benchmark-radar-etapa5-2026-11-23.json
+npm notice
+npm notice New minor version of npm available! 11.6.2 -> 11.21.3
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.21.3
+npm notice To update run: npm install -g npm@11.21.3
+npm notice

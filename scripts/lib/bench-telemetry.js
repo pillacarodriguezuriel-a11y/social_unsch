@@ -6,6 +6,7 @@ const histogram = monitorEventLoopDelay({ resolution: 10 });
 histogram.enable();
 let connections = 0;
 dc.channel('undici:client:connected').subscribe(() => { connections++; });
+dc.channel('net.client.socket').subscribe(() => { connections++; });
 let cpu = process.cpuUsage();
 let at = performance.now();
 setInterval(() => {

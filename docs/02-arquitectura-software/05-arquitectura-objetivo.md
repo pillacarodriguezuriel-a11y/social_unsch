@@ -64,7 +64,7 @@ Leyenda: todo el diagrama es propuesto salvo la aplicación web y Redis, que ya 
 | Movilidad aparte | Tiene transacciones propias con bloqueo y revela datos de contacto: conviene aislar ese riesgo |
 | Recursos aparte | Maneja saldo de créditos, que exige las garantías más estrictas |
 
-Una alternativa válida es mantener Comunidad e Identidad en un mismo servicio durante más tiempo si el costo de operación resulta alto. El plan lo contempla: la etapa 5 se decide «según sus dependencias».
+Una alternativa válida es mantener Comunidad e Identidad en un mismo servicio durante más tiempo si el costo de operación resulta alto. El plan lo contempla: la separación futura de esos dominios se decide según sus dependencias y la experiencia operativa de Radar.
 
 ## Organización interna de cada servicio
 

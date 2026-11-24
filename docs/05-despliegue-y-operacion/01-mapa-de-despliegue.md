@@ -8,6 +8,12 @@ No se tuvo acceso a los paneles de ninguna plataforma. Todo lo verificado se obt
 
 > **Comprobación del 2026-10-30.** API: `/health/live` 200 (32,6 s en frío) y `/health/ready` con `database: up` y `radar: up`, lo que confirma que Redis responde. La respuesta incluye `x-request-id`, añadida por la etapa 4: la API desplegada ya tiene ese código, lo que indica despliegue automático desde `main`. Web: `/login` 200 y último despliegue de producción en `b763885`. Servicio Radar en `social-unsch-radar.onrender.com`: **404, no desplegado**. Donde las tablas siguientes digan otra cosa sobre Redis, prevalece esta nota.
 
+## Configuración operativa de Radar
+
+La configuración candidata mantiene Radar local hasta superar los gates y contar con autorización. El servicio independiente necesita plan sin suspensión, región/workspace compatibles con API, Redis compartido para revertir y JWT público. Los valores, costos públicos, controles y límites de acceso están en [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md). Un 404 en el dominio previsto no prueba inexistencia de un servicio bajo otro nombre. El SHA de API debe confirmarse en el panel, no inferirse del deployment de Vercel.
+
+Las tablas y comprobaciones históricas siguientes no sustituyen la ronda más reciente del informe de operación: PostgreSQL respondió en ella; la causa de la indisponibilidad previa sigue sin confirmar.
+
 ## Mapa
 
 ```mermaid

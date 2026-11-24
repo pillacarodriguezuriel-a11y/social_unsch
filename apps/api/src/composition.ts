@@ -2,7 +2,7 @@ import { pool } from './config/database';
 import { ServerConfig } from './config/env';
 import { createRedisClient } from './config/redis';
 import { AppDependencies } from './app';
-import { createLocalRadarModule } from './modules/radar/radar.module';
+import { createLocalRadarModule, RadarModule } from './modules/radar/radar.module';
 import { createRadarProxyModule } from './modules/radar/radar.proxy';
 
 export interface AppResources {
@@ -20,9 +20,11 @@ export interface AppResources {
 export function createAppResources(config: ServerConfig): AppResources {
   const closers: Array<() => Promise<unknown>> = [];
 
-  let radar;
+  let radar: RadarModule;
   if (config.radar.mode === 'proxy') {
-    radar = createRadarProxyModule({ target: config.radar.target, timeoutMs: config.radar.timeoutMs, healthPath: '/health/ready' });
+    const proxyModule = createRadarProxyModule({ target: config.radar.target, timeoutMs: config.radar.timeoutMs, healthPath: '/health/ready' });
+    radar = proxyModule;
+    if (proxyModule.close) closers.push(() => Promise.resolve(proxyModule.close!()));
   } else {
     const redis = createRedisClient(config.redisUrl);
     closers.push(() => redis.quit().catch(() => redis.disconnect()));

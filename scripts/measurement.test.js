@@ -9,7 +9,7 @@ test('nearest rank y medianas pares/impares; ausencia no es cero',()=>{
 });
 test('resumen separa servicio, ruta y ventana; incluye errores y descarta secretos y líneas inválidas',async()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'radar-summary-')),file=path.join(dir,'input.jsonl');
-  const record={timestamp:'2026-11-23T00:01:00Z',service:'social-unsch-api',path:'/api/v1/radar/status',statusCode:200,durationMs:10,authorization:'secret-token'};
+  const record={timestamp:'2026-11-23T00:01:00Z',service:'social-unsch-api',method:'GET',path:'/api/v1/radar/status',statusCode:200,durationMs:10,authorization:'secret-token'};
   fs.writeFileSync(file,[record,{...record,statusCode:504,durationMs:5000},{...record,timestamp:'2026-11-23T00:06:00Z'},{...record,path:'/private/user-id'},{...record,timestamp:'2026-11-24T00:00:00Z'}].map(JSON.stringify).join('\n'));
   try {const r=await summarize(file,'2026-11-23T00:00:00Z','2026-11-23T01:00:00Z');assert.equal(r.buckets.length,2);assert.equal(r.buckets[0].p95,5000);assert.equal(r.buckets[0].timeouts504,1);assert.equal(r.ignored,2);assert.equal(JSON.stringify(r).includes('secret-token'),false);assert.match(r.availability,/unknown/);}finally{fs.rmSync(dir,{recursive:true});}
 });

@@ -1,5 +1,7 @@
 # Escenarios de calidad
 
+> Radar conserva los criterios de 50 usuarios/p95 <500 ms, sobrecarga <=20%, 100 reportes válidos por minuto sin errores ni pérdidas y aislamiento de otros flujos. La prueba comparable exige calentamiento, tres repeticiones alternadas y resultados por repetición. Método y veredictos: [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md). Un SLO operativo propuesto no modifica estos criterios.
+
 Cada escenario concreta un [atributo de calidad](04-atributos-de-calidad.md) en una situación comprobable. Sigue la estructura fuente, estímulo, entorno, artefacto («elemento afectado»), respuesta y métrica («medida»). Los resultados están en [Métricas](../07-evaluacion-y-evolucion/06-metricas.md). Las medidas numéricas marcadas como **objetivo** son propuestas pendientes de validación: no hay mediciones de rendimiento ni de disponibilidad en el repositorio.
 
 En la columna de estado, «Verificado» significa que existe una prueba automatizada que cubre la respuesta; la fecha y procedencia de sus ejecuciones están en el [informe de documentación](../INFORME_DOCUMENTACION.md).

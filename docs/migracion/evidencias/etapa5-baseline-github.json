@@ -1,0 +1,66 @@
+{
+  "checkedAtUtc": "2026-11-23T20:13:44Z",
+  "repository": "pillacarodriguezuriel-a11y/social_unsch",
+  "main": "52e12dcb50d1ba19f183422cb3d68d2b9c027966",
+  "previousBranch": "7c5bd041712753c00daafad6ecbff5475c5d7275",
+  "mergedPrs": [
+    {
+      "number": 7,
+      "headRef": "feat/etapa-5-validacion-radar",
+      "headSha": "723e2835e572c111ec3fa3f7a514e754c94a88b4",
+      "mergeCommit": "324afd245e638e9466f210779577c80838a0b789",
+      "mergedAt": "2026-11-23T16:09:07Z",
+      "url": "https://github.com/pillacarodriguezuriel-a11y/social_unsch/pull/7"
+    },
+    {
+      "number": 8,
+      "headRef": "codex/etapa-5-operacion-radar",
+      "headSha": "577cca62638ea9dbf0a911c40ff9db20c6c4bba2",
+      "mergeCommit": "52e12dcb50d1ba19f183422cb3d68d2b9c027966",
+      "mergedAt": "2026-11-23T19:32:57Z",
+      "url": "https://github.com/pillacarodriguezuriel-a11y/social_unsch/pull/8"
+    }
+  ],
+  "runs": [
+    {
+      "id": 45213234589,
+      "branch": "main",
+      "sha": "324afd245e638e9466f210779577c80838a0b789",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45213234589"
+    },
+    {
+      "id": 45216225249,
+      "branch": "feat/etapa-5-validacion-radar",
+      "sha": "7c5bd041712753c00daafad6ecbff5475c5d7275",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45216225249"
+    },
+    {
+      "id": 45250016038,
+      "branch": "codex/etapa-5-operacion-radar",
+      "sha": "577cca62638ea9dbf0a911c40ff9db20c6c4bba2",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45250016038"
+    },
+    {
+      "id": 45250089005,
+      "branch": "main",
+      "sha": "52e12dcb50d1ba19f183422cb3d68d2b9c027966",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45250089005"
+    },
+    {
+      "id": 45250415263,
+      "branch": "codex/etapa-5-operacion-radar",
+      "sha": "20c81a88b4ec28313fc64eba9b90ea38684d09fe",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45250415263"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 # Métricas
 
+> Medición comparable e instrumentación actuales: [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md) (§3, §4 y §7). En la ronda post-optimización (`d616f9b`, transporte HTTP/HTTPS nativo con *keep-alive* y *streaming*), los cinco criterios locales cumplieron (mediana S1 p95: 157,45 ms local vs 134,19 ms proxy, sobrecarga **-14,8 %**; pares -30,1 %, -14,8 % y +2,2 %; 0 errores en S1/S2/S3; integridad 33/33+1 en S2), con alta dispersión por equipo compartido y sin RTT de red real ([benchmark-radar-etapa5-proxy-http-2026-11-23.json](../migracion/evidencias/benchmark-radar-etapa5-proxy-http-2026-11-23.json)). Los resultados históricos previos (`723e283` y `577cca6`) se conservan como **NO CUMPLE** y no se consideran aprobados retrospectivamente. La validación en staging/plataforma real sigue pendiente.
+
 Separa lo que se propone medir de lo que se ha medido. Una meta no es un resultado, y una cifra solo cuenta si mide el sistema real.
 
 ## Métricas propuestas

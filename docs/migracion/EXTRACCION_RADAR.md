@@ -1,5 +1,7 @@
 # Extracción de Radar
 
+> Continuación vigente: [Etapa 5 — Operación](ETAPA_05_OPERACION_RADAR.md). No activar por seguir instrucciones históricas: primero gates técnicos y autorización. No usar latidos artificiales contra suspensión.
+
 Documento vivo del estado de la extracción, actualizado el 2026-11-23 con el [cierre de la etapa 4](ETAPA_04_CIERRE_VALIDACION_RADAR.md). El registro histórico de la implementación es [ETAPA_04](ETAPA_04_EXTRACCION_RADAR.md); la decisión, [ADR-008](../06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md). Si difieren, vale este documento y, por encima de él, el código.
 
 ## ¿Por qué Radar?

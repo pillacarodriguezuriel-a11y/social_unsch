@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
-import { Manrope } from 'next/font/google';
+import localFont from 'next/font/local';
 import { RouteGuard } from '../components/ui/RouteGuard';
 import './globals.css';
 
-// Configuración de tipografía institucional Manrope (Sección 1 y 2 de la Skill de Frontend)
-const manrope = Manrope({
-  subsets: ['latin'],
+// Misma familia, distribuida con licencia OFL: el build no depende de Google Fonts.
+const manrope = localFont({
+  src: './fonts/Manrope-Variable.ttf',
   variable: '--font-manrope',
-  weight: ['400', '500', '600', '700', '800'],
+  weight: '400 800',
   display: 'swap',
 });
 
