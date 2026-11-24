@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { requireAuth } from '../../middlewares/auth.middleware';
 import { PgAuthorMetaAdapter } from './adapters/pg-author-meta.adapter';
 import { FeedRepository } from './feed.repository';
-import { FeedService } from './feed.service';
+import { FeedService } from '@social-unsch/feed-domain';
 import { FeedController } from './feed.controller';
 
 export interface FeedModuleDeps {

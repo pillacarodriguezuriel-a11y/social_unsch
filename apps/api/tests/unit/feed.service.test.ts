@@ -6,9 +6,7 @@
  * de SQL ni del pool de PostgreSQL.
  */
 
-import { FeedService } from '../../src/modules/feed/feed.service';
-import { IFeedRepository, IFeedPost } from '../../src/modules/feed/ports';
-import { AppError } from '../../src/shared/errors/AppError';
+import { FeedService, IFeedRepository, IFeedPost, FeedError } from '@social-unsch/feed-domain';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -155,7 +153,7 @@ describe('FeedService', () => {
       expect(result.id).toBe('post-uuid-0001');
     });
 
-    it('should throw AppError 400 ERR_VALIDATION_INVALID_FIELDS when content is empty string', async () => {
+    it('should throw FeedError 400 ERR_VALIDATION_INVALID_FIELDS when content is empty string', async () => {
       const service = new FeedService(makeMockRepo());
       await expect(service.createPost({ userId, content: '' })).rejects.toMatchObject({
         statusCode: 400,
@@ -164,7 +162,7 @@ describe('FeedService', () => {
       });
     });
 
-    it('should throw AppError 400 when content is only whitespace', async () => {
+    it('should throw FeedError 400 when content is only whitespace', async () => {
       const service = new FeedService(makeMockRepo());
       await expect(service.createPost({ userId, content: '   ' })).rejects.toMatchObject({
         statusCode: 400,
@@ -172,7 +170,7 @@ describe('FeedService', () => {
       });
     });
 
-    it('should throw AppError 400 when content exceeds 2000 characters', async () => {
+    it('should throw FeedError 400 when content exceeds 2000 characters', async () => {
       const service = new FeedService(makeMockRepo());
       await expect(service.createPost({ userId, content: 'A'.repeat(2001) })).rejects.toMatchObject({
         statusCode: 400,
@@ -288,10 +286,10 @@ describe('FeedService', () => {
       );
     });
 
-    it('should throw AppError instance when content validation fails', async () => {
+    it('should throw FeedError instance when content validation fails', async () => {
       const service = new FeedService(makeMockRepo());
       const err = await service.createPost({ userId, content: '' }).catch((e) => e);
-      expect(err).toBeInstanceOf(AppError);
+      expect(err).toBeInstanceOf(FeedError);
     });
   });
 });

@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { IAuthorMeta, IAuthorMetaReader } from '../ports';
+import type { IAuthorMeta, IAuthorMetaReader } from '@social-unsch/feed-domain';
 
 /**
  * Adaptador: lee metadatos del autor desde la tabla `users` de PostgreSQL.

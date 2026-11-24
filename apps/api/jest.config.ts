@@ -6,6 +6,7 @@ const config: Config = {
   // El contrato se prueba desde su código fuente; no hace falta compilarlo antes.
   moduleNameMapper: {
     '^@social-unsch/contracts$': '<rootDir>/../../packages/contracts/src/index.ts',
+    '^@social-unsch/feed-domain$': '<rootDir>/../../packages/feed-domain/src/index.ts',
   },
 
 
@@ -39,9 +40,9 @@ const config: Config = {
     'src/modules/users/users.service.ts',
     'src/modules/users/users.repository.ts',
     'src/modules/users/users.controller.ts',
-    'src/modules/feed/feed.service.ts',
     'src/modules/feed/feed.repository.ts',
     'src/modules/feed/feed.controller.ts',
+    'src/modules/feed/feed.proxy.ts',
     'src/modules/matchmaking/matchmaking.service.ts',
     'src/modules/matchmaking/matchmaking.repository.ts',
     'src/modules/matchmaking/matchmaking.controller.ts',

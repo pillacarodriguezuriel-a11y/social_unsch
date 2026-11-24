@@ -8,7 +8,7 @@
  */
 
 import { FeedRepository } from '../../src/modules/feed/feed.repository';
-import { IAuthorMetaReader, IFeedPost } from '../../src/modules/feed/ports';
+import type { IAuthorMetaReader, IFeedPost } from '@social-unsch/feed-domain';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 

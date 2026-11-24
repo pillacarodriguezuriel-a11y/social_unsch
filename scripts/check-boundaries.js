@@ -10,6 +10,9 @@
  *  modulos-aislados        un módulo de apps/api/src/modules no importa archivos de otro módulo.
  *  radar-sin-conexiones    el módulo radar no crea conexiones ni usa PostgreSQL: recibe Redis inyectado
  *                          (ioredis solo como `import type`).
+ *  feed-sin-api            apps/feed no importa código de apps/api.
+ *  feed-sin-web            apps/feed no importa código de apps/web.
+ *  feed-domain-puro        packages/feed-domain no tiene dependencias de runtime (solo TypeScript puro).
  *
  * Uso: node scripts/check-boundaries.js [raíz]   (código de salida 1 si hay infracciones)
  */
@@ -150,6 +153,44 @@ function checkBoundaries(root) {
     }
   }
 
+  // ── apps/feed boundary checks ──────────────────────────────────────────────
+  const feedApp = path.join(root, 'apps', 'feed');
+  const feedAppSrc = path.join(feedApp, 'src');
+
+  for (const file of listFiles(feedAppSrc)) {
+    for (const { spec } of parseImports(fs.readFileSync(file, 'utf8'))) {
+      if (isRelative(spec)) {
+        if (!isInside(path.resolve(path.dirname(file), spec), feedApp)) {
+          report('feed-sin-api', file, spec, 'import relativo fuera de apps/feed');
+        }
+        continue;
+      }
+      const pkg = packageName(spec);
+      if (pkg === '@social-unsch/api') report('feed-sin-api', file, spec, 'el servicio feed no importa apps/api');
+      if (pkg === '@social-unsch/web') report('feed-sin-web', file, spec, 'el servicio feed no importa apps/web');
+      if (pkg === '@social-unsch/radar') report('feed-sin-api', file, spec, 'el servicio feed no importa apps/radar');
+    }
+  }
+
+  // ── packages/feed-domain purity check ────────────────────────────────────
+  const feedDomainSrc = path.join(root, 'packages', 'feed-domain', 'src');
+  const FEED_DOMAIN_ALLOWED_PKGS = new Set(); // pure TypeScript: no runtime deps
+
+  for (const file of listFiles(feedDomainSrc)) {
+    for (const { spec } of parseImports(fs.readFileSync(file, 'utf8'))) {
+      if (isRelative(spec)) {
+        if (!isInside(path.resolve(path.dirname(file), spec), feedDomainSrc)) {
+          report('feed-domain-puro', file, spec, 'import relativo fuera de packages/feed-domain/src');
+        }
+        continue;
+      }
+      const pkg = packageName(spec);
+      if (!FEED_DOMAIN_ALLOWED_PKGS.has(pkg)) {
+        report('feed-domain-puro', file, spec, `dependencia no permitida en feed-domain (debe ser TypeScript puro sin dependencias de runtime): ${pkg}`);
+      }
+    }
+  }
+
   return violations;
 }
 
@@ -159,7 +200,7 @@ if (require.main === module) {
   const root = path.resolve(process.argv[2] || path.join(__dirname, '..'));
   const violations = checkBoundaries(root);
   if (violations.length === 0) {
-    console.log('[limites]: sin infracciones (web, contratos, api, módulos, radar).');
+    console.log('[limites]: sin infracciones (web, contratos, api, módulos, radar, feed).');
   } else {
     for (const v of violations) console.error(`[limites]: ${v.rule}: ${v.file} → '${v.spec}' (${v.detail})`);
     console.error(`[limites]: ${violations.length} infracción(es).`);

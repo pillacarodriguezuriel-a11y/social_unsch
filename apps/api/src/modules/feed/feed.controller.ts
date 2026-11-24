@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { FeedService } from './feed.service';
+import { FeedService } from '@social-unsch/feed-domain';
 
 export class FeedController {
   private readonly feedService: FeedService;
 
-  constructor(feedService: FeedService = new FeedService()) {
+  constructor(feedService: FeedService) {
     this.feedService = feedService;
   }
 

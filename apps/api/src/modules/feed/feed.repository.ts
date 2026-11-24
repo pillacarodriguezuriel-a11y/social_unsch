@@ -1,5 +1,5 @@
 import { pool as defaultPool } from '../../config/database';
-import { IFeedPost, IFeedRepository, IAuthorMetaReader } from './ports';
+import { IFeedPost, IFeedRepository, IAuthorMetaReader } from '@social-unsch/feed-domain';
 import { PgAuthorMetaAdapter } from './adapters/pg-author-meta.adapter';
 import type { Pool } from 'pg';
 

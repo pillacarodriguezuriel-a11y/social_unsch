@@ -1,12 +1,3 @@
-import { Router } from 'express';
-import { FeedController } from './feed.controller';
-import { requireAuth } from '../../middlewares/auth.middleware';
-
-const router = Router();
-const feedController = new FeedController();
-
-// Ambas rutas del feed requieren autenticación obligatoria (requireAuth)
-router.get('/', requireAuth, feedController.getFeed);
-router.post('/', requireAuth, feedController.createPost);
-
-export default router;
+// Punto de entrada obsoleto: el router del Feed se monta desde feed.module.ts
+// a través del punto de composición en composition.ts.
+export { createFeedRouter as default } from './feed.module';

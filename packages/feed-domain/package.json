@@ -1,0 +1,16 @@
+{
+  "name": "@social-unsch/feed-domain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dominio Feed: puertos, servicio y errores compartidos entre apps/api y apps/feed.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.2"
+  }
+}

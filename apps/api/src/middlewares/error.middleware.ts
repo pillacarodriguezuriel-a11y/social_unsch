@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../shared/errors/AppError';
+import { FeedError } from '@social-unsch/feed-domain';
 import { ZodError } from 'zod';
 
 /**
  * Middleware centralizado de manejo de errores.
- * Captura excepciones controladas (AppError), errores de validación (ZodError) y fallos del servidor.
+ * Captura AppError, FeedError, ZodError y fallos del servidor.
  */
 export function errorMiddleware(
   err: Error,
@@ -14,8 +15,18 @@ export function errorMiddleware(
 ): void {
   if (!res.locals) res.locals = {};
 
-  // Manejo de errores de negocio y seguridad controlados (AppError)
   if (err instanceof AppError) {
+    res.locals.errorCode = err.errorCode;
+    res.status(err.statusCode).json({
+      error: true,
+      message: err.message,
+      code: err.errorCode,
+    });
+    return;
+  }
+
+  // FeedError viene del servicio Feed compartido (@social-unsch/feed-domain)
+  if (err instanceof FeedError) {
     res.locals.errorCode = err.errorCode;
     res.status(err.statusCode).json({
       error: true,
