@@ -97,9 +97,13 @@ El script garantiza la atomicidad dentro de un nodo y un estado. Quedan fuera:
 | Redis se recupera después de agotar los reintentos | **Pendiente de verificación:** al devolver `null` la estrategia de reintentos, el cliente podría no reconectar sin reiniciar el proceso | [redis.ts](../../apps/api/src/config/redis.ts) |
 | PostgreSQL no disponible | El proceso arranca; cada ruta con base de datos responde 500 tras agotar los 2 segundos de espera de conexión | [database.ts](../../apps/api/src/config/database.ts); observado el 2026-10-10 en [RESULTADOS_VERIFICACION.md](../migracion/RESULTADOS_VERIFICACION.md) |
 | Claves JWT ausentes | El proceso arranca; el inicio de sesión y toda ruta protegida fallan | [jwt.ts](../../apps/api/src/config/jwt.ts) |
-| Señal de apagado | Se cierra el servidor HTTP; no se cierran de forma explícita el pool ni el cliente Redis | [server.ts](../../apps/api/src/server.ts) |
+| Señal de apagado | Desde la etapa 3, `SIGTERM`/`SIGINT` cierran el servidor HTTP, el pool de PostgreSQL y el cliente Redis, con un límite de 10 s | [server.ts](../../apps/api/src/server.ts), [bootstrap.ts](../../apps/api/src/bootstrap.ts) |
+| Servicio Radar no disponible, con `RADAR_MODE=proxy` | 502 `ERR_RADAR_UPSTREAM_UNAVAILABLE` o 504 `ERR_RADAR_UPSTREAM_TIMEOUT`, **un solo intento**, sin respaldo automático al modo local. El resto de la API no se degrada | [radar.proxy.ts](../../apps/api/src/modules/radar/radar.proxy.ts) |
+| Servicio Feed no disponible, con `FEED_MODE=proxy` | 502 `ERR_FEED_UPSTREAM_UNAVAILABLE` o 504 `ERR_FEED_UPSTREAM_TIMEOUT`, un solo intento. `feed: down` en `/health/ready`. **Un 504 en una escritura puede haber creado la publicación:** no se reintenta porque la operación no es idempotente | [feed.proxy.ts](../../apps/api/src/modules/feed/feed.proxy.ts) |
+| PostgreSQL no disponible, con `FEED_MODE=proxy` | Fallan la API **y** el servicio Feed: comparten la base. Revertir a modo local no lo resuelve | [Datos y propiedad](../02-arquitectura-software/06-datos-y-propiedad-por-dominio.md#acceso-a-datos-de-los-servicios-extraídos) |
+| Error en un cliente inactivo del pool | Ambos procesos registran el evento `error` del pool; sin ese manejador el proceso terminaría | [API](../../apps/api/src/config/database.ts), [Feed](../../apps/feed/src/config/database.ts) |
 
-El sistema tiende a arrancar aunque falte una dependencia y a fallar después, solicitud a solicitud. Sin ruta de salud, ese estado no es visible desde fuera.
+El sistema tiende a arrancar aunque falte una dependencia y a fallar después, solicitud a solicitud. Desde la etapa 3 ese estado **sí** es visible desde fuera: `GET /health/ready` distingue las dependencias críticas (PostgreSQL) de las que solo degradan (`radar` y, en modo proxy, `feed`).
 
 ## Recomendaciones
 

@@ -31,7 +31,9 @@ Evidencia de que es modular:
 
 Límite de esa modularidad: los módulos están separados en el código, pero no en los datos. Varios leen las mismas tablas. Ver [Componentes y dependencias](componentes-arquitectonicos.md).
 
-El detalle de las capas y los puertos de Radar está en el [enfoque arquitectónico](enfoque-arquitectonico.md).
+Matiz importante: **el monolito ya no es la única unidad desplegable del repositorio.** `apps/radar` y `apps/feed` se compilan y arrancan por separado, aunque hoy no estén desplegados y la API siga atendiendo ambos dominios en proceso. El estilo efectivo en producción sigue siendo monolito modular; el estilo disponible en el código es monolito modular **más dos servicios activables por configuración**.
+
+El detalle de las capas y los puertos de Radar y Feed está en el [enfoque arquitectónico](enfoque-arquitectonico.md).
 
 ## Estilo propuesto: servicios por dominio
 
@@ -39,19 +41,21 @@ Un **servicio por dominio** es una unidad desplegable que es dueña de una parte
 
 | Servicio propuesto | Módulos actuales que absorbería |
 |---|---|
-| Identidad | `auth`, `users`, `catalogs` |
-| Radar | `radar` |
-| Comunidad | `feed`, `matchmaking` y la moderación futura |
-| Movilidad | `carpooling` |
-| Recursos | Banco de archivos y créditos (hoy sin módulo) |
+| Servicio propuesto | Módulos actuales que absorbería | Estado real |
+|---|---|---|
+| Identidad | `auth`, `users`, `catalogs` | PROPUESTO: sigue en la API |
+| Radar | `radar` | `apps/radar` IMPLEMENTADO, **sin desplegar** |
+| Comunidad | `feed`, `matchmaking` y la moderación futura | **Solo Feed extraído** (`apps/feed`), sin desplegar; `matchmaking` y moderación siguen en la API |
+| Movilidad | `carpooling` | **NO EJECUTADO**, fuera del alcance acordado ([ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md)) |
+| Recursos | Banco de archivos y créditos (hoy sin módulo) | **NO EJECUTADO**, fuera del alcance acordado |
 
-Detalle en [Arquitectura objetivo](05-arquitectura-objetivo.md). **Estado: PROPUESTO**, con Radar IMPLEMENTADO PARCIALMENTE, sin desplegar.
+Detalle en [Arquitectura objetivo](05-arquitectura-objetivo.md). El alcance se cerró en dos dominios extraídos: Radar y Feed. Extraer Identidad, Movilidad o Recursos exige una decisión nueva.
 
 ## Estrategia de transición: Strangler Fig
 
 **Strangler Fig** (higuera estranguladora) es una estrategia para reemplazar un sistema por partes: se coloca una entrada delante del sistema existente, se construye cada pieza nueva al lado y se redirige hacia ella una ruta cada vez, hasta que la pieza antigua deja de recibir tráfico y puede retirarse.
 
-Es una estrategia de migración, no un estilo: describe el camino, no el destino. Aquí, la API decide con `RADAR_MODE` si `/api/v1/radar` se atiende en proceso o en el servicio nuevo. Detalle en [Estrategia de migración](../migracion/README.md). **Estado: IMPLEMENTADO PARCIALMENTE;** el redireccionamiento real no se ha activado.
+Es una estrategia de migración, no un estilo: describe el camino, no el destino. Aquí, la API decide con `RADAR_MODE` si `/api/v1/radar` se atiende en proceso o en el servicio nuevo, y con `FEED_MODE` lo mismo para `/api/v1/feed`. Ambas decisiones se toman en [composition.ts](../../apps/api/src/composition.ts) sin que `app.ts` las conozca. Detalle en [Estrategia de migración](../migracion/README.md). **Estado: IMPLEMENTADO PARCIALMENTE;** ninguno de los dos redireccionamientos se ha activado, y el orden acordado es Radar primero, Feed después.
 
 ## Eventos asíncronos
 
@@ -65,19 +69,22 @@ La propuesta los limita a casos justificados, por ejemplo acreditar créditos tr
 
 Un **monorepo** es un único repositorio que contiene varios paquetes con dependencias y construcción propias. No es un estilo arquitectónico: un monorepo puede contener un monolito o veinte servicios.
 
-Los workspaces son `apps/web`, `apps/api`, `apps/radar` y `packages/contracts`. Cada aplicación tiene scripts propios y las cuatro comparten el lockfile. [Configuración del monorepo](../../package.json)
+Los workspaces son `apps/web`, `apps/api`, `apps/radar`, `apps/feed`, `packages/contracts` y `packages/feed-domain`. Cada uno tiene scripts propios y los seis comparten el lockfile. [Configuración del monorepo](../../package.json)
+
+Los dos paquetes cumplen papeles distintos: `contracts` define **qué** se intercambia por HTTP (esquemas Zod de Radar y Feed), mientras que `feed-domain` contiene **la implementación** de las reglas y el SQL de Feed, compartida entre la API y el servicio para que los dos modos no puedan divergir.
 
 ## Resumen
 
 | Concepto | Categoría | Estado en SOCIAL-UNSCH |
 |---|---|---|
-| Monolito modular | Estilo | Implementado |
+| Monolito modular | Estilo | Implementado; es lo que opera en producción |
 | Capas | Enfoque interno | Implementado en seis de siete módulos |
-| Puertos e inyección | Enfoque interno | Implementado parcialmente: solo Radar |
-| Arquitectura hexagonal o limpia | Enfoque interno | Dirección propuesta |
-| Servicios por dominio | Estilo | Propuesto; Radar con código en `main`, sin desplegar |
-| Strangler Fig | Estrategia de migración | Implementado parcialmente: entrada y pieza nueva, sin redirección activa |
-| Eventos asíncronos | Mecanismo de integración | Propuesto, selectivo |
-| Monorepo con varios paquetes | Organización del repositorio | Implementado en la etapa 3 (npm workspaces) |
+| Puertos e inyección | Enfoque interno | Implementado en Radar y Feed; no en los otros cinco módulos |
+| Arquitectura hexagonal o limpia | Enfoque interno | Validado en los dos dominios extraídos; dirección propuesta para el resto |
+| Dominio compartido en un paquete | Enfoque interno | Implementado en Feed (`packages/feed-domain`); pendiente en Radar |
+| Servicios por dominio | Estilo | Dos extraídos (Radar y Feed): código en `main`, **sin desplegar**. Alcance cerrado ahí |
+| Strangler Fig | Estrategia de migración | Implementado parcialmente: entrada y piezas nuevas, sin redirección activa |
+| Eventos asíncronos | Mecanismo de integración | Propuesto, selectivo; no ejecutado |
+| Monorepo con varios paquetes | Organización del repositorio | Implementado en la etapa 3; ampliado a seis workspaces |
 
 [← Índice](../README.md)

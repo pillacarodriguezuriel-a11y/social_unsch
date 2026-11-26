@@ -90,7 +90,21 @@ La etapa 3 lo hizo para Radar y el formato de error, y añadió pruebas de contr
 | Unificar la forma de respuesta y los códigos de error | Que la entrada de API y los clientes traten igual a todos los servicios |
 | Pruebas de contrato sobre las rutas consumidas por el frontend | Detectar cambios incompatibles al extraer un servicio |
 
-### Contratos entre servicios
+### Contratos implementados hoy
+
+Dos de los contratos entre servicios ya existen como código verificable, no como propuesta:
+
+| Contrato | Definición | Proveedor | Consumidor | Cómo se comprueba |
+|---|---|---|---|---|
+| HTTP de Radar (`/api/v1/radar`) | [radar.ts](../../packages/contracts/src/radar.ts) | `apps/radar`, o la API en modo local | La API (proxy) y el frontend | Pruebas de contrato en [API](../../apps/api/tests/contract/radar.contract.test.ts), [servicio](../../apps/radar/tests/contract/radar.contract.test.ts) y [web](../../apps/web/tests/radar-contract.test.ts) |
+| HTTP de Feed (`/api/v1/feed`) | [feed.ts](../../packages/contracts/src/feed.ts) | `apps/feed`, o la API en modo local | La API (proxy) y el frontend | Pruebas **en espejo**: [API](../../apps/api/tests/contract/feed.contract.test.ts) y [servicio](../../apps/feed/tests/contract/feed.contract.test.ts) contra los mismos esquemas |
+| Verificación de token | Clave pública RS256 en la configuración | La API firma; Radar y Feed solo verifican | Radar, Feed | Pruebas del guardia de [Feed](../../apps/feed/tests/unit/auth.middleware.test.ts); E2E rechaza tokens de otra clave |
+
+El contrato de Feed se comprueba **en los dos modos a la vez**: si la respuesta del modo local y la del servicio independiente no satisfacen los mismos esquemas, falla `verify`. Eso es lo que permite afirmar que activar `FEED_MODE=proxy` no cambia lo que ve el cliente.
+
+Dos particularidades quedan registradas en el contrato porque son comportamiento existente, no garantías: un parámetro de consulta vacío se trata como ausente, y un `content` no textual en `POST /api/v1/feed` produce 500 en lugar de 400.
+
+### Contratos propuestos entre servicios
 
 | Contrato | Proveedor | Consumidor | Tipo | Contenido |
 |---|---|---|---|---|
@@ -108,5 +122,7 @@ La etapa 3 lo hizo para Radar y el formato de error, y añadió pruebas de contr
 - Los eventos llevan identificador, tipo, fecha y versión; quien los consume debe tolerar duplicados.
 - Los datos de contacto nunca viajan en listados ni en eventos.
 - Un servicio no lee las tablas de otro, ni siquiera cuando compartan instancia.
+
+**Esta última regla no se cumple hoy:** `apps/feed` lee `users` mediante un `JOIN` y un adaptador. Es una excepción conocida y acotada a dos puntos del código, documentada en [Datos y propiedad](06-datos-y-propiedad-por-dominio.md#acceso-a-datos-de-los-servicios-extraídos), que se resuelve cuando Identidad se extraiga sustituyendo el adaptador por uno HTTP. Mientras exista, el sistema no cumple la propiedad de datos por dominio.
 
 [← Índice](../README.md)

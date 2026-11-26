@@ -8,15 +8,13 @@ const config: Config = {
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
-      {
-        tsconfig: 'tsconfig.jest.json',
-        isolatedModules: true,
-      },
+      { tsconfig: 'tsconfig.jest.json' },
     ],
   },
   testMatch: [
     '<rootDir>/tests/unit/**/*.test.ts',
     '<rootDir>/tests/integration/**/*.test.ts',
+    '<rootDir>/tests/contract/**/*.test.ts',
   ],
   collectCoverageFrom: [
     'src/**/*.ts',

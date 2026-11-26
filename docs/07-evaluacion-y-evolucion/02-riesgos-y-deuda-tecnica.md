@@ -1,5 +1,20 @@
 # Riesgos y deuda técnica
 
+## Riesgos operativos del cierre de la migración (etapa 8)
+
+Estado vigente: [Cierre de la migración](../migracion/ETAPA_08_CIERRE_MIGRACION.md). Los dos servicios extraídos están probados y **sin desplegar**; en producción ambos dominios siguen en proceso.
+
+| Riesgo | Prioridad | Situación y tratamiento |
+|---|---|---|
+| **Feed no tiene independencia de datos** | Alta | Comparte PostgreSQL con la API y lee `users`. Una caída de la base afecta a los dos procesos y **la reversión no la resuelve**. Declarado en [Datos y propiedad](../02-arquitectura-software/06-datos-y-propiedad-por-dominio.md#acceso-a-datos-de-los-servicios-extraídos) y [P-28](08-pendientes.md#p-28--feed-no-tiene-independencia-de-datos); el siguiente paso razonable son permisos mínimos por dominio, no separación física |
+| **El presupuesto de conexiones crece a 30** | Alta | API `max: 20` + Feed `max: 10`. Debe validarse contra el límite del plan de PostgreSQL **antes** de desplegar Feed |
+| **Escritura del Feed no idempotente** | Media | Un 504 en `POST /api/v1/feed` puede haber creado la publicación. No se añadieron reintentos ni respaldo automático a propósito: duplicarían publicaciones. Riesgo aceptado y documentado (EC-18) |
+| **Umbrales de rendimiento de Feed sin aprobar** | Media | Las mediciones son **exploratorias** y no habilitan la activación. [P-26](08-pendientes.md) |
+| **Radar conserva dos implementaciones** | Media | Su reversión depende de que no divergan. Feed ya resolvió esto con `packages/feed-domain`; aplicar el mismo patrón a Radar es trabajo pendiente ([P-06](08-pendientes.md#p-06--dos-implementaciones-de-radar)) |
+| **Pooler incompatible con consultas preparadas con nombre** | Media | El *Transaction mode* rompería el repositorio. Cada proceso usa su propio prefijo para evitar colisiones de nombre; el modo del pooler debe confirmarse en el panel |
+| **Activar los dos modos a la vez** | Alta si ocurre | Impediría atribuir una degradación a un servicio. Prohibido por el [ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md): Radar primero, Feed tras su observación |
+| **`apps/feed` sin suite propia contra PostgreSQL real** | Baja | Su pool no se ejercita contra una base real fuera del E2E. [P-27](08-pendientes.md) |
+
 ## Riesgos operativos de la separación de Radar
 
 - La salud puntual no confirma disponibilidad continua ni causa histórica de PostgreSQL.
@@ -8,7 +23,7 @@
 - Presupuesto, región y límites reales no verificados; los precios públicos no garantizan capacidad.
 - Sin recolección de logs/cobertura temporal no hay observación de 14 días demostrable.
 
-Tratamiento y responsable: [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md). Mantener modo local y no extraer otros dominios.
+Tratamiento y responsable: [Operación de Radar](../migracion/ETAPA_05_OPERACION_RADAR.md). Mantener ambos modos en `local` y **no extraer otros dominios**: el alcance quedó cerrado en Radar y Feed por el [ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md).
 
 Problemas conocidos del código y de la operación, con su evidencia. Este documento los registra; **no corrige ninguno**. No es una auditoría de seguridad completa: recoge lo encontrado al documentar la arquitectura.
 
@@ -158,7 +173,7 @@ Donde un documento anterior y el código no coinciden, vale el código.
 | ETAPA_02 | Etapa «plenamente estabilizada y verificada» | Verificada con pruebas locales; la aplicación en la base remota solo consta de forma parcial |
 | [ETAPA_01](../migracion/ETAPA_01_LINEA_BASE.md) y [RESULTADOS](../migracion/RESULTADOS_VERIFICACION.md) | El inicio de sesión en producción devuelve 500 | El 2026-10-12 devolvía 401 ante credenciales inexistentes: la situación cambió |
 | [INVENTARIO](../migracion/INVENTARIO_CONFIGURACION.md) | Describe el estado de la etapa 1 | Posterior a él son el módulo de catálogos, el migrador nuevo y las pruebas reales |
-| ETAPA_02 | Enlaza archivos con rutas locales de la forma `file:///d:/social_unsch/...` | Esos enlaces solo funcionan en la máquina donde se escribió el informe; en GitHub no resuelven |
+| ETAPA_02 | Enlazaba archivos con rutas locales de la forma `file:///d:/...`, que solo resolvían en la máquina del autor | **CORREGIDO en la etapa 8:** reescritos como rutas relativas a `apps/api`; los dos que apuntaban a rutas con paréntesis de grupo de Next.js quedaron como texto, porque no se pueden enlazar en Markdown |
 | Contexto de esta tarea | Etapas 1 y 2 integradas en `e704b8a` | Correcto; `main` avanzó después a `8e56bfa`, que solo modifica el README |
 
 | [ETAPA_04](../migracion/ETAPA_04_EXTRACCION_RADAR.md) | Estado «validado en local y CI» | `verify` pasó; `test-real` falló. **Corregido con una nota** |

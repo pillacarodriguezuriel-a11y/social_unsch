@@ -5,7 +5,7 @@
 | Rama | `codex/etapa-7-extraccion-feed` |
 | Base | `codex/etapa-6-desacoplamiento-feed` |
 | Fecha | 2026-11-24 |
-| Estado | **Implementado — pendiente de merge y despliegue** |
+| Estado | **Fusionado en `main` (PR n.º 11) — sin desplegar.** Registro de su momento; el estado vigente está en [ETAPA_08](ETAPA_08_CIERRE_MIGRACION.md) |
 | Decisión | [ADR-010](../06-decisiones-arquitectonicas/ADR-010-extraccion-feed-servicio-independiente.md) |
 
 ---
@@ -106,16 +106,19 @@ Extraer el dominio Feed de `apps/api` a un servicio Express independiente (`apps
 
 ## Criterios de verificación
 
+Resultado confirmado durante la etapa 8 (2026-11-25); el estado original de esta tabla era «pendiente de ejecutar».
+
 | Criterio | Estado |
 |---|---|
-| `npm run verify` pasa sin errores (límites, tipos, cobertura ≥ 90 %, builds) | Pendiente de ejecutar |
-| `npm run test:boundaries` detecta las tres nuevas reglas | Pendiente de ejecutar |
-| `apps/feed` compila sin errores TypeScript | Pendiente de ejecutar |
-| Tests unitarios de `apps/feed` pasan con cobertura ≥ 90 % | Pendiente de ejecutar |
-| `apps/api` en modo proxy redirige correctamente a `apps/feed` | Verificado en diseño |
-| `apps/api` en modo local no depende de `apps/feed` | Verificado en diseño |
-| `apps/feed` rechaza `x-user-id` sin token (demostrado en E2E) | Verificado en diseño |
-| PR creado como borrador | Pendiente |
+| `npm run verify` pasa sin errores (límites, tipos, cobertura ≥ 90 %, builds) | **VERIFICADO** |
+| `npm run test:boundaries` detecta las tres nuevas reglas | **VERIFICADO** |
+| `apps/feed` compila sin errores TypeScript | **VERIFICADO** |
+| Tests unitarios de `apps/feed` pasan con cobertura ≥ 90 % | **VERIFICADO** |
+| `apps/api` en modo proxy redirige correctamente a `apps/feed` | **VERIFICADO** en E2E con procesos reales |
+| `apps/api` en modo local no depende de `apps/feed` | **VERIFICADO** |
+| `apps/feed` rechaza `x-user-id` sin token | **VERIFICADO** en E2E |
+| PR creado como borrador | Se creó y **el propietario lo fusionó** (PR n.º 11) |
+| Suite E2E de Feed ejecutable de principio a fin | **NO se cumplía:** su registro de usuario usaba un nombre con dígito y el `before()` fallaba con 400. Corregido en la [etapa 8 §3.8](ETAPA_08_CIERRE_MIGRACION.md#38-el-job-e2e-feed-de-ci-estaba-roto-en-main--corregido) |
 
 ---
 

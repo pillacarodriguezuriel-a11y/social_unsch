@@ -75,7 +75,7 @@ Lectura:
 | `users`: [módulo](../../apps/api/src/modules/users/users.routes.ts) | Aceptación de términos | `requireAuth`, `config/database` | Actualiza `users` |
 | `catalogs`: [módulo](../../apps/api/src/modules/catalogs/catalogs.routes.ts) | Lectura pública de catálogos | `config/database` | Lee `faculties`, `professional_schools`, `campus_pavilions` |
 | `radar`: [módulo](../../apps/api/src/modules/radar/radar.module.ts) | Consenso del campus en modo local o reenvío en modo proxy | `@social-unsch/contracts`, Redis inyectado o servicio remoto | Claves `radar:*` en Redis |
-| `feed`: [módulo](../../apps/api/src/modules/feed/feed.routes.ts) | Publicaciones | `requireAuth`, `config/database` | Escribe `feed_posts`; lee `users` |
+| `feed`: [módulo](../../apps/api/src/modules/feed/feed.module.ts) | Publicaciones. Sus reglas y su SQL viven en [`packages/feed-domain`](../../packages/feed-domain/src/index.ts), compartidos con `apps/feed` | `requireAuth`, `config/database`, `feed-domain` | Escribe `feed_posts`; lee `users` |
 | `matchmaking`: [módulo](../../apps/api/src/modules/matchmaking/matchmaking.routes.ts) | Descubrimiento, interacción y afinidad | `requireAuth`, `config/database` | Escribe `matchmaking_profiles`, `matchmaking_interactions`; lee `matchmaking_projects`, `users` |
 | `carpooling`: [módulo](../../apps/api/src/modules/carpooling/carpooling.routes.ts) | Rutas, solicitudes y confirmaciones | `requireAuth`, `config/database` | Escribe `carpooling_requests` y asientos de `carpooling_routes`; lee `users`, `professional_schools` |
 | `errorMiddleware`: [error.middleware.ts](../../apps/api/src/middlewares/error.middleware.ts) | Convertir errores en la respuesta común | `AppError`, Zod | — |
@@ -149,6 +149,60 @@ flowchart TB
 | [auth.middleware.ts](../../apps/radar/src/middlewares/auth.middleware.ts) | Verificar RS256 y derivar la identidad solo del token | `jsonwebtoken` | Clave pública |
 | [radar.service.ts](../../apps/radar/src/modules/radar/radar.service.ts) | Validar nodo y estado según el contrato | `RadarStore`, contratos | — |
 | [radar.repository.ts](../../apps/radar/src/modules/radar/radar.repository.ts) | Pipeline de lectura y script Lua de voto | Cliente Redis inyectado | Claves `radar:*` |
+
+## Diagrama del servicio Feed
+
+**Estado: IMPLEMENTADO PARCIALMENTE.** Código en `main`, sin desplegar.
+
+A diferencia de Radar, el servicio Feed **no contiene reglas propias**: las toma de `packages/feed-domain`, el mismo paquete que usa la API en modo local. Sus componentes propios son solo infraestructura: configuración, autenticación, registro y el adaptador de Express.
+
+```mermaid
+flowchart TB
+    PX["Proxy de la API o cliente directo"]
+
+    subgraph FS["Contenedor: Servicio Feed, apps/feed"]
+        BOOTF["server.ts<br/>configuración y cierre ordenado"]
+        APPF["createFeedApp<br/>Helmet, CORS, JSON, registro"]
+        HF["Salud<br/>/health/live, /health/ready"]
+        GF["createFeedAuthGuard<br/>solo clave pública"]
+        CF["FeedController<br/>adaptador de Express, ~15 líneas"]
+        POOL["createFeedPool<br/>pg.Pool, max 10"]
+        EF["errorMiddleware<br/>traduce FeedError"]
+    end
+
+    subgraph DOM["Paquete: packages/feed-domain, sin dependencias de ejecución"]
+        HH["FeedHttpHandlers<br/>validación y cuerpos"]
+        SF["FeedService<br/>longitud, saneado XSS, paginación"]
+        PF["IFeedRepository · IAuthorMetaReader · SqlQueryable"]
+        RF["PgFeedRepository · PgAuthorMetaAdapter<br/>el SQL"]
+    end
+
+    PG[("PostgreSQL compartido")]
+    CTR["@social-unsch/contracts"]
+
+    BOOTF --> APPF
+    PX --> APPF
+    APPF --> HF
+    APPF --> GF --> CF --> HH --> SF --> PF
+    RF -. "implementa" .-> PF
+    POOL -. "satisface SqlQueryable" .-> RF
+    RF --> PG
+    HF --> PG
+    CF -.-> EF
+    HH -. "formato de respuesta" .-> CTR
+```
+
+| Componente | Responsabilidad | Dependencias | Datos |
+|---|---|---|---|
+| [server.ts](../../apps/feed/src/server.ts), [env.ts](../../apps/feed/src/config/env.ts) | Validar configuración, arrancar y cerrar sin perder peticiones en vuelo | `pg` | Variables de entorno; nunca imprime valores |
+| [app.ts](../../apps/feed/src/app.ts) | Componer la aplicación y montar `/api/v1/feed` y la salud | Middlewares, módulo | — |
+| [auth.middleware.ts](../../apps/feed/src/middlewares/auth.middleware.ts) | Verificar RS256 y derivar la identidad **solo** del token | `jsonwebtoken` | Clave pública. **No acepta `x-user-id` ni otra cabecera de identidad** |
+| [database.ts](../../apps/feed/src/config/database.ts) | Pool propio con manejador del evento `error` | `pg` | 10 conexiones, timeout de 5 s |
+| [feed.module.ts](../../apps/feed/src/modules/feed/feed.module.ts) | Punto de composición: fija el prefijo `feed-svc` de consultas preparadas | `feed-domain` | — |
+| [feed.controller.ts](../../apps/feed/src/modules/feed/feed.controller.ts) | Traducir entre Express y el dominio; resolver `req.user.userId` | `feed-domain` | — |
+| [packages/feed-domain](../../packages/feed-domain/src/index.ts) | Reglas, validación HTTP y SQL, **compartidas con la API** | Ninguna de ejecución | Tablas `feed_posts` y lectura de `users` |
+
+La única diferencia funcional frente al modo local de la API es de dónde sale el identificador del usuario, porque cada proceso verifica el token con su propio middleware. Todo lo demás es el mismo código.
 
 ## Dependencias problemáticas
 

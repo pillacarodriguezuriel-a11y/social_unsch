@@ -56,7 +56,23 @@ Acciones abiertas, verificadas el 2026-10-30 y actualizadas el 2026-11-23 con el
 - **Impacto:** pueden divergir y romper la reversión. Ya difiere el formato de `last_updated`.
 - **Evidencia:** [API](../../apps/api/src/modules/radar/radar.repository.ts), [Radar](../../apps/radar/src/modules/radar/radar.repository.ts); DT-48.
 - **Etapa relacionada:** 4.
-- **Acción recomendada:** unificar el formato y retirar la copia local tras la observación.
+- **Acción recomendada:** unificar el formato y retirar la copia local tras la observación. **Feed ya no tiene este problema:** su lógica vive una sola vez en `packages/feed-domain`; conviene aplicar el mismo patrón a Radar.
+
+### P-26 · Feed sin desplegar ni activar, y sin umbrales aprobados
+
+- **Problema:** `apps/feed` está en `main` y probado, pero no se ha desplegado, `FEED_MODE=local` sigue siendo el valor activo y sus umbrales de rendimiento no están aprobados por el propietario.
+- **Impacto:** no puede afirmarse que el Feed opere como servicio independiente, ni que cumpla un criterio de rendimiento. Las mediciones existentes son **exploratorias**.
+- **Evidencia:** [benchmark-feed-etapa8-2026-11-25.json](../migracion/evidencias/benchmark-feed-etapa8-2026-11-25.json) con `thresholdsApproved: false`; `npm run ops:probe` con `PROBE_FEED`.
+- **Etapa relacionada:** 7 y 8.
+- **Acción recomendada:** aprobar o corregir los umbrales propuestos y seguir el orden de activación del [ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md): Feed **después** de que Radar complete su observación.
+
+### P-28 · Feed no tiene independencia de datos
+
+- **Problema:** `apps/feed` comparte PostgreSQL con la API y lee `users` mediante `JOIN` y un adaptador.
+- **Impacto:** una caída de PostgreSQL afecta a los dos procesos por igual; describir el sistema como «microservicios independientes» sería inexacto.
+- **Evidencia:** [Datos y propiedad](../02-arquitectura-software/06-datos-y-propiedad-por-dominio.md#acceso-a-datos-de-los-servicios-extraídos).
+- **Etapa relacionada:** 7 y 8; depende de ADR-005.
+- **Acción recomendada:** mantenerlo declarado explícitamente. Dar permisos mínimos por dominio dentro de la misma base es el siguiente paso razonable; separar físicamente, solo con beneficio demostrado.
 
 ## Calidad
 
@@ -97,6 +113,14 @@ Acciones abiertas, verificadas el 2026-10-30 y actualizadas el 2026-11-23 con el
 - **Evidencia:** [benchmark-radar-2026-11-23.json](../migracion/evidencias/benchmark-radar-2026-11-23.json). Medición local con alta dispersión entre repeticiones.
 - **Etapa relacionada:** 4.
 - **Acción recomendada:** medir en la plataforma real y en un equipo dedicado; decidir explícitamente si el criterio relativo es adecuado con latencias base de pocos milisegundos. No cambiar la meta sin registrar la decisión.
+
+### P-27 · `apps/feed` sin suite propia contra PostgreSQL real
+
+- **Problema:** el SQL de Feed se prueba con dobles en `packages/feed-domain` y de extremo a extremo en `tests/e2e/feed.e2e.test.js`, pero `apps/feed` no tiene una suite equivalente a `apps/api/tests/real` con su propio pool.
+- **Impacto:** el comportamiento del pool del servicio (límite de 10 conexiones, timeout de 5 s, manejador de error) no se ejercita contra una base real fuera del E2E.
+- **Evidencia:** [apps/feed/tests](../../apps/feed/tests/integration/feed.app.test.ts) usa un pool simulado; [jest.config.ts](../../apps/feed/jest.config.ts) excluye `src/config/database.ts` de la cobertura.
+- **Etapa relacionada:** 8.
+- **Acción recomendada:** añadir una suite real para `apps/feed` reutilizando el arnés de contenedores desechables, antes de activar el proxy en producción.
 
 ## Infraestructura
 

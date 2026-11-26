@@ -5,6 +5,7 @@ const config: Config = {
   // El contrato se prueba desde su código fuente; no hace falta compilarlo antes.
   moduleNameMapper: {
     '^@social-unsch/contracts$': '<rootDir>/../../packages/contracts/src/index.ts',
+    '^@social-unsch/feed-domain$': '<rootDir>/../../packages/feed-domain/src/index.ts',
   },
 
 

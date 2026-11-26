@@ -36,6 +36,9 @@ export function createAppResources(config: ServerConfig): AppResources {
 
   // Feed: local (default) o proxy hacia apps/feed
   let feedRouter: AppDependencies['feedRouter'];
+  // Solo en modo proxy aporta información: en modo local el Feed vive en este
+  // proceso y su dependencia real ya se reporta como `database`.
+  let feedReadiness: (() => Promise<boolean>) | null = null;
   if (config.feed.mode === 'proxy') {
     const feedProxy = createFeedProxyModule({
       target: config.feed.target,
@@ -43,6 +46,7 @@ export function createAppResources(config: ServerConfig): AppResources {
       healthPath: '/health/ready',
     });
     feedRouter = feedProxy.router;
+    feedReadiness = () => feedProxy.checkReady();
     if (feedProxy.close) closers.push(() => Promise.resolve(feedProxy.close!()));
   } else {
     feedRouter = createFeedRouter({ pool: pool as any });
@@ -64,6 +68,7 @@ export function createAppResources(config: ServerConfig): AppResources {
           },
         },
         { name: 'radar', critical: false, check: () => radar.checkReady() },
+        ...(feedReadiness ? [{ name: 'feed', critical: false, check: feedReadiness }] : []),
       ],
     },
     close() {

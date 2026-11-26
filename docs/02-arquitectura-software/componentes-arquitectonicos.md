@@ -1,6 +1,6 @@
 # Componentes y dependencias
 
-Qué piezas componen el backend, de qué depende cada una y dónde están los acoplamientos que condicionan la migración. Revisado el 2026-10-30 sobre `b763885`. Desde la etapa 3, `radar` recibe Redis por inyección desde [composition.ts](../../apps/api/src/composition.ts) y no importa `config/redis`; el servicio `apps/radar` se describe en [C3](../04-modelo-c4/Nivel3-Diagrama-de-Componentes.md#diagrama-del-servicio-radar).
+Qué piezas componen el backend, de qué depende cada una y dónde están los acoplamientos que condicionan la migración. Desde la etapa 3, `radar` recibe Redis por inyección desde [composition.ts](../../apps/api/src/composition.ts) y no importa `config/redis`; desde las etapas 6 a 8, `feed` recibe su pool igual y su lógica vive en [`packages/feed-domain`](../../packages/feed-domain/src/index.ts). Los servicios independientes se describen en [C3](../04-modelo-c4/Nivel3-Diagrama-de-Componentes.md#diagrama-del-servicio-radar).
 
 ## Componentes del backend
 
@@ -61,7 +61,7 @@ El diagrama anterior muestra dependencias de código. La dependencia real entre 
 | `auth` | `users` (crea) | `professional_schools` (para obtener la facultad) | [auth.repository.ts](../../apps/api/src/modules/auth/auth.repository.ts) |
 | `users` | `users` (actualiza la aceptación de términos) | — | [users.repository.ts](../../apps/api/src/modules/users/users.repository.ts) |
 | `catalogs` | — | `faculties`, `professional_schools`, `campus_pavilions` | [catalogs.controller.ts](../../apps/api/src/modules/catalogs/catalogs.controller.ts) |
-| `feed` | `feed_posts` | `users` (nombre y rol del autor) | [feed.repository.ts](../../apps/api/src/modules/feed/feed.repository.ts) |
+| `feed` | `feed_posts` | `users` (nombre y rol del autor) | [pg-feed.repository.ts](../../packages/feed-domain/src/pg-feed.repository.ts) |
 | `matchmaking` | `matchmaking_profiles`, `matchmaking_interactions` | `matchmaking_projects`, `users` (nombre, rol y correo) | [matchmaking.repository.ts](../../apps/api/src/modules/matchmaking/matchmaking.repository.ts) |
 | `carpooling` | `carpooling_requests`, `carpooling_routes` (descuenta asientos) | `users` (nombre, ciclo, correo, teléfono), `professional_schools` | [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts) |
 | `radar` | Claves `radar:*` en Redis | — | [radar.repository.ts](../../apps/api/src/modules/radar/radar.repository.ts) |
@@ -89,11 +89,12 @@ Ordenados por cuánto dificultan separar el sistema en servicios.
 | 2 | `carpooling` lee datos de contacto de `users` dentro de la misma transacción que confirma el asiento | La confirmación dejaría de ser una transacción local si los usuarios estuvieran en otra base | `confirmBookingTransaction` en [carpooling.repository.ts](../../apps/api/src/modules/carpooling/carpooling.repository.ts) |
 | 3 | Claves foráneas entre dominios: publicaciones, perfiles, rutas y archivos referencian `users`; usuarios y publicaciones referencian catálogos | Separar las bases obliga a eliminar esas restricciones y asumir la validación en el código | [001_base_schema.sql](../../apps/api/src/database/migrations/sql/001_base_schema.sql), [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) |
 | 4 | Disparadores que cruzan dominios: la descarga de un archivo modifica el saldo en `users`; un reporte de moderación oculta filas de `feed_posts` | La lógica está en la base, fuera del alcance de cualquier servicio | [003_credits_and_wiki.sql](../../apps/api/src/database/migrations/sql/003_credits_and_wiki.sql), [004_moderation_and_carpooling.sql](../../apps/api/src/database/migrations/sql/004_moderation_and_carpooling.sql) |
-| 5 | Un solo pool y una sola variable `DATABASE_URL` | Todos los módulos tienen acceso a todas las tablas | [database.ts](../../apps/api/src/config/database.ts) |
+| 5 | Un solo pool y una sola variable `DATABASE_URL` por proceso | Todos los módulos tienen acceso a todas las tablas. Con `apps/feed` desplegado hay **dos pools sobre la misma base** (20 + 10 conexiones) y el servicio Feed también alcanza todas las tablas, aunque solo use dos | [API](../../apps/api/src/config/database.ts), [Feed](../../apps/feed/src/config/database.ts) |
 | 6 | Un solo lockfile para todos los workspaces | Los paquetes se construyen por separado, pero sus dependencias siguen coordinadas | [package.json](../../package.json) |
-| 7 | Los servicios crean sus repositorios con `new`, salvo `radar` | No se puede sustituir el almacén sin tocar el servicio | Por ejemplo, [feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
+| 7 | Los servicios crean sus repositorios con `new`, salvo `radar` y `feed` | No se puede sustituir el almacén sin tocar el servicio | Por ejemplo, [matchmaking.service.ts](../../apps/api/src/modules/matchmaking/matchmaking.service.ts) |
 | 8 | Catálogos duplicados entre frontend y backend. Los valores de Radar ya salen de `packages/contracts` | Un cambio de catálogo exige tocar varios archivos | [app/lib/unsch.constants.ts](../../apps/web/app/lib/unsch.constants.ts), [src/shared/constants/unsch.constants.ts](../../apps/api/src/shared/constants/unsch.constants.ts) |
 | 9 | Lógica de Radar duplicada en `apps/api` y `apps/radar` durante la convivencia | Pueden divergir y comprometer la reversión | [Extracción de Radar](../migracion/EXTRACCION_RADAR.md) |
+| 10 | **Resuelto para Feed:** su lógica y su SQL viven una sola vez en `packages/feed-domain` | Los modos local y proxy no pueden divergir; dos pruebas de contrato en espejo lo comprueban. Es el patrón que conviene aplicar a Radar | [feed-domain](../../packages/feed-domain/src/index.ts), [cierre de la migración](../migracion/ETAPA_08_CIERRE_MIGRACION.md#31-lógica-de-feed-duplicada-entre-los-dos-modos--corregido) |
 
 Sobre el punto 8: las constantes del backend en `src/shared/constants` solo las usa la carga de catálogos ([load_catalogs.ts](../../apps/api/src/database/migrations/load_catalogs.ts)); ningún módulo las importa.
 

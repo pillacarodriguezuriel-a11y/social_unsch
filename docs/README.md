@@ -1,6 +1,6 @@
 # Social-UNSCH · Documentación de arquitectura
 
-> Fase vigente: [Etapa 5 — Operación de Radar](migracion/ETAPA_05_OPERACION_RADAR.md). Preparación técnica, activación productiva y observación de 14 días son estados distintos; otros dominios quedan diferidos.
+> Fase vigente: [Etapa 8 — Cierre de la migración](migracion/ETAPA_08_CIERRE_MIGRACION.md). El código de las etapas 1 a 7 está integrado en `main`: `apps/radar` y `apps/feed` existen como servicios independientes **probados y sin desplegar**, y en producción la API sigue atendiendo ambos dominios en proceso (`RADAR_MODE=local`, `FEED_MODE=local`). Implementado, desplegado y validado en producción son estados distintos. Ningún otro dominio se extrae en esta fase.
 
 Social-UNSCH reúne reportes del campus, publicaciones, búsqueda de compañeros de proyecto y viajes compartidos para la comunidad de la Universidad Nacional de San Cristóbal de Huamanga. Los cuatro bloques siguientes recorren el proyecto desde las necesidades de sus usuarios hasta el código que atiende una petición.
 
@@ -34,8 +34,8 @@ Social-UNSCH reúne reportes del campus, publicaciones, búsqueda de compañeros
 |---|---|
 | [Arquitectura inicial](02-arquitectura-software/arquitectura-inicial.md) | Web en Next.js, API en Express, PostgreSQL y Redis. |
 | [Componentes arquitectónicos](02-arquitectura-software/componentes-arquitectonicos.md) | Los siete módulos de la API y sus dependencias de código y datos. |
-| [Estilo arquitectónico](02-arquitectura-software/estilo-arquitectonico.md) | Monolito modular y estrategia para extraer servicios por dominio. |
-| [Enfoque arquitectónico](02-arquitectura-software/enfoque-arquitectonico.md) | Capas dentro de los módulos, puerto de almacenamiento de Radar y composición de dependencias. |
+| [Estilo arquitectónico](02-arquitectura-software/estilo-arquitectonico.md) | Monolito modular con dos dominios extraídos (Radar y Feed) y el resto en la API. |
+| [Enfoque arquitectónico](02-arquitectura-software/enfoque-arquitectonico.md) | Capas dentro de los módulos, puertos de Radar y Feed, y composición de dependencias. |
 
 [Arquitectura de transición](02-arquitectura-software/04-arquitectura-de-transicion.md) · [Arquitectura objetivo](02-arquitectura-software/05-arquitectura-objetivo.md) · [Datos](02-arquitectura-software/06-datos-y-propiedad-por-dominio.md) · [Contratos](02-arquitectura-software/07-contratos-e-integraciones.md) · [Dominios](02-arquitectura-software/08-dominios-del-sistema.md)
 
@@ -55,14 +55,15 @@ Social-UNSCH reúne reportes del campus, publicaciones, búsqueda de compañeros
 |---|---|
 | [1 · Contexto](04-modelo-c4/Nivel1-DiagramadeContextodelSistema.md) | La comunidad universitaria y su relación con Social-UNSCH. |
 | [2 · Contenedores](04-modelo-c4/Nivel2-DiagramadeContenedores.md) | Aplicaciones, almacenes y comunicación entre ellos. |
-| [3 · Componentes](04-modelo-c4/Nivel3-Diagrama-de-Componentes.md) | Responsabilidades dentro de la API y del servicio Radar. |
-| [4 · Código](04-modelo-c4/Nivel4-DiagramadeCodigo.md) | Clases y secuencias de Radar, autenticación, catálogos y movilidad. |
+| [3 · Componentes](04-modelo-c4/Nivel3-Diagrama-de-Componentes.md) | Responsabilidades dentro de la API y de los servicios Radar y Feed. |
+| [4 · Código](04-modelo-c4/Nivel4-DiagramadeCodigo.md) | Clases y secuencias de Radar, Feed, autenticación, catálogos y movilidad. |
 
 Los diagramas se leen directamente en GitHub. La [guía C4](04-modelo-c4/README.md) incluye vistas adicionales de transición y del diseño propuesto.
 
 ## Migración, operación y evidencias
 
-- La última [verificación de despliegue registrada](07-evaluacion-y-evolucion/07-estado-actual-y-evidencias.md) situó Radar dentro de la API. El [cierre de la etapa 4](migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md) validó la separación con infraestructura real y preparó su despliegue. El [informe de extracción](migracion/EXTRACCION_RADAR.md) explica cómo seleccionar el servicio independiente y revertir el cambio.
+- El [cierre de la migración](migracion/ETAPA_08_CIERRE_MIGRACION.md) es el documento vivo del estado actual: qué está implementado, qué está integrado y qué sigue sin desplegar, con la matriz de criterios pendientes. La última [verificación de despliegue registrada](07-evaluacion-y-evolucion/07-estado-actual-y-evidencias.md) situó Radar dentro de la API. El [cierre de la etapa 4](migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md) validó la separación de Radar con infraestructura real; el [informe de extracción](migracion/EXTRACCION_RADAR.md) explica cómo seleccionar el servicio independiente y revertir el cambio.
+- Los dos dominios extraídos comparten su lógica con la API a través de paquetes: [`packages/contracts`](../packages/contracts/src) define los contratos HTTP de Radar y Feed, y [`packages/feed-domain`](../packages/feed-domain/src) contiene la única implementación de las reglas y el SQL de Feed, que usan tanto el modo local como el servicio independiente.
 - El [inventario de implementación](07-evaluacion-y-evolucion/01-inventario-de-implementacion.md) distingue los flujos conectados a la API de las pantallas con datos simulados. Véanse los [pendientes](07-evaluacion-y-evolucion/08-pendientes.md) y los [riesgos](07-evaluacion-y-evolucion/02-riesgos-y-deuda-tecnica.md).
 - El [mapa de despliegue](05-despliegue-y-operacion/01-mapa-de-despliegue.md), la [configuración](05-despliegue-y-operacion/02-configuracion-y-entornos.md), el [proceso de entrega](05-despliegue-y-operacion/03-proceso-de-entrega.md) y la [guía de recuperación](05-despliegue-y-operacion/04-observabilidad-y-recuperacion.md) describen la operación.
 - Para seguir la evolución del proyecto, consultar los [registros de decisión](06-decisiones-arquitectonicas/README.md), el [plan](07-evaluacion-y-evolucion/03-plan-de-migracion.md) y los [informes de migración](migracion/README.md).

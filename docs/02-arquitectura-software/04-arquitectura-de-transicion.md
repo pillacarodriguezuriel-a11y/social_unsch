@@ -1,6 +1,6 @@
 # Arquitectura de transición
 
-> **Estado: IMPLEMENTADO PARCIALMENTE.** Las etapas 3 y 4 están en `main` y la API desplegada incluye el proxy, sin activar. El servicio Radar **no está desplegado**: en producción, Radar se atiende dentro de la API.
+> **Estado: IMPLEMENTADO PARCIALMENTE.** Las etapas 3 a 8 están en `main` y la API desplegada incluye los proxies de **Radar y Feed**, ambos sin activar (`RADAR_MODE=local`, `FEED_MODE=local`). **Ni `apps/radar` ni `apps/feed` están desplegados**: en producción los dos dominios se atienden dentro de la API. Estado vigente en [Cierre de la migración](../migracion/ETAPA_08_CIERRE_MIGRACION.md).
 
 ## Por qué hace falta una arquitectura intermedia
 
@@ -14,9 +14,12 @@ La estrategia es **Strangler Fig**: la pieza nueva crece junto a la antigua, una
 flowchart TB
     WEB["Aplicación web"]
     API["Entrada API estable<br/>apps/api, /api/v1"]
-    NUC["Núcleo actual<br/>auth, users, catalogs,<br/>feed, matchmaking, carpooling"]
+    NUC["Núcleo actual<br/>auth, users, catalogs,<br/>matchmaking, carpooling"]
     RL["Radar local<br/>respaldo y modo vigente"]
     RS["Servicio Radar<br/>apps/radar"]
+    FL["Feed local<br/>respaldo y modo vigente"]
+    FS["Servicio Feed<br/>apps/feed"]
+    DOM["packages/feed-domain<br/>reglas y SQL compartidos"]
     PG[("PostgreSQL")]
     RD[("Redis")]
 
@@ -24,25 +27,34 @@ flowchart TB
     API --> NUC
     API -- "RADAR_MODE=local" --> RL
     API -- "RADAR_MODE=proxy" --> RS
+    API -- "FEED_MODE=local" --> FL
+    API -- "FEED_MODE=proxy" --> FS
     NUC --> PG
     RL --> RD
     RS --> RD
+    FL -. "usa" .-> DOM
+    FS -. "usa" .-> DOM
+    FL --> PG
+    FS --> PG
 
     classDef codigo stroke:#2e7d32,stroke-width:3px
-    class RS codigo
+    class RS,FS codigo
 ```
 
-Trazo grueso verde: con código, sin desplegar.
+Trazo grueso verde: con código, sin desplegar. Trazo discontinuo: dependencia de biblioteca compilada, no llamada en ejecución.
+
+Las dos selecciones son independientes y se toman en el mismo punto de composición. El orden acordado activa una a la vez: Radar primero, Feed después de que Radar complete su observación.
 
 ## Principios
 
 | Principio | Significado práctico | Estado |
 |---|---|---|
-| El contrato no cambia al mover | Una ruta extraída conserva URL, cuerpo, códigos de estado y errores | IMPLEMENTADO para Radar, con pruebas de contrato |
-| Un dominio cada vez | No se extraen dos servicios en la misma etapa | IMPLEMENTADO |
-| Reversible por configuración | Volver es cambiar una variable, sin tocar código ni datos | IMPLEMENTADO; **sin ensayar en producción** |
-| El módulo antiguo sigue hasta validar | El Radar local no se borra hasta tener estabilidad verificada | IMPLEMENTADO |
-| Primero el código, después los datos | Un servicio puede usar el almacén actual y separarlo después | IMPLEMENTADO: Radar sigue en el mismo Redis |
+| El contrato no cambia al mover | Una ruta extraída conserva URL, cuerpo, códigos de estado y errores | IMPLEMENTADO para Radar y Feed, con pruebas de contrato; en Feed, **en espejo sobre los dos modos** |
+| Un dominio cada vez | No se extraen dos servicios en la misma etapa, ni se activan dos modos a la vez | IMPLEMENTADO: Radar en la etapa 4, Feed en las etapas 6 y 7 |
+| Reversible por configuración | Volver es cambiar una variable, sin tocar código ni datos | IMPLEMENTADO en ambos; **sin ensayar en producción** |
+| El módulo antiguo sigue hasta validar | Ni el Radar local ni el Feed local se borran hasta tener estabilidad verificada | IMPLEMENTADO |
+| Primero el código, después los datos | Un servicio puede usar el almacén actual y separarlo después | IMPLEMENTADO: Radar sigue en el mismo Redis y Feed en la misma PostgreSQL. **En Feed esto significa que no hay independencia de datos** |
+| Sin reintentos ni respaldo automático entre procesos | Un fallo del servicio da 502 o 504 controlado; volver a local es siempre explícito | IMPLEMENTADO: la escritura del Feed no es idempotente, así que reintentar automáticamente podría duplicar publicaciones |
 
 ## Coexistencia
 

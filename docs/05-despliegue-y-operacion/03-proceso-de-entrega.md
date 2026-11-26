@@ -14,7 +14,9 @@ Todos están definidos en el [package.json](../../package.json) de la raíz, que
 | `npm run dev:backend` | API en modo desarrollo, puerto 3000 |
 | `npm run dev` | Igual que el anterior: solo la API |
 | `npm run dev:frontend` | Aplicación web en el puerto 3001 |
-| `npm run dev:all` | API y aplicación web a la vez ([dev-all.js](../../scripts/dev-all.js)) |
+| `npm run dev:radar` | Servicio Radar en modo desarrollo, puerto 4001 |
+| `npm run dev:feed` | Servicio Feed en modo desarrollo, puerto 4002 |
+| `npm run dev:all` | API y aplicación web a la vez ([dev-all.js](../../scripts/dev-all.js)); **no levanta Radar ni Feed** |
 
 `npm run dev` no levanta el frontend: para ambos se usa `npm run dev:all`. El [README](../../README.md) se corrigió en este punto junto con esta documentación.
 
@@ -22,21 +24,29 @@ Todos están definidos en el [package.json](../../package.json) de la raíz, que
 
 | Comando | Qué hace | Resultado |
 |---|---|---|
-| `npm run build` | Compila el contrato y la API con TypeScript | `packages/contracts/dist/`, `apps/api/dist/` |
+| `npm run build` | Compila los contratos, el dominio de Feed y la API | `packages/*/dist/`, `apps/api/dist/` |
+| `npm run build:radar` | Compila el servicio Radar | `apps/radar/dist/` |
+| `npm run build:feed` | Compila el dominio de Feed y el servicio | `packages/feed-domain/dist/`, `apps/feed/dist/` |
 | `npm run build:frontend` | Compila el contrato y la aplicación web, y comprueba sus tipos | `apps/web/.next/` |
-| `npm run build:all` | Ambas | — |
-| `npm run typecheck` | Tipos de los tres paquetes, incluidas las pruebas | — |
+| `npm run build:all` | Las cuatro anteriores | — |
+| `npm run typecheck` | Tipos de los seis workspaces, incluidas las pruebas | — |
 | `npm start` | Ejecuta la API compilada | Proceso Node |
+| `npm run start:radar`, `npm run start:feed` | Ejecutan los servicios compilados | Procesos Node |
 
 ### Pruebas
 
 | Comando | Qué ejecuta | Requiere |
 |---|---|---|
-| `npm test` | Pruebas unitarias, de rutas y de contrato de la API, y pruebas de `lib/` del frontend | Nada externo |
-| `npm run check:boundaries` | Límites entre web, API, contratos y módulos | Nada externo |
-| `npm run verify` | Límites, tipos, cobertura, pruebas del frontend y ambas compilaciones | Nada externo |
-| `npm run test:coverage` | Lo anterior con umbral de cobertura del 90 % | Nada externo |
-| `npm run test:real` | Pruebas contra PostgreSQL y Redis reales | Docker en ejecución; puertos 55432 y 56379 libres |
+| `npm test` | Pruebas del dominio de Feed, de la API, de Radar, del servicio Feed y de `lib/` del frontend | Nada externo |
+| `npm run check:boundaries` | Límites entre web, API, contratos, módulos, Radar y Feed, incluida la pureza de `feed-domain` | Nada externo |
+| `npm run verify` | Límites, tipos, cobertura, pruebas del frontend y todas las compilaciones | Nada externo |
+| `npm run test:coverage` | Lo anterior con umbral del 90 % en los cuatro ejes de `feed-domain`, API, Radar y Feed | Nada externo |
+| `npm run test:real` | Pruebas de la API contra PostgreSQL y Redis reales | Docker en ejecución; puertos 55432 y 56379 libres |
+| `npm run test:e2e` | E2E de Radar: API y Radar compilados en procesos separados | Docker; puertos 55442 y 56389 libres |
+| `npm run test:e2e:feed` | E2E de Feed en modo proxy y local, con comprobación de paridad | Docker; puerto 55443 libre |
+| `npm run bench:radar`, `npm run bench:feed` | Comparan local frente a proxy con las aplicaciones reales | Docker; resultados válidos solo para el equipo medido |
+
+Los comandos de E2E y de benchmark **no se ejecutan en `verify`**: necesitan Docker y duran minutos. En CI corren en los jobs `e2e-radar` y `e2e-feed`; los benchmarks son solo locales.
 
 ### Base de datos
 

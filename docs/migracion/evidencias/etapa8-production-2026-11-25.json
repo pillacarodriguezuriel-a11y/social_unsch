@@ -1,0 +1,103 @@
+{
+  "collectedAt": "2026-11-26T03:21:51.965Z",
+  "collectorCommit": "452f9d6b33030e3fa7595b87d4292a3765c230da",
+  "deployedCommit": null,
+  "environment": "production-readonly",
+  "method": "single GET round; 45s observation timeout, not application timeout",
+  "rows": [
+    {
+      "at": "2026-11-26T03:21:16.570Z",
+      "origin": "https://social-unsch.onrender.com",
+      "route": "/health/live",
+      "http": 200,
+      "status": "ok",
+      "checks": {},
+      "durationMs": 32669.62
+    },
+    {
+      "at": "2026-11-26T03:21:49.240Z",
+      "origin": "https://social-unsch.onrender.com",
+      "route": "/health/ready",
+      "http": 200,
+      "status": "ready",
+      "checks": {
+        "database": "up",
+        "radar": "up"
+      },
+      "durationMs": 528.82
+    },
+    {
+      "at": "2026-11-26T03:21:49.769Z",
+      "origin": "https://social-unsch.onrender.com",
+      "route": "/api/v1/catalogs",
+      "http": 200,
+      "durationMs": 450.01
+    },
+    {
+      "at": "2026-11-26T03:21:50.219Z",
+      "origin": "https://social-unsch.onrender.com",
+      "route": "/api/v1/radar/status",
+      "http": 401,
+      "authRejected": true,
+      "durationMs": 150.94
+    },
+    {
+      "at": "2026-11-26T03:21:50.370Z",
+      "origin": "https://social-unsch.onrender.com",
+      "route": "/api/v1/feed",
+      "http": 401,
+      "authRejected": true,
+      "durationMs": 202.94
+    },
+    {
+      "at": "2026-11-26T03:21:50.573Z",
+      "origin": "https://social-unsch-radar.onrender.com",
+      "route": "/health/live",
+      "http": 404,
+      "status": null,
+      "checks": {},
+      "durationMs": 247.61
+    },
+    {
+      "at": "2026-11-26T03:21:50.820Z",
+      "origin": "https://social-unsch-radar.onrender.com",
+      "route": "/health/ready",
+      "http": 404,
+      "status": null,
+      "checks": {},
+      "durationMs": 330.46
+    },
+    {
+      "at": "2026-11-26T03:21:51.151Z",
+      "origin": "https://social-unsch-radar.onrender.com",
+      "route": "/api/v1/radar/status",
+      "http": 404,
+      "durationMs": 195.82
+    },
+    {
+      "at": "2026-11-26T03:21:51.347Z",
+      "origin": "https://social-unsch-feed.onrender.com",
+      "route": "/health/live",
+      "http": 404,
+      "status": null,
+      "checks": {},
+      "durationMs": 238.5
+    },
+    {
+      "at": "2026-11-26T03:21:51.585Z",
+      "origin": "https://social-unsch-feed.onrender.com",
+      "route": "/health/ready",
+      "http": 404,
+      "status": null,
+      "checks": {},
+      "durationMs": 217.38
+    },
+    {
+      "at": "2026-11-26T03:21:51.803Z",
+      "origin": "https://social-unsch-feed.onrender.com",
+      "route": "/api/v1/feed",
+      "http": 404,
+      "durationMs": 162.26
+    }
+  ]
+}

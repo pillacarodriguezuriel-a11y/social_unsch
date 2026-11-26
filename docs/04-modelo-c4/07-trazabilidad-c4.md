@@ -18,10 +18,11 @@ Referencia: `main`, commit `b763885`. El estado de cada requisito está en [Requ
 | Catálogos (RF-006) | SOCIAL-UNSCH, PostgreSQL | Web, API, PostgreSQL | `catalogs` | `CatalogsController.getCatalogs`, `loadCatalogs` | [`catalogs.controller.ts`](../../apps/api/src/modules/catalogs/catalogs.controller.ts) |
 | Radar, consulta y reporte (RF-007, RF-008), modo local | SOCIAL-UNSCH, Redis | Web, API, Redis | `radar` | `RadarService`, `RadarStore`, `RadarRepository` | [`apps/api/src/modules/radar`](../../apps/api/src/modules/radar/radar.service.ts) |
 | Radar, servicio independiente | SOCIAL-UNSCH, Redis | Web, API, Servicio Radar, Redis ([transición](05-contenedores-de-transicion.md)) | `radar` en proxy, componentes de `apps/radar` | `createRadarProxyModule`, `createRadarAuthGuard`, `RadarService` | [`radar.proxy.ts`](../../apps/api/src/modules/radar/radar.proxy.ts), [`apps/radar/src`](../../apps/radar/src/app.ts) |
-| Feed (RF-009, RF-010) | SOCIAL-UNSCH, PostgreSQL | Web, API, PostgreSQL | `feed` | `FeedService`, `FeedRepository` | [`feed.service.ts`](../../apps/api/src/modules/feed/feed.service.ts) |
+| Feed (RF-009, RF-010), modo local | SOCIAL-UNSCH, PostgreSQL | Web, API, PostgreSQL | `feed` | `FeedHttpHandlers`, `FeedService`, `PgFeedRepository` | [`packages/feed-domain`](../../packages/feed-domain/src/feed.service.ts), [`feed.module.ts`](../../apps/api/src/modules/feed/feed.module.ts) |
+| Feed, servicio independiente | SOCIAL-UNSCH, PostgreSQL | Web, API, Servicio Feed, PostgreSQL ([transición](05-contenedores-de-transicion.md)) | `feed` en proxy, componentes de `apps/feed` | `createFeedProxyModule`, `createFeedAuthGuard`, los mismos `FeedHttpHandlers` y `FeedService` | [`feed.proxy.ts`](../../apps/api/src/modules/feed/feed.proxy.ts), [`apps/feed/src`](../../apps/feed/src/app.ts) |
 | Matchmaking (RF-011 a RF-013) | SOCIAL-UNSCH, PostgreSQL | Web, API, PostgreSQL | `matchmaking` | `MatchmakingService`, `MatchmakingRepository.submitInteraction` | [`matchmaking.service.ts`](../../apps/api/src/modules/matchmaking/matchmaking.service.ts) |
 | Carpooling (RF-015 a RF-017) | SOCIAL-UNSCH, PostgreSQL | API, PostgreSQL; la web no la consume | `carpooling` | `CarpoolingService.confirmSeat`, `confirmBookingTransaction` | [`carpooling.repository.ts`](../../apps/api/src/modules/carpooling/carpooling.repository.ts) |
-| Salud | Render | API, Servicio Radar | Salud | `createHealthRouter`, `createRadarHealthRouter` | [`apps/api`](../../apps/api/src/health/health.routes.ts), [`apps/radar`](../../apps/radar/src/health/health.routes.ts) |
+| Salud | Render | API, Servicio Radar, Servicio Feed | Salud | `createHealthRouter`, `createRadarHealthRouter`, `createFeedHealthRouter` | [`apps/api`](../../apps/api/src/health/health.routes.ts), [`apps/radar`](../../apps/radar/src/health/health.routes.ts), [`apps/feed`](../../apps/feed/src/health/health.routes.ts) |
 | Migraciones (RO-001 a RO-003) | Operador, PostgreSQL | Herramientas de migración, PostgreSQL | Migrador | `runMigrations`, `loadCatalogs` | [`migrator.ts`](../../apps/api/src/database/migrations/migrator.ts) |
 
 ## Funcionalidades sin backend
@@ -42,11 +43,12 @@ No tienen representación en los niveles 3 y 4 de la API.
 
 | Dominio | Hoy | Objetivo | Estado de la separación |
 |---|---|---|---|
-| Identidad | Módulos `auth`, `users`, `catalogs` | Servicio propio | PROPUESTO |
-| Radar | Módulo `radar` y `apps/radar` | Servicio propio | IMPLEMENTADO PARCIALMENTE |
-| Comunidad | Módulos `feed`, `matchmaking` | Servicio propio o junto a Identidad | PROPUESTO |
-| Movilidad | Módulo `carpooling` | Servicio propio | PROPUESTO |
-| Recursos | Sin módulo; tablas sin API | Servicio propio | PROPUESTO |
+| Identidad | Módulos `auth`, `users`, `catalogs` | Servicio propio | PROPUESTO; fuera del alcance de esta fase |
+| Radar | Módulo `radar` y `apps/radar` | Servicio propio | IMPLEMENTADO PARCIALMENTE: código completo, **sin desplegar**. Logró separación de datos (Redis propio) |
+| Comunidad · Feed | Módulo `feed`, `apps/feed` y `packages/feed-domain` | Servicio propio | IMPLEMENTADO PARCIALMENTE: código completo, **sin desplegar**. **No logró separación de datos:** comparte PostgreSQL y lee `users` |
+| Comunidad · Matchmaking | Módulo `matchmaking` | Servicio propio o junto a Feed | PROPUESTO; fuera del alcance |
+| Movilidad | Módulo `carpooling` | Servicio propio | PROPUESTO; **no ejecutado**, fuera del alcance ([ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md)) |
+| Recursos | Sin módulo; tablas sin API | Servicio propio | PROPUESTO; **no ejecutado**, fuera del alcance |
 
 Más detalle en [Dominios del sistema](../02-arquitectura-software/08-dominios-del-sistema.md).
 

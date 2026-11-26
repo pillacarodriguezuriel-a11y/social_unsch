@@ -321,16 +321,54 @@ flowchart TB
 
 **Estado: IMPLEMENTACIÓN PARCIAL / DIRECCIÓN ARQUITECTÓNICA PROPUESTA.**
 
-| Condición | Radar | Demás módulos |
-|---|---|---|
-| Puerto de almacenamiento | Sí: `RadarStore` | No |
-| Dependencias inyectadas | Sí, por constructor | No: `new` en campos privados |
-| Composición explícita | Sí: `composition.ts`, `apps/radar/src/app.ts` | No |
-| Dominio separado de la aplicación | No: `RadarService` reúne ambos y valida con valores de `@social-unsch/contracts` | No |
-| Puerto ubicado en el centro | No: `RadarStore` se declara en el archivo del adaptador, y el servicio importa de `radar.repository.ts` | No aplica |
-| Regla sin dependencia de HTTP | Parcial: `RadarService` lanza errores con estado HTTP | No |
+| Condición | Radar | Feed | Demás módulos |
+|---|---|---|---|
+| Puerto de almacenamiento | Sí: `RadarStore` | Sí: `IFeedRepository`, `IAuthorMetaReader` y `SqlQueryable` | No |
+| Dependencias inyectadas | Sí, por constructor | Sí, por constructor con opciones nombradas | No: `new` en campos privados |
+| Composición explícita | Sí: `composition.ts`, `apps/radar/src/app.ts` | Sí: `composition.ts`, `apps/feed/src/modules/feed/feed.module.ts` | No |
+| Dominio separado de la aplicación | No: `RadarService` reúne ambos y valida con valores de `@social-unsch/contracts` | Sí: `FeedService` tiene las reglas, `FeedHttpHandlers` el caso de uso HTTP, y están en archivos distintos | No |
+| Puerto ubicado en el centro | No: `RadarStore` se declara en el archivo del adaptador, y el servicio importa de `radar.repository.ts` | Sí: los puertos están en `ports.ts` y `sql.ts`; los adaptadores los importan, no al contrario | No aplica |
+| Regla sin dependencia de HTTP | Parcial: `RadarService` lanza errores con estado HTTP | Parcial: `FeedError` lleva estado y código HTTP, aunque el dominio no conoce Express | No |
+| Dominio sin dependencias de ejecución | No: vive dentro de la aplicación | Sí: `packages/feed-domain` no importa `pg`, `express` ni nada externo; lo garantiza la regla `feed-domain-puro` | No |
 
-Radar es, por tanto, un primer paso hacia puertos y adaptadores, no una arquitectura hexagonal terminada.
+**Radar** es un primer paso hacia puertos y adaptadores, no una arquitectura hexagonal terminada. **Feed** sí cumple el patrón: su dominio es un paquete aislado, sin dependencias de ejecución, que dos procesos distintos consumen. Su concesión pendiente es que `FeedError` acarrea el estado HTTP, de modo que el dominio conoce un detalle del transporte aunque no la biblioteca que lo implementa.
+
+```mermaid
+classDiagram
+    class SqlQueryable {
+        <<interface>>
+        +query(SqlQuery) Promise
+    }
+    class IFeedRepository {
+        <<interface>>
+        +findFiltered(facultyId, schoolId, limit, offset) Promise
+        +create(input) Promise
+    }
+    class IAuthorMetaReader {
+        <<interface>>
+        +getAuthorMeta(userId) Promise
+    }
+    class FeedService {
+        +getFeed(...) Promise
+        +createPost(input) Promise
+    }
+    class FeedHttpHandlers {
+        +getFeed(query) FeedHttpResult
+        +createPost(input) FeedHttpResult
+    }
+    class PgFeedRepository
+    class PgAuthorMetaAdapter
+
+    FeedHttpHandlers --> FeedService
+    FeedService --> IFeedRepository
+    PgFeedRepository ..|> IFeedRepository
+    PgAuthorMetaAdapter ..|> IAuthorMetaReader
+    PgFeedRepository --> IAuthorMetaReader
+    PgFeedRepository --> SqlQueryable
+    PgAuthorMetaAdapter --> SqlQueryable
+```
+
+`pg.Pool` satisface `SqlQueryable` estructuralmente, sin declararlo: por eso el paquete puede definir el puerto sin depender de `pg`. En las pruebas basta un objeto con un método `query`.
 
 ## Qué enseñan estos diagramas
 
@@ -340,6 +378,7 @@ Radar es, por tanto, un primer paso hacia puertos y adaptadores, no una arquitec
 | Las reglas atómicas viven en el almacén o en el repositorio | Script Lua y transacción de confirmación |
 | La identidad llega resuelta desde el token | `req.user` en Radar y carpooling |
 | La frontera de Radar es HTTP y clave pública; no comparte código con la API | Secuencia A3 |
+| La frontera de Feed es HTTP y clave pública, pero **sí comparte código** con la API: su dominio es un paquete común, y eso es lo que impide que los dos modos divierjan | Sección E y [C3 · servicio Feed](Nivel3-Diagrama-de-Componentes.md#diagrama-del-servicio-feed) |
 
 **Nivel anterior:** [C3 · Componentes](Nivel3-Diagrama-de-Componentes.md) · **Trazabilidad:** [Requisito a código](07-trazabilidad-c4.md)
 

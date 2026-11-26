@@ -1,32 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
-import { FeedService } from '@social-unsch/feed-domain';
+import type { FeedHttpHandlers } from '@social-unsch/feed-domain';
 
+/**
+ * Adaptador Express del servicio Feed independiente.
+ *
+ * Comparte validación, códigos de error y cuerpos con el modo local de
+ * `apps/api` a través de `FeedHttpHandlers`. La única diferencia es que aquí el
+ * identificador del usuario lo publica el guardia RS256 de este servicio.
+ */
 export class FeedController {
-  constructor(private readonly feedService: FeedService) {}
+  constructor(private readonly handlers: FeedHttpHandlers) {}
 
   getFeed = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const facultyId = req.query.faculty_id ? Number(req.query.faculty_id) : undefined;
-      const schoolId = req.query.school_id ? Number(req.query.school_id) : undefined;
-      const page = req.query.page ? Number(req.query.page) : 1;
-      const limit = req.query.limit ? Number(req.query.limit) : 20;
-
-      if (
-        (req.query.faculty_id && isNaN(facultyId!)) ||
-        (req.query.school_id && isNaN(schoolId!)) ||
-        (req.query.page && isNaN(page)) ||
-        (req.query.limit && isNaN(limit))
-      ) {
-        res.status(400).json({
-          error: true,
-          message: 'Parámetros de consulta no válidos.',
-          code: 'ERR_VALIDATION_INVALID_FIELDS',
-        });
-        return;
-      }
-
-      const posts = await this.feedService.getFeed(facultyId, schoolId, page, limit);
-      res.status(200).json({ data: posts });
+      const result = await this.handlers.getFeed(req.query as Record<string, unknown>);
+      res.status(result.status).json(result.body);
     } catch (error) {
       next(error);
     }
@@ -34,42 +22,11 @@ export class FeedController {
 
   createPost = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { content, faculty_id, school_id } = req.body;
-      const userId = req.user?.userId;
-
-      if (!userId) {
-        res.status(401).json({
-          error: true,
-          message: 'Usuario no autenticado en el contexto.',
-          code: 'ERR_AUTH_UNAUTHORIZED',
-        });
-        return;
-      }
-
-      const facultyId = faculty_id ? Number(faculty_id) : null;
-      const schoolId = school_id ? Number(school_id) : null;
-
-      if ((faculty_id && isNaN(facultyId!)) || (school_id && isNaN(schoolId!))) {
-        res.status(400).json({
-          error: true,
-          message: 'Los identificadores académicos deben ser numéricos.',
-          code: 'ERR_VALIDATION_INVALID_FIELDS',
-        });
-        return;
-      }
-
-      const newPost = await this.feedService.createPost({
-        userId,
-        content,
-        facultyId,
-        schoolId,
+      const result = await this.handlers.createPost({
+        body: req.body,
+        userId: req.user?.userId,
       });
-
-      res.status(201).json({
-        success: true,
-        message: 'Publicación creada exitosamente.',
-        post_id: newPost.id,
-      });
+      res.status(result.status).json(result.body);
     } catch (error) {
       next(error);
     }

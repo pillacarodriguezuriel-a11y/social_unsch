@@ -6,7 +6,9 @@
  * de SQL ni del pool de PostgreSQL.
  */
 
-import { FeedService, IFeedRepository, IFeedPost, FeedError } from '@social-unsch/feed-domain';
+import { FeedService } from '../src/feed.service';
+import { FeedError } from '../src/errors';
+import type { IFeedPost, IFeedRepository } from '../src/ports';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
