@@ -24,14 +24,14 @@ A continuación se presenta la clasificación estricta del estado de los compone
    - Inserción de entidades canónicas faltantes sin reutilizar IDs ocupados: si el ID canónico preferido (ej. 20) está ocupado por otra entidad histórica, dicha entidad conserva su ID y la escuela faltante se inserta asignando el siguiente ID libre garantizado (`MAX(id) + 1`), sincronizando las secuencias numéricas al finalizar.
    - Si algún caso extremo requiriese una transformación de datos excepcional, queda explícitamente fuera del comando normal de catálogos y documentado como intervención manual; no se ejecuta automáticamente.
 2. **Endpoint Público de Lectura de Catálogos y Consumo Dinámico en Frontend**:
-   - Creación del endpoint `GET /api/v1/catalogs` (y `GET /api/v1/catalogs/schools`) en [`src/modules/catalogs/`](file:///d:/social_unsch/src/modules/catalogs/), que expone las facultades, escuelas y pabellones con sus **identificadores reales persistidos en base de datos**.
-   - Los consumidores de selección y filtrado en frontend ([`RegisterPage`](file:///d:/social_unsch/app/(auth)/register/page.tsx) y [`SettingsPage`](file:///d:/social_unsch/app/(dashboard)/settings/page.tsx)) cargan dinámicamente este catálogo persistido, enviando el ID real (ej. `99`) en el registro y en la actualización de perfil, manteniendo las constantes locales únicamente como fallback de arranque/SSR sin imponer IDs rígidos.
+   - Creación del endpoint `GET /api/v1/catalogs` (y `GET /api/v1/catalogs/schools`) en [`src/modules/catalogs/`](../../apps/api/src/modules/catalogs/), que expone las facultades, escuelas y pabellones con sus **identificadores reales persistidos en base de datos**.
+   - Los consumidores de selección y filtrado en frontend (`apps/web/app/(auth)/register/page.tsx` y `apps/web/app/(dashboard)/settings/page.tsx`) cargan dinámicamente este catálogo persistido, enviando el ID real (ej. `99`) en el registro y en la actualización de perfil, manteniendo las constantes locales únicamente como fallback de arranque/SSR sin imponer IDs rígidos.
 3. **Atomicidad de Solicitudes de Carpooling sin Compensaciones**:
    - Sustitución de compensaciones reactivas (`INSERT` seguido de consulta y posterior `DELETE`) por una transacción PostgreSQL atómica con el mismo cliente dedicado (`BEGIN ... COMMIT / ROLLBACK`).
    - Restricción de duplicados respaldada por índice único (`idx_carpooling_requests_active_unique` / PostgreSQL `23505`), traducida deterministamente a error de negocio HTTP 400 (`ERR_CARPOOLING_DUPLICATE_REQUEST`).
    - Política de ciclo académico canónico: `users.current_academic_cycle` es el campo canónico oficial; si se desconoce, retorna `null` y **nunca inventa el ciclo 1**. Prevalece sobre el dato legacy sin sobreescrituras automáticas.
 4. **Adopción de Bases Preexistentes y Validación Estructural**:
-   - Función [`validateMigrationStructure`](file:///d:/social_unsch/src/database/migrations/migrator.ts#L67) en el migrador comprueba exhaustivamente tablas, columnas, tipos de datos, restricciones y funciones antes de asentar en `schema_migrations`.
+   - Función [`validateMigrationStructure`](../../apps/api/src/database/migrations/migrator.ts#L67) en el migrador comprueba exhaustivamente tablas, columnas, tipos de datos, restricciones y funciones antes de asentar en `schema_migrations`.
    - Soporte para esquemas heredados sin `schema_migrations`, esquemas parcialmente migrados, interrupción y reanudación segura, y diagnóstico claro ante columnas incompatibles sin borrar datos.
 5. **Aclaración y Verificación de Conexión y Bloqueo del Migrador**:
    - El bloqueo consultivo (`pg_try_advisory_lock`) opera a nivel de sesión física de PostgreSQL y requiere una sesión continua durante toda la ejecución.
@@ -74,11 +74,11 @@ A continuación se presenta la clasificación estricta del estado de los compone
 
 | # | Componente / Flujo | Hallazgo en Revisión | Corrección Implementada | Archivo de Respaldo |
 |---|---|---|---|---|
-| 1 | `load_catalogs.ts` | Reasignación automática de IDs con temporales negativos contradecía la conservación de IDs preexistentes. | Eliminación de temporales negativos. Conservación incondicional de los IDs existentes. Inserción de faltantes en IDs libres (`MAX(id) + 1`). | [`src/database/migrations/load_catalogs.ts`](file:///d:/social_unsch/src/database/migrations/load_catalogs.ts) |
-| 2 | `load_catalogs.ts` | Riesgo de asignaciones erróneas ante nombres o códigos ambiguos. | Validación previa de correspondencias: si hay ambigüedad (nombre apunta a una escuela y código a otra, o múltiples coincidencias), aborto transaccional inmediato con diagnóstico. | [`src/database/migrations/load_catalogs.ts`](file:///d:/social_unsch/src/database/migrations/load_catalogs.ts#L180-L220) |
-| 3 | Frontend y Backend | Formularios dependían de constantes con IDs fijos (1..31). Si una base tenía IDs distintos, enviaban IDs cruzados. | Creación del endpoint público `/api/v1/catalogs`. Formularios de registro y configuración consumen dinámicamente los IDs reales persistidos. | [`src/modules/catalogs/catalogs.controller.ts`](file:///d:/social_unsch/src/modules/catalogs/catalogs.controller.ts)<br>[`app/(auth)/register/page.tsx`](file:///d:/social_unsch/app/(auth)/register/page.tsx) |
-| 4 | `migrator.ts` | Documentación asumía que el puerto 5432 demostraba modo de sesión y descartaba poolers arbitrariamente. | Aclaración conceptual: la sesión depende del modo (sesión vs transacción), no del puerto. Documentado método de verificación de sesión y alcance de pruebas locales. | [`src/database/migrations/migrator.ts`](file:///d:/social_unsch/src/database/migrations/migrator.ts#L67-L95) |
-| 5 | Cobertura Jest | Cobertura de ramas reportada previamente (91.32%) había caído temporalmente a 88.34% por ramas de error añadidas. | Se incorporaron pruebas unitarias para todas las ramas de error en `carpooling` y se ejecutó la medición real en vivo, alcanzando 91.35% de ramas y 95.46% de sentencias. | [`tests/unit/carpooling.service.test.ts`](file:///d:/social_unsch/tests/unit/carpooling.service.test.ts)<br>[`tests/integration/carpooling.routes.test.ts`](file:///d:/social_unsch/tests/integration/carpooling.routes.test.ts) |
+| 1 | `load_catalogs.ts` | Reasignación automática de IDs con temporales negativos contradecía la conservación de IDs preexistentes. | Eliminación de temporales negativos. Conservación incondicional de los IDs existentes. Inserción de faltantes en IDs libres (`MAX(id) + 1`). | [`src/database/migrations/load_catalogs.ts`](../../apps/api/src/database/migrations/load_catalogs.ts) |
+| 2 | `load_catalogs.ts` | Riesgo de asignaciones erróneas ante nombres o códigos ambiguos. | Validación previa de correspondencias: si hay ambigüedad (nombre apunta a una escuela y código a otra, o múltiples coincidencias), aborto transaccional inmediato con diagnóstico. | [`src/database/migrations/load_catalogs.ts`](../../apps/api/src/database/migrations/load_catalogs.ts#L180-L220) |
+| 3 | Frontend y Backend | Formularios dependían de constantes con IDs fijos (1..31). Si una base tenía IDs distintos, enviaban IDs cruzados. | Creación del endpoint público `/api/v1/catalogs`. Formularios de registro y configuración consumen dinámicamente los IDs reales persistidos. | [`src/modules/catalogs/catalogs.controller.ts`](../../apps/api/src/modules/catalogs/catalogs.controller.ts)<br>`apps/web/app/(auth)/register/page.tsx` |
+| 4 | `migrator.ts` | Documentación asumía que el puerto 5432 demostraba modo de sesión y descartaba poolers arbitrariamente. | Aclaración conceptual: la sesión depende del modo (sesión vs transacción), no del puerto. Documentado método de verificación de sesión y alcance de pruebas locales. | [`src/database/migrations/migrator.ts`](../../apps/api/src/database/migrations/migrator.ts#L67-L95) |
+| 5 | Cobertura Jest | Cobertura de ramas reportada previamente (91.32%) había caído temporalmente a 88.34% por ramas de error añadidas. | Se incorporaron pruebas unitarias para todas las ramas de error en `carpooling` y se ejecutó la medición real en vivo, alcanzando 91.35% de ramas y 95.46% de sentencias. | [`tests/unit/carpooling.service.test.ts`](../../apps/api/tests/unit/carpooling.service.test.ts)<br>[`tests/integration/carpooling.routes.test.ts`](../../apps/api/tests/integration/carpooling.routes.test.ts) |
 
 ---
 
@@ -113,7 +113,7 @@ Time:        10.955 s
 ```
 
 Desglose de suites reales:
-- [`tests/real/migrations.real.test.ts`](file:///d:/social_unsch/tests/real/migrations.real.test.ts): **14/14 pasadas**.
+- [`tests/real/migrations.real.test.ts`](../../apps/api/tests/real/migrations.real.test.ts): **14/14 pasadas**.
   - Conservación estricta de IDs en escuelas existentes y relaciones (Escenario 8).
   - Colisión de ID con entidad previa sin sobrescrituras ni reasignaciones, e idempotencia en segunda carga (Escenario 9).
   - Correspondencia ambigua aborta transaccionalmente sin mutaciones parciales (Escenario 10).
@@ -121,10 +121,10 @@ Desglose de suites reales:
   - Bloqueo consultivo `pg_try_advisory_lock` previene ejecutores paralelos (Escenario 12).
   - Allowlist positivo de seed demo y conservación de usuarios preexistentes (Escenario 13).
   - Ejecución de migración como subproceso con salida 1 y rollback completo ante fallo (Escenario 14).
-- [`tests/real/carpooling.real.test.ts`](file:///d:/social_unsch/tests/real/carpooling.real.test.ts): **7/7 pasadas**.
-- [`tests/real/auth.real.test.ts`](file:///d:/social_unsch/tests/real/auth.real.test.ts): **5/5 pasadas**.
-- [`tests/real/radar.real.test.ts`](file:///d:/social_unsch/tests/real/radar.real.test.ts): **5/5 pasadas**.
-- [`tests/real/feed_matchmaking.real.test.ts`](file:///d:/social_unsch/tests/real/feed_matchmaking.real.test.ts): **2/2 pasadas**.
+- [`tests/real/carpooling.real.test.ts`](../../apps/api/tests/real/carpooling.real.test.ts): **7/7 pasadas**.
+- [`tests/real/auth.real.test.ts`](../../apps/api/tests/real/auth.real.test.ts): **5/5 pasadas**.
+- [`tests/real/radar.real.test.ts`](../../apps/api/tests/real/radar.real.test.ts): **5/5 pasadas**.
+- [`tests/real/feed_matchmaking.real.test.ts`](../../apps/api/tests/real/feed_matchmaking.real.test.ts): **2/2 pasadas**.
 
 ---
 

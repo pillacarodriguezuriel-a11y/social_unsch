@@ -25,7 +25,9 @@ flowchart TB
         WEB["Aplicación web<br/>páginas estáticas"]
     end
     subgraph RENDER["Render"]
-        API["API Express<br/>un servicio Node"]
+        API["API Express<br/>un servicio Node<br/>Radar y Feed en modo local"]
+        RSV["Servicio Radar<br/>NO DESPLEGADO"]
+        FSV["Servicio Feed<br/>NO DESPLEGADO"]
     end
     subgraph DATOS["Servicios de datos gestionados"]
         PG[("PostgreSQL<br/>proveedor informado: Supabase")]
@@ -40,10 +42,17 @@ flowchart TB
     NAV -- "HTTPS, API" --> API
     API --> PG
     API --> RD
+    API -. "RADAR_MODE=proxy, sin activar" .-> RSV
+    API -. "FEED_MODE=proxy, sin activar" .-> FSV
+    RSV -. .-> RD
+    FSV -. .-> PG
     DEV -. "migraciones manuales" .-> PG
+
+    classDef ausente stroke-dasharray: 5 5
+    class RSV,FSV ausente
 ```
 
-Trazo continuo: relación verificada. Trazo discontinuo: relación prevista o sin verificar.
+Trazo continuo: relación verificada. Trazo discontinuo: relación prevista o sin verificar. Los dos servicios con borde discontinuo **tienen código en `main` pero no existen en la plataforma**: en producción la API los atiende en su propio proceso.
 
 ## Estado por plataforma
 
@@ -64,7 +73,21 @@ Consecuencia operativa: **todo cambio que llega a `main` publica el frontend**, 
 
 ### Render: servicio Radar
 
-NO IMPLEMENTADO. El servicio previsto no existe con el nombre documentado. Configuración exacta, activación, comprobaciones y reversión en el [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md). Con un plan que suspende por inactividad, el arranque en frío supera el límite máximo del proxy (30 s): no se recomienda activar el proxy en esas condiciones.
+NO DESPLEGADO. El servicio previsto no existe con el nombre documentado (404 el 2026-11-23). Configuración exacta, activación, comprobaciones y reversión en el [cierre de la etapa 4](../migracion/ETAPA_04_CIERRE_VALIDACION_RADAR.md) y en [Operación de Radar §6](../migracion/ETAPA_05_OPERACION_RADAR.md). Con un plan que suspende por inactividad, el arranque en frío supera el límite máximo del proxy (30 s): **no debe activarse el proxy en esas condiciones**.
+
+### Render: servicio Feed
+
+NO DESPLEGADO. `apps/feed` nunca se ha desplegado y no tiene dominio asignado. En producción el Feed se atiende dentro de la API (`FEED_MODE=local`, valor por defecto). La configuración candidata, las variables y los avisos previos al despliegue están en [Configuración y entornos · Servicio Feed](02-configuracion-y-entornos.md#servicio-feed).
+
+Tres condiciones que deben cumplirse antes de desplegarlo, además del presupuesto:
+
+| Condición | Por qué |
+|---|---|
+| Plan **sin suspensión por inactividad** | El arranque en frío supera el máximo configurable de `FEED_PROXY_TIMEOUT_MS` (30 s) y produciría 504 sistemáticos |
+| Límite de conexiones del plan de PostgreSQL confirmado | El presupuesto conjunto pasa a 30 conexiones (API 20 + Feed 10) |
+| Pooler en **Session mode**, no *Transaction mode* | El modo de transacción es incompatible con las consultas preparadas con nombre que usa el repositorio |
+
+El orden es estricto: **Feed se despliega y se activa solo después de que Radar complete su periodo de observación** ([ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md)).
 
 ### Render: API
 

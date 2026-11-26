@@ -33,9 +33,9 @@ Además existe `schema_migrations`, que registra las migraciones aplicadas ([mig
 
 | Tabla | Migración | En uso por la API | Observación |
 |---|---|---|---|
-| `users` | 001 | Sí: `auth`, `users`, `feed`, `matchmaking`, `carpooling` | Tabla más compartida del sistema |
+| `users` | 001 | Sí: `auth`, `users`, `feed`, `matchmaking`, `carpooling` | Tabla más compartida del sistema. **También la lee `apps/feed`** |
 | `faculties`, `professional_schools`, `campus_pavilions` | 001 | Sí: `catalogs`, `auth`, `carpooling` | Se cargan con `npm run db:catalogs` |
-| `feed_posts` | 001 | Sí: `feed` | |
+| `feed_posts` | 001 | Sí: `feed` | **También la lee y escribe `apps/feed`** |
 | `matchmaking_profiles`, `matchmaking_interactions` | 002 | Sí: `matchmaking` | No hay API para crear perfiles |
 | `matchmaking_projects` | 002 | Solo lectura: `matchmaking` | No hay API para crear proyectos |
 | `carpooling_routes`, `carpooling_requests` | 004 | Sí: `carpooling` | No hay API para crear rutas |
@@ -68,6 +68,49 @@ Solo el radar usa Redis ([radar.repository.ts](../../apps/api/src/modules/radar/
 | `radar:biblioteca:floor:<n>:occupancy` | Hash | Porcentaje de aforo del piso | 900 s |
 
 Todos los datos de Redis son efímeros y reconstruibles: si se pierden, el radar muestra «indefinido» hasta que haya nuevos reportes. No hay copia de estos datos en PostgreSQL.
+
+## Acceso a datos de los servicios extraídos
+
+> **PostgreSQL es compartido entre `apps/api` y `apps/feed`. No hay independencia de datos.** Decirlo de otro modo sería inexacto: `apps/feed` es un proceso independiente sobre la misma base, no un servicio con datos propios.
+
+### Quién lee y quién escribe cada tabla
+
+| Tabla | Escriben | Leen | Nota |
+|---|---|---|---|
+| `feed_posts` | `apps/api` (módulo `feed`, modo local) y `apps/feed` (modo proxy) | los mismos | Solo uno de los dos atiende tráfico a la vez, según `FEED_MODE` |
+| `users` | **solo `apps/api`** (`auth`, `users`) | `apps/api` y `apps/feed` (solo lectura: `full_name`, `role`) | `apps/feed` nunca escribe en `users` |
+| `faculties`, `professional_schools`, `campus_pavilions` | migraciones y `db:catalogs` | `apps/api`; `apps/feed` solo guarda sus identificadores | `apps/feed` no consulta los catálogos: recibe los identificadores en el cuerpo |
+| Claves `radar:*` (Redis) | `apps/api` (modo local) o `apps/radar` (modo proxy) | los mismos | Almacén distinto; sin relación con PostgreSQL |
+
+El acceso de `apps/feed` a `users` está encapsulado en un único punto, `PgAuthorMetaAdapter` de [`packages/feed-domain`](../../packages/feed-domain/src/pg-feed.repository.ts), más el `INNER JOIN users` de `PgFeedRepository.findFiltered`. Son los **dos únicos lugares** donde Feed toca datos que no son suyos; cuando Identidad se extraiga, se sustituyen por un adaptador HTTP sin tocar el servicio de dominio.
+
+### Claves foráneas y transacciones compartidas
+
+| Elemento | Situación | Consecuencia |
+|---|---|---|
+| `feed_posts.user_id → users.id` | **Vigente.** No se eliminó para facilitar la extracción | La integridad la sigue garantizando PostgreSQL, no el código. Una publicación con autor inexistente es imposible |
+| Borrado en cascada de un usuario | Vigente: borra sus publicaciones | Si algún día las bases se separan, hará falta un evento «usuario eliminado» |
+| Transacciones que cruzan Feed e Identidad | **Ninguna.** Feed inserta la publicación y después lee el autor en una consulta aparte | No hay transacción distribuida que resolver. El costo es que una publicación recién creada puede devolver autor vacío si el usuario se borró entre ambas consultas |
+| Disparador `trg_auto_suppress_reported_post` | Moderación oculta publicaciones escribiendo en `feed_posts` | Vive en la base, así que actúa igual en modo local y proxy |
+
+### Responsable único de las migraciones
+
+**`apps/api` es el único propietario del esquema.** Las migraciones viven en [`apps/api/src/database/migrations`](../../apps/api/src/database/migrations) y solo se aplican con `npm run db:migrate` desde ese workspace. `apps/feed` **no tiene migraciones, no crea tablas y no altera el esquema**: asume que ya existe. Desplegar `apps/feed` nunca debe ejecutar una migración.
+
+### Presupuesto total de conexiones
+
+| Proceso | Pool `max` | Timeout de conexión | Archivo |
+|---|---|---|---|
+| `apps/api` | 20 | 2 000 ms | [`apps/api/src/config/database.ts`](../../apps/api/src/config/database.ts) |
+| `apps/feed` | 10 | 5 000 ms | [`apps/feed/src/config/database.ts`](../../apps/feed/src/config/database.ts) |
+| **Total si ambos se despliegan** | **30** | — | — |
+
+Ambos procesos registran un manejador del evento `error` del pool: sin él, un error en un cliente inactivo termina el proceso.
+
+**Antes de desplegar `apps/feed` hay que confirmar en el panel de Supabase el límite de conexiones del plan y el modo del pooler.** Treinta conexiones directas más las del propio panel y las herramientas pueden agotar el límite de un plan Free. Dos avisos concretos:
+
+- El pooler en *Transaction mode* (puerto 6543) es incompatible con las consultas preparadas con nombre que usa el repositorio. Si se usa pooler, debe ser *Session mode* (puerto 5432).
+- Cada proceso usa su propio prefijo de consultas preparadas (`feed-api-*` y `feed-svc-*`) para que un mismo nombre no quede asociado a dos textos distintos dentro del pooler.
 
 ## Datos en el navegador
 

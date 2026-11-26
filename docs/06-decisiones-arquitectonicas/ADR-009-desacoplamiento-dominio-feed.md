@@ -157,7 +157,7 @@ Feed gana por:
 | Elemento | Ruta |
 |---|---|
 | Puertos | [apps/api/src/modules/feed/ports.ts](../../apps/api/src/modules/feed/ports.ts) |
-| Adaptador de autor | [apps/api/src/modules/feed/adapters/pg-author-meta.adapter.ts](../../apps/api/src/modules/feed/adapters/pg-author-meta.adapter.ts) |
+| Adaptador de autor | Entonces en `apps/api/src/modules/feed/adapters/pg-author-meta.adapter.ts`; desde la etapa 8 vive una sola vez en [packages/feed-domain/src/pg-feed.repository.ts](../../packages/feed-domain/src/pg-feed.repository.ts) |
 | Repositorio | [apps/api/src/modules/feed/feed.repository.ts](../../apps/api/src/modules/feed/feed.repository.ts) |
 | Servicio | [apps/api/src/modules/feed/feed.service.ts](../../apps/api/src/modules/feed/feed.service.ts) |
 | Controlador | [apps/api/src/modules/feed/feed.controller.ts](../../apps/api/src/modules/feed/feed.controller.ts) |

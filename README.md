@@ -8,15 +8,28 @@ La plataforma está diseñada con una arquitectura moderna y robusta para mejora
 
 ## 📌 Estado actual y documentación
 
-> Estado verificado el 2026-10-30: ver [Estado actual y evidencias](docs/07-evaluacion-y-evolucion/07-estado-actual-y-evidencias.md).
+> Fase vigente: [Etapa 8 — Cierre de la migración](docs/migracion/ETAPA_08_CIERRE_MIGRACION.md). Último estado de producción verificado: 2026-11-25 ([evidencias](docs/07-evaluacion-y-evolucion/07-estado-actual-y-evidencias.md)).
 
-SOCIAL-UNSCH se encuentra evolucionando desde un monolito modular hacia una arquitectura con servicios extraídos progresivamente por dominio. En producción opera una aplicación web Next.js (`apps/web`) y **una API Express (`apps/api`)** que atiende también Campus Radar. El código del servicio independiente `apps/radar` ya está en `main`, pero ese servicio no está desplegado. Los datos relacionales residen en PostgreSQL y el estado temporal en Redis.
+SOCIAL-UNSCH es un **monolito modular con dos dominios extraídos a procesos propios**. Así queda el sistema al cerrar la migración:
 
-| Área | Estado |
+| Pieza | Qué es | Dónde está |
+|---|---|---|
+| `apps/web` | Aplicación web Next.js | **Desplegada** (Vercel) |
+| `apps/api` | API Express con Identidad, Catálogos, Feed, Matchmaking, Carpooling y Moderación | **Desplegada** (Render) |
+| `apps/radar` | Servicio independiente de Campus Radar (Redis) | Implementado y probado, **sin desplegar** |
+| `apps/feed` | Servicio independiente del Feed (PostgreSQL) | Implementado y probado, **sin desplegar** |
+| PostgreSQL | Datos relacionales | **Desplegado** (Supabase); compartido entre API y Feed |
+| Redis | Estado efímero del radar | **Desplegado** (Upstash) |
+
+En producción la API sigue atendiendo Radar y Feed **en su propio proceso**: `RADAR_MODE=local` y `FEED_MODE=local` son los valores predeterminados y no se han cambiado. Activar un servicio extraído es un cambio de configuración reversible, pendiente de presupuesto y autorización.
+
+**No es una arquitectura de microservicios independientes:** `apps/feed` comparte la base de datos de la API y lee la tabla `users`. Es un proceso independiente sobre datos compartidos ([detalle](docs/02-arquitectura-software/06-datos-y-propiedad-por-dominio.md#acceso-a-datos-de-los-servicios-extraídos)).
+
+| Área funcional | Estado |
 |---|---|
 | Registro, inicio de sesión, catálogos | Implementado |
 | Campus Radar | Implementado en la API. Servicio `apps/radar` y proxy reversible: código en `main`, sin desplegar |
-| Feed de publicaciones | Implementado (los filtros existen en la API; la pantalla aún no los usa) |
+| Feed de publicaciones | Implementado en la API. Servicio `apps/feed` y proxy reversible: código en `main`, sin desplegar. Los filtros existen en la API; la pantalla aún no los usa |
 | Matchmaking | Parcial: descubrir e interactuar funcionan; no hay API para crear perfiles ni proyectos |
 | Carpooling | Parcial: la API existe y está probada; la pantalla usa datos del navegador |
 | Wiki-banco, moderación, marketplace, empleo, ajustes | Simulado en el navegador; sin API |
@@ -25,8 +38,8 @@ La descripción de módulos que sigue presenta la visión del producto. Qué par
 
 - **[Documentación arquitectónica](docs/README.md)**: análisis, arquitectura actual, de transición y objetivo, diseño, modelo C4, despliegue, decisiones y plan de migración.
 - [Inventario de implementación](docs/07-evaluacion-y-evolucion/01-inventario-de-implementacion.md): estado de cada funcionalidad.
-- Informes de migración: [etapa 1](docs/migracion/ETAPA_01_LINEA_BASE.md), [etapa 2](docs/migracion/ETAPA_02_ESTABILIZACION.md), [etapa 3](docs/migracion/ETAPA_03_PREPARACION_SEPARACION.md) y [etapa 4](docs/migracion/ETAPA_04_EXTRACCION_RADAR.md).
-- Decisiones arquitectónicas: [ADR-007 (Workspaces)](docs/06-decisiones-arquitectonicas/ADR-007-workspaces-y-montaje-de-radar.md) y [ADR-008 (Extracción de Radar)](docs/06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md).
+- [Estrategia e informes de migración](docs/migracion/README.md): etapas 1 a 8, con la aclaración de por qué el plan y lo ejecutado numeran distinto las etapas 6 a 8.
+- Decisiones arquitectónicas: [ADR-008 (Radar)](docs/06-decisiones-arquitectonicas/ADR-008-extraccion-radar-servicio-independiente.md), [ADR-010 (Feed)](docs/06-decisiones-arquitectonicas/ADR-010-extraccion-feed-servicio-independiente.md) y [ADR-011 (alcance final y cierre)](docs/06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md).
 
 ### Estructura del repositorio
 
@@ -35,10 +48,12 @@ Monorepo con npm workspaces y lockfile único:
 | Ruta | Contenido |
 |---|---|
 | `apps/web` | Aplicación web Next.js (`@social-unsch/web`) |
-| `apps/api` | API Express (`@social-unsch/api`), auth, feed, carpooling y proxy de Radar |
+| `apps/api` | API Express (`@social-unsch/api`), auth, catálogos, carpooling, matchmaking y modos local/proxy de Radar y Feed |
 | `apps/radar` | Servicio independiente de Campus Radar (`@social-unsch/radar`) |
-| `packages/contracts` | Contratos de intercambio de Radar y formato de error (Zod) |
-| `scripts` | Arranque conjunto, límites arquitectónicos y benchmark de latencia |
+| `apps/feed` | Servicio independiente de Feed (`@social-unsch/feed`) |
+| `packages/contracts` | Contratos de intercambio de Radar, Feed y formato de error (Zod) |
+| `packages/feed-domain` | Dominio Feed compartido (puertos, servicio, repositorio SQL y manejadores HTTP sin dependencias de ejecución) |
+| `scripts` | Arranque conjunto, límites arquitectónicos, sondas operativas y benchmarks de Radar y Feed |
 | `docs` | Documentación arquitectónica e informes de migración |
 
 ---

@@ -2,7 +2,19 @@
 
 Propuesta de evolución desde el monolito modular actual hacia servicios por dominio, en ocho etapas.
 
-> **Qué es propuesta y qué no.** Las etapas 1 a 3 están ejecutadas y la 3 está en producción. La etapa 4 está en `main` y en la API desplegada, pero el servicio Radar no está desplegado ni el proxy activo. Las etapas 5 a 8 son **propuestas**: no hay código, fechas ni aprobación. Este documento no fija plazos. Estado verificado el 2026-10-30.
+> **DOCUMENTO SUPERADO EN PARTE.** Este plan se escribió antes de que el propietario decidiera adelantar el dominio Feed. Las etapas 1 a 5 se ejecutaron como aquí se describen, pero **las etapas 6, 7 y 8 que realmente se ejecutaron tuvieron otro contenido**:
+>
+> | N.º | Este plan proponía | Se ejecutó | ADR |
+> |---|---|---|---|
+> | 6 | Movilidad | Desacoplamiento interno del dominio Feed | [ADR-009](../06-decisiones-arquitectonicas/ADR-009-desacoplamiento-dominio-feed.md) |
+> | 7 | Recursos, créditos e integración asíncrona | Extracción de Feed a servicio independiente | [ADR-010](../06-decisiones-arquitectonicas/ADR-010-extraccion-feed-servicio-independiente.md) |
+> | 8 | Consolidación | Integración, despliegue y cierre verificable | [ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md) |
+>
+> **Movilidad y Recursos NO se ejecutaron y quedan fuera del alcance acordado.** El [ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md) cierra la fase en cinco piezas (web, API, Radar, Feed, más PostgreSQL y Redis) y detiene la extracción de cualquier otro dominio. Reabrir Movilidad o Recursos exige una decisión nueva apoyada en la experiencia operativa real de Radar y Feed.
+>
+> Las secciones de las etapas 6, 7 y 8 que siguen se conservan como **propuesta no ejecutada**, porque describen trabajo de datos (saldo de créditos, contacto en carpooling) que sigue pendiente aunque no se extraiga ningún servicio. Para el estado vigente, ver [Estrategia de migración](../migracion/README.md) y [Cierre de la migración](../migracion/ETAPA_08_CIERRE_MIGRACION.md).
+
+> **Qué es propuesta y qué no.** Las etapas 1 a 3 están ejecutadas y la 3 está en producción. Las etapas 4 (Radar) y 6–7 (Feed) están en `main` y en la API desplegada, pero **ninguno de los dos servicios extraídos está desplegado ni su proxy activo**. Este documento no fija plazos.
 
 ## Vista general
 
@@ -30,9 +42,11 @@ Trazo continuo: etapa ejecutada. Trazo naranja: implementada parcialmente. Trazo
 | 1 | Ejecutada; recuperación de Redis sin verificar | No |
 | 2 | Ejecutada en el código; aplicación remota parcialmente verificada | No |
 | 3 | Implementada, en `main` y en producción | No: sigue siendo un monolito, ahora en un monorepo |
-| 4 | Implementada parcialmente: en `main`, `test-real` fallido, servicio sin desplegar | Sí, cuando se active: hasta entonces, no |
-| 5 a 7 | Propuestas | Sí |
-| 8 | Propuesta | No: consolida |
+| 4 | Implementada parcialmente: en `main`, servicio Radar sin desplegar | Sí, cuando se active: hasta entonces, no |
+| 5 | Integrada en `main`; activación y observación de Radar pendientes | No por sí misma |
+| 6 y 7 (ejecutadas) | Feed desacoplado y extraído; en `main`, servicio sin desplegar | Sí, cuando se active: hasta entonces, no |
+| 8 (ejecutada) | Código y pruebas completos; despliegue, activación y observación pendientes | No: consolida |
+| Movilidad, Recursos (propuestas de este plan) | **No ejecutadas**, fuera del alcance acordado | Lo serían, si alguna vez se aprueban |
 
 ## Dependencias entre etapas
 

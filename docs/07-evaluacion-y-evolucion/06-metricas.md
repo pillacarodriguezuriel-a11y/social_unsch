@@ -28,20 +28,32 @@ Medidos el 2026-10-30 sobre `b763885`, salvo donde se indique.
 
 ### Cobertura
 
+Medida el 2026-11-25 sobre `452f9d6` más los cambios de la etapa 8 (`npm run verify`, salida 0). Umbral exigido: 90 % en los cuatro ejes de cada workspace instrumentado.
+
 | Workspace | Sentencias | Ramas | Funciones | Líneas | Pruebas |
 |---|---|---|---|---|---|
-| `@social-unsch/api` | 96,73 % | 92,96 % | 98,31 % | 96,84 % | 448 de 448, 26 suites |
-| `@social-unsch/radar` | 98,63 % | 91,33 % | 97,67 % | 99,30 % | 59 de 59, 11 suites |
+| `@social-unsch/feed-domain` | 100 % | 100 % | 100 % | 100 % | 66 de 66, 4 suites |
+| `@social-unsch/api` | 96,05 % | 90,32 % | 95,54 % | 97,47 % | 435 de 435, 27 suites |
+| `@social-unsch/radar` | 98,65 % | 91,47 % | 97,72 % | 99,31 % | 61 de 61, 11 suites |
+| `@social-unsch/feed` | 98,85 % | 92,95 % | 95,83 % | 99,40 % | 54 de 54, 4 suites |
 | `@social-unsch/web` | Sin medir | Sin medir | Sin medir | Sin medir | 14 de 14, 2 suites |
 
-Son pruebas con dobles, ejecutadas en el equipo de desarrollo.
+**630 pruebas en total.** Son pruebas con dobles, ejecutadas en el equipo de desarrollo; la cobertura no sustituye a las pruebas con infraestructura real. El eje más ajustado es el de ramas de la API (90,32 %): un cambio que añada condicionales sin probarlos rompe la puerta de cobertura.
+
+La cifra de la API bajó respecto a la medición anterior porque las pruebas del servicio y del repositorio de Feed se trasladaron a `@social-unsch/feed-domain`, donde ahora vive la única implementación. No es una pérdida de cobertura: el mismo código se mide en otro workspace, al 100 %.
 
 ### Integración continua
 
+CI ejecuta cuatro jobs en matriz Node 20.14.0 y 24.11.1: `verify`, `test-real`, `e2e-radar` y `e2e-feed` ([ci.yml](../../.github/workflows/ci.yml)).
+
 | Job | Resultado | Ejecución |
 |---|---|---|
-| `verify` | Correcto | `39985651148` y `41060703064` en `main` |
-| `test-real` | **Fallido** | `39985651148` y `41060703064` en `main` |
+| `verify` | Correcto | Verde en `main` `452f9d6` ([45492869658](https://github.com/pillacarodriguezuriel-a11y/social_unsch/actions/runs/45492869658)) y en `codex/etapa-8-cierre-migracion` |
+| `test-real` | **Fallido en `main` `452f9d6`**; corregido en etapa 8 | Falló en `45492869658` por faltar `@social-unsch/feed-domain` en `jest.real.config.ts`/`ci.yml`; 36/36 en local sobre `f93847c` |
+| `e2e-radar` | Correcto | Verde en `main` `452f9d6` (`45492869658`) y 14/14 en local sobre `f93847c` |
+| `e2e-feed` | **Fallido en `main` `452f9d6`**; corregido y ampliado en etapa 8 | Falló en `45492869658`; 16/16 en local sobre `f93847c` (incluye permisos mínimos PG y matriz `proxy/proxy`) |
+
+Para los benchmarks exploratorios de Feed (`benchmark-feed-etapa8-2026-11-25.json` y corrida limpia `f93847c`), ver [Cierre de la migración §6](../migracion/ETAPA_08_CIERRE_MIGRACION.md#6-rendimiento-y-costos).
 
 ### Producción
 

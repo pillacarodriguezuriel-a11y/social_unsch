@@ -54,7 +54,7 @@ La edición de octubre conservó la estructura numerada existente.
 
 | Comprobación | Método | Resultado |
 |---|---|---|
-| Enlaces relativos | Script que resuelve cada enlace de `README.md` y `docs/` contra el sistema de archivos, incluidas las anclas a títulos | Todos los enlaces de los documentos de esta tarea resuelven. Los únicos enlaces que no resuelven están en el informe previo `migracion/ETAPA_02_ESTABILIZACION.md`, que usa rutas locales `file:///`; no se modificó |
+| Enlaces relativos | Script que resuelve cada enlace de `README.md` y `docs/` contra el sistema de archivos | **Etapa 8: 1326 enlaces relativos comprobados, 0 roto.** Se corrigieron las rutas locales `file:///` que quedaban en `migracion/ETAPA_02_ESTABILIZACION.md` |
 | Sintaxis de los diagramas | Los 34 bloques Mermaid se renderizaron con `@mermaid-js/mermaid-cli` 11.17.0 (Mermaid 11.17.2) | Los 34 se generan sin error |
 | Legibilidad de los diagramas | Revisión visual de cuatro diagramas renderizados | Dos diagramas de la arquitectura objetivo se simplificaron por cruces de líneas |
 | Símbolos citados | Búsqueda en el código de cada función, restricción, índice, disparador y constante citados | Todos existen |

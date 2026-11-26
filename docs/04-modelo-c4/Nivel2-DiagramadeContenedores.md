@@ -1,7 +1,7 @@
 # C2 · Contenedores actuales
 
 **Pregunta:** ¿qué aplicaciones y almacenes de datos conforman SOCIAL-UNSCH?
-**Describe:** lo que opera en producción, comprobado el 2026-10-30. El servicio Radar no está aquí porque su código está en `main` pero no se ha desplegado: su diagrama es el de [transición](05-contenedores-de-transicion.md).
+**Describe:** lo que opera en producción. Los servicios `apps/radar` y `apps/feed` **no están aquí** porque su código está en `main` pero no se ha desplegado, y la API sigue atendiendo ambos dominios en proceso (`RADAR_MODE=local`, `FEED_MODE=local`). El diagrama con ellos activos es el de [transición](05-contenedores-de-transicion.md).
 
 Recordatorio: «contenedor» en C4 no significa Docker. Ninguna de estas piezas se despliega hoy con Docker.
 
@@ -14,7 +14,7 @@ flowchart TB
 
     subgraph SISTEMA["SOCIAL-UNSCH"]
         WEB["Aplicación web<br/>Next.js 14, React 18<br/>apps/web"]
-        API["API<br/>Express 4, Node.js, TypeScript<br/>apps/api, un solo proceso<br/>Radar en modo local"]
+        API["API<br/>Express 4, Node.js, TypeScript<br/>apps/api, un solo proceso<br/>Radar y Feed en modo local"]
         MIG["Herramientas de migración<br/>scripts TypeScript con ts-node<br/>ejecución manual"]
     end
 
@@ -39,7 +39,7 @@ flowchart TB
 | PostgreSQL | 15 en `docker-compose.yml`; versión de producción sin confirmar | Usuarios, catálogos, publicaciones, matchmaking y carpooling, además de tablas aún sin uso | IMPLEMENTADO |
 | Redis | 7 en `docker-compose.yml`; versión de producción sin confirmar | Votos y estados del radar con vigencia de 15 minutos | IMPLEMENTADO |
 
-`packages/contracts` es una biblioteca de contratos que se compila junto a las aplicaciones; no es un contenedor.
+`packages/contracts` y `packages/feed-domain` son bibliotecas que se compilan junto a las aplicaciones; no son contenedores. `apps/radar` y `apps/feed` **sí** serían contenedores, pero no están desplegados: aparecen en el [diagrama de transición](05-contenedores-de-transicion.md).
 
 ## Relaciones
 

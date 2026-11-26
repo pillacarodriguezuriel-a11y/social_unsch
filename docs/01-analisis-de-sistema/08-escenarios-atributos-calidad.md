@@ -201,4 +201,69 @@ En la columna de estado, «Verificado» significa que existe una prueba automati
 | Verificación | `npm run verify` y pruebas de contrato |
 | Estado | Implementado en `verify`; una divergencia de lógica entre las dos implementaciones podría no detectarse |
 
+## EC-16 Resiliencia: el servicio Feed deja de responder
+
+| Elemento | Descripción |
+|---|---|
+| Fuente | Fallo del proceso, de la red o del plan de alojamiento |
+| Estímulo | `apps/feed` no responde con `FEED_MODE=proxy` activo |
+| Entorno | Producción, modo proxy |
+| Elemento afectado | `/api/v1/feed`; el resto de la API no debe degradarse |
+| Respuesta esperada | 502 `ERR_FEED_UPSTREAM_UNAVAILABLE` o 504 `ERR_FEED_UPSTREAM_TIMEOUT`, un solo intento, sin respaldo automático al modo local. `feed: down` en `/health/ready` con estado `degraded`. Catálogos, autenticación, matchmaking y carpooling siguen en 200 |
+| Medida | Ningún fallo atribuible a Feed en los demás flujos; reversión por `FEED_MODE=local` sin pérdida de publicaciones |
+| Verificación | [feed.proxy.test.ts](../../apps/api/tests/integration/feed.proxy.test.ts) y [feed.e2e.test.js](../../tests/e2e/feed.e2e.test.js) |
+| Estado | Probado en local y en CI. **No observado en producción:** el servicio no está desplegado |
+
+## EC-17 Seguridad: acceso directo al servicio Feed
+
+| Elemento | Descripción |
+|---|---|
+| Fuente | Cliente que alcanza `apps/feed` sin pasar por la API |
+| Estímulo | Solicitud sin token, con token inválido, caducado, manipulado o firmado con otra clave; o con una cabecera `x-user-id` falsificada |
+| Entorno | Producción, servicio desplegado |
+| Elemento afectado | `apps/feed` |
+| Respuesta esperada | 401 en todos los casos. El servicio deriva la identidad **solo** de la firma RS256 verificada con la clave pública, y nunca de una cabecera |
+| Medida | 0 accesos concedidos sin un token válido |
+| Verificación | [auth.middleware.test.ts](../../apps/feed/tests/unit/auth.middleware.test.ts), E2E de acceso directo y `ops:probe` con `PROBE_FEED` (un 200 sin token sería un fallo) |
+| Estado | Probado en local y en CI. **No observado en producción:** el servicio no está desplegado |
+
+## EC-18 Integridad: una escritura del Feed que agota el tiempo del proxy
+
+| Elemento | Descripción |
+|---|---|
+| Fuente | Latencia o caída del servicio durante una escritura |
+| Estímulo | `POST /api/v1/feed` supera `FEED_PROXY_TIMEOUT_MS` |
+| Entorno | Producción, modo proxy |
+| Elemento afectado | Tabla `feed_posts` |
+| Respuesta esperada | 504 controlado. **No hay reintento automático ni respaldo entre procesos**, porque la operación no es idempotente: la publicación puede haberse creado. El cliente debe comprobar con `GET /api/v1/feed` antes de reenviar |
+| Medida | 0 publicaciones duplicadas atribuibles a un reintento del sistema |
+| Verificación | [feed.proxy.test.ts](../../apps/api/tests/integration/feed.proxy.test.ts): comprueba un solo intento ante tiempo agotado |
+| Estado | Probado en local y en CI. **Riesgo residual aceptado y documentado:** resolver la idempotencia exigiría una clave de deduplicación que hoy no existe |
+
+## EC-19 Modificabilidad: cambiar una regla del Feed sin que los dos modos divierjan
+
+| Elemento | Descripción |
+|---|---|
+| Fuente | Desarrollador |
+| Estímulo | Cambia un filtro, el orden, la paginación o un mensaje de error del Feed |
+| Entorno | Tiempo de desarrollo |
+| Elemento afectado | `packages/feed-domain`; de ahí, la API en modo local y `apps/feed` |
+| Respuesta esperada | El cambio se aplica a los dos modos a la vez porque hay **una sola implementación**. Si alguien cambiara solo un modo, las pruebas de contrato en espejo fallarían |
+| Medida | Imposible que el modo local y el proxy respondan distinto a la misma petición |
+| Verificación | `npm run verify`: pruebas de `feed-domain`, contrato en [API](../../apps/api/tests/contract/feed.contract.test.ts) y en [servicio](../../apps/feed/tests/contract/feed.contract.test.ts), y paridad en E2E |
+| Estado | **Implementado.** Es la diferencia con EC-15: Radar sí tiene dos implementaciones y conserva ese riesgo ([P-06](../07-evaluacion-y-evolucion/08-pendientes.md#p-06--dos-implementaciones-de-radar)) |
+
+## EC-20 Disponibilidad: PostgreSQL cae con el Feed extraído
+
+| Elemento | Descripción |
+|---|---|
+| Fuente | Pausa, agotamiento de conexiones o incidencia del proveedor |
+| Estímulo | PostgreSQL deja de responder con `FEED_MODE=proxy` activo |
+| Entorno | Producción, modo proxy |
+| Elemento afectado | La API **y** `apps/feed`: comparten la base |
+| Respuesta esperada | 503 en `/health/ready` de ambos procesos. **Revertir a `FEED_MODE=local` no resuelve nada**, porque la causa es compartida |
+| Medida | El diagnóstico distingue caída de un proceso de caída de la base antes de intentar cualquier reversión |
+| Verificación | E2E con PostgreSQL detenido; [guía de recuperación](../05-despliegue-y-operacion/04-observabilidad-y-recuperacion.md#modos-de-fallo-conocidos) |
+| Estado | Probado en local. **Consecuencia directa de que Feed no tenga datos propios** ([P-28](../07-evaluacion-y-evolucion/08-pendientes.md#p-28--feed-no-tiene-independencia-de-datos)) |
+
 [← Índice](../README.md)

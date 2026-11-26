@@ -2,7 +2,7 @@
 
 Qué debe comprobarse antes, durante y después de extraer un servicio, y cómo decidir si la migración debe continuar.
 
-> **Estado: PROPUESTO.** Son criterios por aplicar. Radar es el primer caso: tiene código, pero ninguna extracción está activa en producción, y los umbrales numéricos son objetivos pendientes de validación. Su situación frente a estos criterios está en [Estrategia de migración](../migracion/README.md#principio-no-distribuir-por-distribuir).
+> **Estado: PROPUESTO y aplicado en parte.** Radar y Feed son los dos casos reales: ambos tienen código, pruebas con infraestructura real y mediciones locales, pero **ninguna extracción está activa en producción**. Los umbrales de Radar están acordados; **los de Feed son una propuesta sin aprobar**, de modo que sus mediciones son exploratorias y no habilitan la activación. La situación de cada uno frente a estos criterios está en [Estrategia de migración](../migracion/README.md#principio-no-distribuir-por-distribuir) y en el [cierre de la migración](../migracion/ETAPA_08_CIERRE_MIGRACION.md#12-cierre-verificable).
 
 ## Principio
 
@@ -53,6 +53,7 @@ No existe hoy una medición previa de latencia ni de errores. Obtenerla es un re
 | Dominio | Qué vigilar en particular | Prueba de referencia |
 |---|---|---|
 | Radar | Consenso con 3 usuarios, voto duplicado, vigencia de 15 minutos, mismas claves de Redis que el monolito | [radar.real.test.ts](../../apps/api/tests/real/radar.real.test.ts) |
+| Feed | Paginación y filtros académicos, longitud máxima del contenido, saneado XSS, autor resuelto por `JOIN`, mismos códigos de error en los dos modos, integridad de escrituras contando filas reales | [pruebas del dominio](../../packages/feed-domain/tests/http.test.ts), [contrato en la API](../../apps/api/tests/contract/feed.contract.test.ts), [contrato en el servicio](../../apps/feed/tests/contract/feed.contract.test.ts), [E2E con paridad](../../tests/e2e/feed.e2e.test.js) |
 | Identidad | Registro e inicio de sesión sin interrupción; rechazo del rol administrador; los tokens emitidos antes siguen siendo válidos | [auth.real.test.ts](../../apps/api/tests/real/auth.real.test.ts) |
 | Comunidad | Publicaciones con datos de autor correctos sin `JOIN`; máquina de estados del matchmaking; privacidad del contacto | [feed_matchmaking.real.test.ts](../../apps/api/tests/real/feed_matchmaking.real.test.ts) |
 | Movilidad | Sin sobreventa; una sola solicitud activa; solo el conductor confirma; contacto revelado solo al confirmar | [carpooling.real.test.ts](../../apps/api/tests/real/carpooling.real.test.ts) |

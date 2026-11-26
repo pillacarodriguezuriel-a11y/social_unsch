@@ -1,13 +1,15 @@
 # Arquitectura objetivo
 
-> **Estado: PROPUESTO.** Describe el destino de la migración, no el sistema actual. Solo Radar tiene código de servicio, en un PR sin desplegar. Ningún otro servicio existe, ni se ha aprobado este destino.
+> **Estado: PROPUESTO, y parcialmente superado.** Describe el destino que se había imaginado, no el sistema actual ni el alcance acordado. **Radar y Feed tienen código de servicio en `main`, ninguno desplegado.** Identidad, Movilidad y Recursos **no se extraerán en esta fase**: el [ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md) cierra el alcance en las cinco piezas que existen hoy (web, API, Radar, Feed, más PostgreSQL y Redis). Este documento se conserva como horizonte a largo plazo, no como compromiso; el estado vigente está en [Cierre de la migración](../migracion/ETAPA_08_CIERRE_MIGRACION.md).
 
 ## Qué es real y qué no
 
 | Elemento | Clasificación |
 |---|---|
 | Monorepo, contratos de Radar, límites comprobados, entrada `/api/v1` | Implementado |
-| Servicio Radar | Siguiente etapa: código en `main`, falta validar, desplegar y activar |
+| Servicio Radar | Código en `main` y validado con infraestructura real; **falta desplegar y activar** |
+| Servicio Feed y dominio compartido (`packages/feed-domain`) | Código en `main` y validado; **falta desplegar y activar.** No logró independencia de datos: comparte PostgreSQL |
+| Identidad, Movilidad, Recursos como servicios | **No ejecutados y fuera del alcance acordado** ([ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md)) |
 | Identidad y Comunidad separadas | Futuro |
 | Movilidad como servicio | Futuro |
 | Recursos y créditos como servicio | Futuro; primero hay que construirlo |

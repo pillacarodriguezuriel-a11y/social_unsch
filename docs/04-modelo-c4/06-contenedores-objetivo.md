@@ -1,6 +1,6 @@
 # C2 · Contenedores objetivo
 
-> **Estado: PROPUESTO.** Este diagrama representa el destino de la migración. En operación solo existen la aplicación web, una API y los almacenes PostgreSQL y Redis. Radar tiene [código propio](05-contenedores-de-transicion.md), sin desplegar; los demás servicios no existen. La entrada de API hoy es la propia API, no un contenedor separado.
+> **Estado: PROPUESTO, y parcialmente superado.** Este diagrama representa un destino a largo plazo. **En operación solo existen la aplicación web, una API y los almacenes PostgreSQL y Redis.** Radar y Feed tienen [código propio](05-contenedores-de-transicion.md), **ninguno desplegado**; Identidad, Movilidad y Recursos no existen y **no se extraerán en esta fase** ([ADR-011](../06-decisiones-arquitectonicas/ADR-011-cierre-de-la-migracion-y-alcance-final.md)). La entrada de API hoy es la propia API, no un contenedor separado.
 
 **Pregunta:** ¿cuál es el destino de la migración?
 

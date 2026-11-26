@@ -114,4 +114,47 @@ Radar nunca debe recibir `JWT_PRIVATE_KEY` ni `DATABASE_URL`.
 
 Al usar `RADAR_MODE=proxy` en la API, `RADAR_PROXY_TARGET` es obligatoria: si falta, la API no arranca. En ese modo la API no abre Redis, pero conviene conservar `REDIS_URL` para poder revertir.
 
+## Servicio Feed
+
+Variables de `apps/feed` ([env.ts](../../apps/feed/src/config/env.ts)). **Estado:** código en `main`, sin desplegar.
+
+| Variable | Propósito | Obligatoria | Sensibilidad |
+|---|---|---|---|
+| `JWT_PUBLIC_KEY` | Verificar tokens RS256 | Sí; el proceso no arranca sin ella | Pública |
+| `DATABASE_URL` | Conexión a PostgreSQL, esquema `postgres://` o `postgresql://` | Sí; el proceso no arranca sin ella | **Secreta** |
+| `ALLOWED_ORIGINS` | Orígenes CORS | Recomendada; en producción sin ella solo avisa | Pública |
+| `PORT`, `APP_PORT` | Puerto; 4002 por defecto | No | Pública |
+| `NODE_ENV`, `SERVICE_NAME` | Entorno y nombre en los registros | No | Pública |
+
+**Feed nunca debe recibir `JWT_PRIVATE_KEY` ni `REDIS_URL`.** Solo verifica firmas; no emite tokens ni usa Redis. Un fallo de configuración se informa sin imprimir el valor de ninguna variable.
+
+Al usar `FEED_MODE=proxy` en la API, `FEED_PROXY_TARGET` es obligatoria: si falta, la API no arranca. A diferencia de Radar, en modo proxy la API **sigue necesitando `DATABASE_URL`** porque el resto de sus módulos la usan; conservarla es también lo que permite revertir a `FEED_MODE=local` sin redespliegue.
+
+### Variables de la API para el modo proxy de Feed
+
+| Variable | Valor | Nota |
+|---|---|---|
+| `FEED_MODE` | `proxy` | `local` es el valor por defecto y el activo hoy en producción |
+| `FEED_PROXY_TARGET` | `http://<host-interno>:10000` o `https://<dominio-confirmado>` | Sin credenciales, sin query ni fragmento; la API rechaza el arranque si no cumple |
+| `FEED_PROXY_TIMEOUT_MS` | `5000` (defecto); rango 100–30000 | No aumentar para disimular lentitud |
+
+### Configuración candidata del servicio en Render (sin secretos)
+
+No se ha creado ni modificado ningún servicio. Esta es la propuesta a aprobar:
+
+| Parámetro | Valor propuesto |
+|---|---|
+| Tipo de servicio | **Web Service** (permite *health check* HTTP `/health/ready`) |
+| Nombre / Repositorio / Raíz | `social-unsch-feed` / `pillacarodriguezuriel-a11y/social_unsch` / raíz del monorepo |
+| Rama y despliegue | `main` en un commit con CI verde, **auto-deploy desactivado** inicialmente |
+| Build Command | `npm ci --include=dev && npm run build:feed` |
+| Start Command | `npm run start:feed` |
+| Health Check Path | `/health/ready` (devuelve 503 si PostgreSQL falla) |
+| Región y Plan | Misma región que la API y Supabase; plan **sin suspensión por inactividad** |
+| Runtime Node | `20.14.0` o `24.11.1` (ambos validados en la matriz de CI) |
+
+**Incompatibilidad conocida:** un plan con suspensión por inactividad tiene arranque en frío de decenas de segundos, superior al máximo configurable de `FEED_PROXY_TIMEOUT_MS` (30 s). Activar el proxy contra un servicio así produce 504 sistemáticos. Queda prohibido usar cron o latidos artificiales para evitar la suspensión: eso elude el límite del proveedor y falsea la medición del arranque en frío.
+
+**Antes de desplegar** hay que confirmar en Supabase el límite de conexiones del plan y el modo del pooler: el presupuesto conjunto pasa a 30 conexiones y el pooler en *Transaction mode* es incompatible con las consultas preparadas con nombre que usa el repositorio ([detalle](../02-arquitectura-software/06-datos-y-propiedad-por-dominio.md#presupuesto-total-de-conexiones)).
+
 [← Índice](../README.md)
