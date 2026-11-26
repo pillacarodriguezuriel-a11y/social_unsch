@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { Pool } from 'pg';
 import { requireAuth } from '../../middlewares/auth.middleware';
-import { PgAuthorMetaAdapter } from './adapters/pg-author-meta.adapter';
+import { FeedHttpHandlers, FeedService } from '@social-unsch/feed-domain';
 import { FeedRepository } from './feed.repository';
-import { FeedService } from '@social-unsch/feed-domain';
 import { FeedController } from './feed.controller';
 
 export interface FeedModuleDeps {
@@ -11,18 +10,16 @@ export interface FeedModuleDeps {
 }
 
 /**
- * Punto de composición del dominio Feed.
+ * Punto de composición del dominio Feed en modo local.
  *
- * Reúne todas las dependencias internas y expone únicamente el router HTTP.
- * Este es el punto de sustitución que, en la etapa de extracción, se
- * reemplazaría por un proxy o un router hacia un servicio independiente,
- * sin cambiar app.ts ni composition.ts.
+ * Reúne las dependencias y expone únicamente el router HTTP. Es el punto que
+ * `composition.ts` sustituye por `feed.proxy.ts` cuando `FEED_MODE=proxy`, sin
+ * cambiar `app.ts`.
  */
 export function createFeedRouter(deps: FeedModuleDeps): Router {
-  const authorMetaReader = new PgAuthorMetaAdapter(deps.pool);
-  const feedRepository = new FeedRepository(deps.pool, authorMetaReader);
-  const feedService = new FeedService(feedRepository);
-  const feedController = new FeedController(feedService);
+  const feedRepository = new FeedRepository(deps.pool);
+  const handlers = new FeedHttpHandlers(new FeedService(feedRepository));
+  const feedController = new FeedController(handlers);
 
   const router = Router();
   router.get('/', requireAuth, feedController.getFeed);

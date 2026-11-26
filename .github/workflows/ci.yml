@@ -58,8 +58,8 @@ jobs:
       - name: Instalación limpia de dependencias
         run: npm ci
 
-      - name: Compilar contratos de intercambio
-        run: npm run build:contracts
+      - name: Compilar paquetes compartidos
+        run: npm run build:contracts && npm run build:feed-domain
 
       - name: Ejecutar pruebas reales contra contenedores desechables
         run: npm run test:real
@@ -138,4 +138,4 @@ jobs:
 
       - name: Eliminar contenedores de prueba
         if: always()
-        run: docker rm -f social_unsch_e2e_feed_pg || true
+        run: docker rm -f social_unsch_e2e_feed_pg social_unsch_e2e_feed_redis || true

@@ -7,8 +7,8 @@
  *   - create()       — INSERT + author meta via IAuthorMetaReader, returned IFeedPost shape
  */
 
-import { FeedRepository } from '../../src/modules/feed/feed.repository';
-import type { IAuthorMetaReader, IFeedPost } from '@social-unsch/feed-domain';
+import { PgFeedRepository } from '../src/pg-feed.repository';
+import type { IAuthorMetaReader, IFeedPost } from '../src/ports';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -35,7 +35,12 @@ const makeRow = (overrides: Partial<IFeedPost> = {}): IFeedPost => ({
 
 // ─── Test Suite ───────────────────────────────────────────────────────────────
 
-describe('FeedRepository', () => {
+const makeRepo = (
+  db: any,
+  authorMetaReader: IAuthorMetaReader = makeMockAuthorReader()
+) => new PgFeedRepository({ db, authorMetaReader, statementPrefix: 'prueba' });
+
+describe('PgFeedRepository', () => {
   // ════════════════════════════════════════════════════════════════════
   // findFiltered()
   // ════════════════════════════════════════════════════════════════════
@@ -44,7 +49,7 @@ describe('FeedRepository', () => {
     it('should return an array of posts with default parameters', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [makeRow(), makeRow({ id: 'post-uuid-rep-002' })] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       const result = await repo.findFiltered();
       expect(result).toHaveLength(2);
@@ -53,7 +58,7 @@ describe('FeedRepository', () => {
     it('should return empty array when no posts exist', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       const result = await repo.findFiltered();
       expect(result).toEqual([]);
@@ -62,7 +67,7 @@ describe('FeedRepository', () => {
     it('should NOT include faculty_id filter when facultyId is undefined', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       await repo.findFiltered(undefined, undefined, 20, 0);
       const query = pool.query.mock.calls[0][0];
@@ -72,7 +77,7 @@ describe('FeedRepository', () => {
     it('should include faculty_id filter when facultyId is provided', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       await repo.findFiltered(2, undefined, 20, 0);
       const query = pool.query.mock.calls[0][0];
@@ -83,7 +88,7 @@ describe('FeedRepository', () => {
     it('should NOT include school_id filter when schoolId is undefined', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       await repo.findFiltered(undefined, undefined, 20, 0);
       const query = pool.query.mock.calls[0][0];
@@ -93,7 +98,7 @@ describe('FeedRepository', () => {
     it('should include school_id filter when schoolId is provided', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       await repo.findFiltered(undefined, 5, 20, 0);
       const query = pool.query.mock.calls[0][0];
@@ -104,7 +109,7 @@ describe('FeedRepository', () => {
     it('should include both filters when both facultyId and schoolId are provided', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       await repo.findFiltered(1, 3, 20, 0);
       const query = pool.query.mock.calls[0][0];
@@ -117,7 +122,7 @@ describe('FeedRepository', () => {
     it('should pass limit=10 and offset=20 to query values', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       await repo.findFiltered(undefined, undefined, 10, 20);
       const query = pool.query.mock.calls[0][0];
@@ -128,7 +133,7 @@ describe('FeedRepository', () => {
     it('should ORDER BY created_at DESC in the query', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       await repo.findFiltered();
       const query = pool.query.mock.calls[0][0];
@@ -138,7 +143,7 @@ describe('FeedRepository', () => {
     it('should filter only visible posts (is_visible = true)', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [] });
-      const repo = new FeedRepository(pool);
+      const repo = makeRepo(pool);
 
       await repo.findFiltered();
       const query = pool.query.mock.calls[0][0];
@@ -166,7 +171,7 @@ describe('FeedRepository', () => {
         created_at: new Date(),
       };
       pool.query.mockResolvedValueOnce({ rows: [postRow] });
-      const repo = new FeedRepository(pool, authorReader);
+      const repo = makeRepo(pool,authorReader);
 
       const result = await repo.create({
         userId,
@@ -186,7 +191,7 @@ describe('FeedRepository', () => {
       const authorReader = makeMockAuthorReader();
       const postRow = { id: 'post-new-002', user_id: userId, content: 'Test', is_visible: true, created_at: new Date() };
       pool.query.mockResolvedValueOnce({ rows: [postRow] });
-      const repo = new FeedRepository(pool, authorReader);
+      const repo = makeRepo(pool,authorReader);
 
       await repo.create({ userId, content: 'Test' });
       expect(pool.query).toHaveBeenCalledTimes(1);
@@ -197,7 +202,7 @@ describe('FeedRepository', () => {
       const pool = makeMockPool();
       const postRow = { id: 'post-null', user_id: userId, content: 'Hello', is_visible: true, created_at: new Date() };
       pool.query.mockResolvedValueOnce({ rows: [postRow] });
-      const repo = new FeedRepository(pool, makeMockAuthorReader());
+      const repo = makeRepo(pool,makeMockAuthorReader());
 
       await repo.create({ userId, content: 'Hello' });
 
@@ -209,7 +214,7 @@ describe('FeedRepository', () => {
     it('should pass userId as the first INSERT value', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [{ id: 'p', user_id: userId, content: 'c', is_visible: true, created_at: new Date() }] });
-      const repo = new FeedRepository(pool, makeMockAuthorReader());
+      const repo = makeRepo(pool,makeMockAuthorReader());
 
       await repo.create({ userId, content: 'c' });
       const values = pool.query.mock.calls[0][0].values;
@@ -219,7 +224,7 @@ describe('FeedRepository', () => {
     it('should pass content as the 4th INSERT value', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [{ id: 'p2', user_id: userId, content: 'safe', is_visible: true, created_at: new Date() }] });
-      const repo = new FeedRepository(pool, makeMockAuthorReader());
+      const repo = makeRepo(pool,makeMockAuthorReader());
 
       await repo.create({ userId, content: 'safe content' });
       const values = pool.query.mock.calls[0][0].values;
@@ -229,7 +234,7 @@ describe('FeedRepository', () => {
     it('should execute an INSERT INTO feed_posts statement', async () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [{ id: 'p3', user_id: userId, content: 'c', is_visible: true, created_at: new Date() }] });
-      const repo = new FeedRepository(pool, makeMockAuthorReader());
+      const repo = makeRepo(pool,makeMockAuthorReader());
 
       await repo.create({ userId, content: 'c' });
       const insertText = pool.query.mock.calls[0][0].text;
@@ -248,7 +253,7 @@ describe('FeedRepository', () => {
         created_at: new Date('2025-08-01T00:00:00Z'),
       };
       pool.query.mockResolvedValueOnce({ rows: [postRow] });
-      const repo = new FeedRepository(pool, makeMockAuthorReader({ full_name: 'Ana Quispe', role: 'teacher' }));
+      const repo = makeRepo(pool,makeMockAuthorReader({ full_name: 'Ana Quispe', role: 'teacher' }));
 
       const result = await repo.create({ userId, content: 'Spread test', facultyId: 2, schoolId: 4 });
       expect(result.faculty_id).toBe(2);
@@ -262,7 +267,7 @@ describe('FeedRepository', () => {
       const pool = makeMockPool();
       pool.query.mockResolvedValueOnce({ rows: [{ id: 'p', user_id: userId, content: 'c', is_visible: true, created_at: new Date() }] });
       const noAuthor: IAuthorMetaReader = { getAuthorMeta: jest.fn().mockResolvedValue(null) };
-      const repo = new FeedRepository(pool, noAuthor);
+      const repo = makeRepo(pool,noAuthor);
 
       const result = await repo.create({ userId, content: 'c' });
       expect(result.author_name).toBe('');

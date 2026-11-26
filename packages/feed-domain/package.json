@@ -2,15 +2,21 @@
   "name": "@social-unsch/feed-domain",
   "version": "1.0.0",
   "private": true,
-  "description": "Dominio Feed: puertos, servicio y errores compartidos entre apps/api y apps/feed.",
+  "description": "Dominio Feed: puertos, servicio, repositorio SQL, manejadores HTTP y errores compartidos entre apps/api y apps/feed.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "typecheck": "tsc --noEmit --project tsconfig.json"
+    "typecheck": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.jest.json",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.14.9",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
     "typescript": "^5.5.2"
   }
 }

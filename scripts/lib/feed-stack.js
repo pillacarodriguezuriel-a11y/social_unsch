@@ -10,7 +10,7 @@
  */
 
 const path = require('path');
-const { ROOT, Infra, AppProcess, generateKeys, assertLocalUrl, waitFor, sleep, tcpOpen } = require('./radar-stack');
+const { ROOT, Infra, AppProcess, radarProcess, blackHoleServer, generateKeys, assertLocalUrl, waitFor, sleep, tcpOpen } = require('./radar-stack');
 
 const FEED_DIR = path.join(ROOT, 'apps', 'feed');
 const API_DIR = path.join(ROOT, 'apps', 'api');
@@ -49,9 +49,60 @@ class FeedInfra extends Infra {
     }
   }
 
+  /**
+   * Ejecuta SQL en el PostgreSQL desechable y devuelve la salida sin formato.
+   * Lanza con el mensaje de psql si falla, en lugar de devolver null: un error
+   * silencioso aquí haría pasar por «siembra vacía» un fallo de esquema.
+   *
+   * Solo para sembrar y comprobar integridad en pruebas locales: nunca apunta a
+   * una base remota (`assertLocalUrl` en start/migrate).
+   */
+  psql(sql) {
+    const { execFileSync } = require('child_process');
+    try {
+      return execFileSync(
+        'docker',
+        ['exec', this.pgName, 'psql', '-U', 'e2e_user', '-d', 'social_unsch_e2e', '-v', 'ON_ERROR_STOP=1', '-tAc', sql],
+        { stdio: ['ignore', 'pipe', 'pipe'] },
+      ).toString().trim();
+    } catch (error) {
+      const detail = (error.stderr || error.stdout || '').toString().trim();
+      throw new Error(`psql falló: ${detail || error.message}`);
+    }
+  }
+
+  /** Estadísticas del contenedor de PostgreSQL (no hay Redis en este arnés). */
+  containerStats() {
+    const { execFileSync } = require('child_process');
+    try {
+      return execFileSync('docker', ['stats', '--no-stream', '--format', '{{.Name}};{{.CPUPerc}};{{.MemUsage}}', this.pgName],
+        { stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim().split('\n');
+    } catch {
+      return null;
+    }
+  }
+
+  /** Levanta Redis desechable bajo demanda (para ensayos de matriz proxy/proxy). */
+  async startRedisContainer() {
+    const { execFileSync } = require('child_process');
+    try { execFileSync('docker', ['rm', '-f', this.redisName], { stdio: 'pipe' }); } catch { /* no existe */ }
+    execFileSync('docker', ['run', '-d', '--name', this.redisName, '-p', `127.0.0.1:${this.o.redisPort}:6379`, this.o.redisImage], { stdio: ['ignore', 'pipe', 'pipe'] });
+    await waitFor(() => this.redisCli('PING') === 'PONG', { label: 'Redis (matriz feed/radar)', timeoutMs: 60000 });
+  }
+
+  /** Ejecuta SQL en el PostgreSQL desechable con un rol específico (para verificar permisos mínimos). */
+  psqlAs(user, password, sql) {
+    const { execFileSync } = require('child_process');
+    return execFileSync(
+      'docker',
+      ['exec', '-e', `PGPASSWORD=${password}`, this.pgName, 'psql', '-h', '127.0.0.1', '-U', user, '-d', 'social_unsch_e2e', '-v', 'ON_ERROR_STOP=1', '-tAc', sql],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    ).toString().trim();
+  }
+
   removeContainers() {
     const { execFileSync } = require('child_process');
-    try { execFileSync('docker', ['rm', '-f', this.pgName], { stdio: 'pipe' }); } catch { /* no existe */ }
+    try { execFileSync('docker', ['rm', '-f', this.pgName, this.redisName], { stdio: 'pipe' }); } catch { /* no existe */ }
   }
 }
 
@@ -95,4 +146,4 @@ function apiProcess({ port, databaseUrl, redisUrl, keys, radarMode = 'local', ra
   return new AppProcess(`api-feed-${feedMode}`, API_DIR, path.join(API_DIR, 'dist', 'server.js'), env, port);
 }
 
-module.exports = { FeedInfra, feedProcess, apiProcess, generateKeys, waitFor, sleep, tcpOpen };
+module.exports = { FeedInfra, feedProcess, radarProcess, apiProcess, blackHoleServer, generateKeys, waitFor, sleep, tcpOpen };
